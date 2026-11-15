@@ -1,0 +1,112 @@
+# Manual CI only, in a newly-created private dedicated laboratory repository.
+# No production secrets, sessions, DB, WhatsApp or writable upstream access.
+name: Crownicles Core MariaDB - private disposable lab
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  core-mariadb:
+    if: ${{ github.event.repository.private == true }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 70
+    services:
+      mariadb:
+        image: mariadb:12.3
+        env:
+          MARIADB_ROOT_PASSWORD: ci_only_root_7f53b1
+          MARIADB_USER: draftbot
+          MARIADB_PASSWORD: ci_only_game_6d39a4
+          MARIADB_DATABASE: bootstrap_ci_only
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=30
+    env:
+      TEST_DB_HOST: 127.0.0.1
+      TEST_DB_PORT: "3306"
+      TEST_DB_ROOT_USER: root
+      TEST_DB_ROOT_PASSWORD: ci_only_root_7f53b1
+      TEST_DB_USER: draftbot
+      TEST_DB_PASSWORD: ci_only_game_6d39a4
+    steps:
+      - name: Check out minimal private laboratory harness
+        uses: actions/checkout@v4
+      - name: Refuse other repos and non-isolated database targets
+        shell: bash
+        env:
+          PRIVATE_REPO: ${{ github.event.repository.private }}
+        run: |
+          set -euo pipefail
+          test "$PRIVATE_REPO" = true
+          test "$TEST_DB_HOST" = 127.0.0.1
+          test "$TEST_DB_PORT" = 3306
+          test -f integration/wa-equip-action.integration.test.ts
+          test -f tools/verify_core_junit.py
+      - name: Check out immutable upstream Crownicles (read-only)
+        uses: actions/checkout@v4
+        with:
+          repository: Crownicles/Crownicles
+          ref: 64d08c05f11949029317341735f6f73024f19f9b
+          path: upstream
+          persist-credentials: false
+      - name: Pin exact official Core source
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C upstream rev-parse HEAD)" = 64d08c05f11949029317341735f6f73024f19f9b
+          test -f upstream/Core/__tests__-integration/_coreSetup.ts
+          test -f upstream/Core/__tests__-integration/_setup.ts
+          test -f upstream/Core/vitest.integration.config.mts
+          test -f upstream/Core/config/config.default.toml
+      - name: Set up Node.js 26
+        uses: actions/setup-node@v4
+        with:
+          node-version: "26"
+      - name: Install official pinned pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.34.3
+      - name: Install original Lib and Core dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm --dir upstream/Lib install --frozen-lockfile
+          pnpm --dir upstream/Core install --frozen-lockfile
+      - name: Prepare original bootstrap config for disposable runner
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp upstream/Core/config/config.default.toml upstream/Core/config/config.toml
+          test -f upstream/Core/config/config.toml
+          cp integration/wa-equip-action.integration.test.ts upstream/Core/__tests__-integration/handlers/wa-equip-action.integration.test.ts
+      - name: Execute upstream MariaDB integration suite and seven equip scenarios
+        id: core
+        shell: bash
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          pnpm --dir upstream/Core test:integration
+      - name: Mandatory integrity and results gate
+        if: always()
+        shell: bash
+        env:
+          CORE_OUTCOME: ${{ steps.core.outcome }}
+        run: |
+          set -euo pipefail
+          test "$CORE_OUTCOME" = success || { echo 'CORE_MARIADB_LAB_FAILED: upstream suite or compilation failed'; exit 1; }
+          python3 tools/verify_core_junit.py upstream/Core/test-integration-results.xml
+          printf 'UPSTREAM_MARIADB_EQUIP_GATE_PASSED\n' > core-mariadb-gate-status.txt
+      - name: Upload audit artifacts even on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: crownicles-core-mariadb-audit
+          path: |
+            upstream/Core/test-integration-results.xml
+            core-mariadb-gate-status.txt
+          if-no-files-found: warn
+          retention-days: 14
