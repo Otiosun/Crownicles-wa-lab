@@ -190,6 +190,11 @@ async function startBaileys(cfg,coreBoot){
  if(typeof makeWASocket!=='function'||typeof useMultiFileAuthState!=='function')throw Error('BAILEYS_INCOMPATIVEL');
  const qr=require('qrcode-terminal');
  const {state,saveCreds}=await useMultiFileAuthState(path.join(stateDir,'baileys-auth'));
+  // A conta Pinguino ja foi pareada: esta beta NAO deve abrir login novo.
+  if(state?.creds?.registered!==true)throw Error('SESSAO_ANTIGA_NAO_REGISTRADA_NOVO_PAREAMENTO_BLOQUEADO');
+  const me=String(state.creds.me?.id||'');
+  const currentNumber=/^(\d{10,15})(?::\d+)?@(?:s\.whatsapp\.net|lid)$/.exec(me)?.[1];
+  if(currentNumber&&currentNumber!==cfg.botNumber)throw Error('WHATSAPP_DA_SESSAO_DIFERENTE_DO_BOT_CONFIGURADO');
  let codeIssued=false,ready=false,closing=false;
  const connect=async()=>{
   if(shuttingDown||closing)return;
