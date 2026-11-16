@@ -12,6 +12,7 @@ const {Presenter}=require('./bridge/presenter.cjs');
 const {CrowniclesCore}=require('./bridge/core.cjs');
 const {assertLabConfig}=require('./bridge/mqtt-isolation.cjs');
 const {normalizeJid}=require('./entrada.cjs');
+const {resolveIncomingSender}=require('./group-sender.cjs');
 process.umask(0o077);
 const HOME=process.env.HOME;
 if(!HOME||!path.isAbsolute(HOME))throw Error('HOME_INVALIDO');
@@ -223,13 +224,35 @@ async function startBaileys(cfg,coreBoot){
    if(shuttingDown||!ready||type!=='notify')return;
    for(const msg of messages||[]){
     try{
-     const chat=normalizeJid(msg.key?.remoteJid||'');
-     const sender=normalizeJid(msg.key?.participantPn||msg.key?.participant||msg.key?.remoteJidPn||msg.key?.remoteJid||'');
+     const resolved=await resolveIncomingSender(msg,socketClient);
+     const {chatJid:chat,senderJid:sender}=resolved;
      const body=extractText(msg);
-     if(!chat||!sender||!body||!msg.key?.id)continue;
-     const me=!!msg.key.fromMe;
-     if(me)continue;
-     await bridgeRuntime.handle({id:msg.key.id,chatJid:chat,senderJid:sender,text:body,fromMe:false});
+     if(!chat||!body||!msg.key?.id||msg.key.fromMe)continue;
+     const cmd=body.trim().toLowerCase().split(/\s+/)[0];
+     const isGroup=chat.endsWith('@g.us');
+     const adminCmd=cmd==='/ativar'||cmd==='/desativar';
+     if(isGroup&&adminCmd){
+      status('GRUPO_CONTROLE_RECEBIDO','SIM');
+      status('GRUPO_TIPO_IDENTIDADE',resolved.mode);
+     }
+     if(!sender){if(isGroup&&adminCmd)status('GRUPO_COMANDO_RECUSADO','SEM_PARTICIPANTE');continue}
+     // Unknown LID cannot be silently equated to a PN account or create an extra character.
+     if(isGroup&&resolved.mode==='lid-unresolved'){
+      if(adminCmd&&!/^[a-f0-9]{12}$/i.test(body.trim().split(/\s+/)[1]||'')){
+       status('GRUPO_AUTORIZACAO','CHAVE_NECESSARIA');
+       await socketClient.sendMessage(chat,{text:'🔐 Para ativar/desativar este grupo, o responsável deve enviar /chavegrupo no privado do Pinguino e depois /ativar CODIGO (ou /desativar CODIGO) aqui.'});
+       continue;
+      }
+      if(!adminCmd){
+       if(cmd.startsWith('/')||/^\d{1,3}$/.test(cmd)){
+        status('GRUPO_IDENTIDADE','LID_SEM_PN');
+        await socketClient.sendMessage(chat,{text:'Para evitar criar um personagem duplicado, use os comandos do jogo no privado do Pinguino enquanto o WhatsApp não disponibiliza seu número neste grupo.'});
+       }
+       continue;
+      }
+     }
+     const result=await bridgeRuntime.handle({id:msg.key.id,chatJid:chat,senderJid:sender,text:body,fromMe:false});
+     if(isGroup&&adminCmd){status('GRUPO_COMANDO_RESULTADO',result?.handled===true?'OK':(result?.reason||'NAO_TRATADO'))}
     }catch(e){status('MENSAGEM_FALHOU',String(e.message||e).slice(0,150))}
    }
   });
