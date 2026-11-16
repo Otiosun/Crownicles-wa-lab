@@ -10,7 +10,7 @@ const {renderPacket:renderLote09,slotSummary,enrichEquipMenu}=require('./lote09.
 const {renderPacket:renderLote10}=require('./lote10.cjs');
 const {renderPacket:renderLote11,collectorOption:optionLote11,collectorStory:storyLote11}=require('./lote11.cjs');
 const {cityOption,shopOption,encounterOption,additionalOption,notification}=require('./lote04.cjs');
-const {compileCollector,isKnownKind}=require('./universal-collector-v2.cjs');
+const {compileCollector,isKnownKind}=require('./universal-collector-v3.cjs');
 const {renderResponse:renderNativeResponse}=require('./native-universal.cjs');
 const fx={none:'Normal',occupied:'Ocupado',sleeping:'Dormindo',drunk:'Embriagado',freezing:'Congelado',feetHurt:'Pés feridos',hurt:'Machucado',sick:'Doente',jailed:'Preso',injured:'Ferido',starving:'Faminto',confounded:'Confuso',scared:'Assustado',lost:'Perdido',dead:'Morto',notStarted:'Não iniciado'};
 const clean=x=>String(x||'').replace(/\{emote:[^}]+\}/g,'').replace(/\{command:report\}/g,'/aventura').replace(/DraftBot/gi,'o reino').replace(/\$t\([^)]*\)/g,'').replace(/\s+/g,' ').trim();
