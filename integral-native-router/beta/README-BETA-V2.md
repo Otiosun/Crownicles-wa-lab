@@ -7,15 +7,15 @@ Versão inicial de **instalação para teste**, ainda sem homologação com Bail
 - MariaDB **privado** com banco `crownicles_beta_game` **persistente**, criado dentro de `~/crownicles-whatsapp-lab/crownicles-beta/mariadb-private`. Não o remove ao fechar. Nunca reutiliza o banco de produção ou o banco efêmero dos testes anteriores.
 - Broker Mosquitto privado em `127.0.0.1` com porta aleatória, MQTT `main.js`/`PacketUtils` originais e gateway da ponte Crownicles.
 - `Core.init()` completo continua bloqueado para evitar ativar cron, servidor e serviços que não foram homologados; os comandos básicos são registrados e executados pelo motor original.
-- Sessão Baileys exclusiva em `~/crownicles-whatsapp-lab/crownicles-beta/baileys-auth`, sem copiar credenciais de Clover ou outros bots.
+- Sessão Baileys **reutilizada** do Pinguino/Crownicles: a instalação procura `infra/wa-baileys-session-w3-fix` e depois `infra/wa-baileys-session`, validando `creds.json` registrado e copiando a sessão para `crownicles-beta/baileys-auth` sem alterar a original. Nunca copia a sessão de Clover ou outro bot. Pareamento novo está bloqueado neste instalador.
 - Cadastro e grupos em SQLite dentro da mesma pasta persistente. O bot é pareado com uma **linha diferente da do proprietário**.
 
 ## Como instalar
 
 1. Baixe o ZIP de instalação no ChatGPT.
 2. Copie o bloco de comando fornecido no ChatGPT para o Termux; ele confere SHA256, extrai os fontes num diretório exclusivo e executa `bash setup.sh`.
-3. Informe dois telefones somente no Termux: número **DO BOT** e número **DO DONO**, com DDI/DDD e sem `+`. Devem ser diferentes.
-4. O instalador verifica o Core, instala dependências Baileys em **sua pasta privada** e inicia a beta. Se o terminal emitir `CODIGO_PAREAMENTO=...`, no WhatsApp da **linha do bot** abra *Aparelhos conectados → Conectar com número de telefone*, e introduza esse código. Não envie o código para ninguém nem publique o log com ele.
+3. A instalação procura a sessão Crownicles **já conectada**; se não localizar, PARA sem solicitar novo pareamento. Informe dois telefones somente no Termux: número **DO BOT** e número **DO DONO**, com DDI/DDD e sem `+`. Devem ser diferentes.
+4. O instalador confere se o número do bot corresponde à sessão Pinguino já registrada, instala as dependências Baileys em sua pasta privada e inicia a beta. **Não gera código nem QR de pareamento**; se a sessão antiga não for válida, interrompe e solicita diagnóstico, sem reautenticação automática.
 5. Depois de `WHATSAPP_BETA=CONECTADO`, o dono entra no grupo escolhido e manda `/ativar`. Cada amigo manda `/cadastro` e depois `/jogar`. As respostas de aventura/perfil inicialmente saem **no privado**, mesmo quando o comando for enviado no grupo.
 
 ## Comandos
@@ -57,3 +57,7 @@ A saída do terminal mostra marcadores como `CORE_ORIGINAL=PRONTO`, `MQTT_ORIGIN
 ## Fontes
 
 `runtime.cjs`, `entrada.cjs`, `integracao.cjs`, 23 fontes originais da ponte em `bridge/`, `setup.sh`, `start.sh`, `package.json` e os 19 testes de entrada/integração já aprovados. Para maior rastreabilidade, nenhum binário ou pacote npm baixado está embutido: o instalador usa npm quando necessário.
+
+## Correção V2.1 — sessão Crownicles existente
+
+Este pacote **não exige parear novamente**: verifica e importa uma cópia da sessão Baileys do Pinguino já existente em `~/crownicles-whatsapp-lab/infra/wa-baileys-session-w3-fix/` (alternativa histórica: `wa-baileys-session/`). A autenticação original não é removida. Nunca iniciar o antigo gateway Pinguino e a nova beta simultaneamente com a mesma conta: isso pode provocar desconexões. O `setup.sh` recusa sessão ausente/não registrada e dados de número divergentes. Arquivos `creds.json` e chaves privadas não devem ser enviados ao chat. Se falhar, enviar SOMENTE a mensagem de erro sem o conteúdo do arquivo.
