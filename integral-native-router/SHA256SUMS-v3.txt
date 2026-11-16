@@ -1,0 +1,5 @@
+8f0e974d7af873dbf3b29ad0082a510fd73a56290fae76a05853f0a9e3397674  src/core.cjs
+0f1e327699d911e3b6259348e2eed6ee94f2516fcf2f6eb4cfef863ca7bbbe42  src/mqtt-isolation.cjs
+a8b18cbd152272c35657971fec0800c1ae0b8c80e705e7b4c782eed5b1fd6b35  test/core-mqtt-v3.test.cjs
+729143b3637da34821ae21d65a33ced5ae1040fe7cecf284ab7072488dc5e2e8  tools/mqtt-real-isolated-v3.cjs
+583045e5c331542908f361e024cf383506d1aefc4367b223efdca8dd10b9e24c  README-MQTT-V3.md
