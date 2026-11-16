@@ -1,6 +1,6 @@
 # Crownicles — Jornada Contínua V4 (Termux)
 
-**Situação em 16/11/2026: V4 preparada, integridade comprovada, GATE NATIVO ANDROID AINDA NÃO EXECUTADO.** Mantemos V3 aprovada 11/11 e não promovemos esta branch à produção.
+**Situação em 16/11/2026: V4 HOMOLOGADA NO TERMUX, 18/18 PASS, 7/7 novos, 0 falhas, LAB_SAIDA=0 e limpeza verificada.** A evidência foi fornecida diretamente pelo responsável. Não é homologação do bot de produção.
 
 ## Propósito
 
@@ -48,7 +48,7 @@ MARIADB_PRIVADO_REMOVIDO
 LAB_SAIDA=0
 ```
 
-**Não declarar 18/18 até log Android.** Se algum item falhar, corrigir exclusivamente a causa sem revalidar ping/deploy/prod.
+**Gate 18/18 foi cumprido no Termux no log enviado pelo responsável.** A V4 não confirma produção, cron ou seletores aleatórios: mapId29, evento 61 e evento 60 foram condicionados por fixtures de laboratório. Próxima bateria deve testar variação realista/seleção não forçada e persistência entre viagens sem repetir setup manual.
 
 ## Arquivos no Drive Komekko
 
@@ -58,3 +58,62 @@ LAB_SAIDA=0
 - README: https://drive.google.com/file/d/1EjGYc0ZcNif2nALfJilYiQaWljkeczDW/view
 
 Diário mestre: https://docs.google.com/document/d/1p6yD3vVhAP_sCNsAA8gl2tCWB4OsU0xaSFBLaC7Ztoo/edit
+
+
+## HOMOLOGAÇÃO REAL V4 — log fornecido pelo usuário em 16/11/2026
+
+```text
+V4_INTEGRIDADE=APROVADA
+LAB=JORNADA_CORE_NATIVO_MQTT_V4_CONTINUIDADE
+MARIADB_AMBIENTE=PRIVADO_DESCARTAVEL
+MARIADB_PRIVADO_PORTA=37385
+LAB_DB_CRIADO
+LAB_TCP_ISOLADO_OK
+CORE_MIGRATIONS_OK
+CORE_RECEPTOR_MQTT=MAIN_ORIGINAL
+CORE_MAIN_INIT_BLOQUEADO=SIM
+CORE_MQTT_PUBLISH=PACKETUTILS_ORIGINAL
+PASS=01_CORE_ORIGINAL_QUATRO_COMANDOS_E_COLETOR
+PASS=02_MQTT_SUBACK_ORIGINAL
+PASS=03_PERFIL_PRE_INICIO_CROWNICLES
+PASS=04_INVENTARIO_PRE_INICIO_CROWNICLES
+PASS=05_MISSOES_PRE_INICIO_CROWNICLES
+PASS=06_JOGAR_CROWNICLES_REPORT_E_MAPA_PERSISTIDO
+PASS=07_REENTREGA_JOGAR_SEM_NOVO_COMANDO
+PASS=08_MENU_E_REACAO_CROWNICLES_ORIGINAL
+PASS=09_PERFIL_APOS_EVENTO_CROWNICLES
+PASS=10_INVENTARIO_APOS_EVENTO_CROWNICLES
+PASS=11_MISSOES_APOS_EVENTO_CROWNICLES
+CONTINUIDADE_VIAGEM_REAL_DESTINO=29
+CONTINUIDADE_VIAGEM_RESTANTE_MIN=3
+PASS=12_RELATORIO_DURANTE_VIAGEM_ORIGINAL
+CONTINUIDADE_TEMPO_AVANCADO_ORIGINAL=5_MIN
+CONTINUIDADE_EVENTO_60_FIXTURE=SIM
+PASS=13_AVANCAR_TEMPO_PELA_ROTINA_TESTE_ORIGINAL
+CONTINUIDADE_SEGUNDO_EVENTO_ID=60
+PASS=14_SEGUNDO_EVENTO_CROWNICLES_CHEGADA
+PASS=15_DUPLICATA_SEGUNDO_RELATORIO_BLOQUEADA
+CONTINUIDADE_EVENTO2_RECOMPENSA_MOEDAS=15001
+CONTINUIDADE_EVENTO2_RECOMPENSA_XP=287
+CONTINUIDADE_EVENTO2_PONTOS=5
+PASS=16_ESCOLHA_SEGUNDO_EVENTO_NATIVO
+CONTINUIDADE_PERFIL_FINAL_LEVEL=3
+CONTINUIDADE_PERFIL_FINAL_MOEDAS=15009
+PASS=17_PERFIL_E_INVENTARIO_CONSISTENTES_DEPOIS_2_EVENTOS
+CONTINUIDADE_MISSOES_CAMPANHA=4
+PASS=18_MISSOES_E_COLETOR_ANTIGO_CONSISTENTES
+CONTINUIDADE_V4_NOVOS_TESTES=7/7
+CONTINUIDADE_V4_FALHAS=0
+JORNADA_CROWNICLES_RESULTADOS=18/18
+JORNADA_CROWNICLES_FALHAS=0
+WHATSAPP_REAL_NAO_ACESSADO=SIM
+MARIADB_SERVICO_LOCAL_COMPARTILHADO=NAO
+SCHEMA_DE_PRODUCAO_NAO_ACESSADO=SIM
+BANCO_TEMPORARIO_REMOVIDO
+MARIADB_PRIVADO_REMOVIDO
+LAB_SAIDA=0
+CODIGO_EXECUCAO=0
+LOG_COMPLETO=/data/data/com.termux/files/home/jornada_v4_resultado.log
+```
+
+**Leitura técnica:** a sequência nativa processou dois eventos e uma viagem; primeiro evento 61 devolveu score aleatório 65; segundo evento 60 deliberadamente fixado pelo teste produziu 15001 moedas, 287 XP e 5 pontos, elevando personagem a nível 3, 15009 moedas e campanha 4. Esses números não representam recompensa normal de gameplay, pois o 60 é um evento específico de teste com altos valores. Distinguem-se testado e ainda não testado: a escolha foi original, persistência real no banco efêmero, mas **não** houve rotação aleatória de eventos sem fixture. O banco e daemon privados foram apagados e nenhuma sessão WhatsApp real foi acessada.
