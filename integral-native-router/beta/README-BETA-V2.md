@@ -61,3 +61,14 @@ A saída do terminal mostra marcadores como `CORE_ORIGINAL=PRONTO`, `MQTT_ORIGIN
 ## Correção V2.1 — sessão Crownicles existente
 
 Este pacote **não exige parear novamente**: verifica e importa uma cópia da sessão Baileys do Pinguino já existente em `~/crownicles-whatsapp-lab/infra/wa-baileys-session-w3-fix/` (alternativa histórica: `wa-baileys-session/`). A autenticação original não é removida. Nunca iniciar o antigo gateway Pinguino e a nova beta simultaneamente com a mesma conta: isso pode provocar desconexões. O `setup.sh` recusa sessão ausente/não registrada e dados de número divergentes. Arquivos `creds.json` e chaves privadas não devem ser enviados ao chat. Se falhar, enviar SOMENTE a mensagem de erro sem o conteúdo do arquivo.
+
+
+## Instalação npm 12 / EALLOWGIT — Termux 16/11/2026
+
+No primeiro `bash setup.sh` do usuário, o preflight Crownicles 6.2.0.b passou, a sessão antiga Pinguino foi importada (`SESSAO_EXISTENTE=REUSED`, `PAREAMENTO_NOVO=NAO`), números bot/dono foram informados e a sessão conferiu. A instalação de Baileys 6.7.24 parou no comando `npm install` com `EALLOWGIT` porque `libsignal` é dependência Git transitiva. Isso não prova erro na sessão nem no Core. Não há necessidade de parear novamente ou reinstalar o jogo. Solução imediata apenas dentro de `crownicles-beta/app`:
+
+```bash
+npm_config_allow_git=all npm install --omit=dev --no-audit --no-fund && bash start.sh
+```
+
+`npm_config_allow_git=all` vale somente para esse comando npm e não configura npm globalmente. É uma exceção de segurança para permitir dependências Git (risco de dependência Git sem commit fixo); não usar como configuração global. Baileys permanece pinado em 6.7.24. A conexão `WHATSAPP_BETA=CONECTADO` e os comandos do jogo real continuam PENDENTES do próximo log Termux, mesmo após uma eventual instalação npm bem-sucedida. **Não armazenar números reais ou conteúdo da autenticação nos registros.**
