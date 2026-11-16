@@ -1,6 +1,6 @@
 # Crownicles — Jornada Mundo Aberto V5 (Termux, 16/11/2026)
 
-**ESTADO: PREPARADA E TESTADA ESTRUTURALMENTE; EXECUÇÃO NATIVA NO ANDROID PENDENTE.** V4 anterior comprovada pelo usuário em Termux: **18/18 PASS**; GitHub README V4 atualizado commit `3403a8126524c631ed2c871187396ad93995e92b`.
+**ESTADO ATUALIZADO EM 16/11/2026: V5 HOMOLOGADA NO TERMUX, 26/26 PASS, 8/8 NOVOS, 0 FALHAS, LAB_SAIDA=0.** A evidência é o log real fornecido pelo responsável. V4 anterior também comprovada 18/18. Não confundir laboratório com produção.
 
 ## Novo gate de qualidade
 
@@ -15,7 +15,7 @@ A V5 expande automaticamente o mesmo percurso do tutorial até depois do segundo
 25. **ESCOLHA_EVENTO_ALEATORIO_ORIGINAL**: escolha suportada via MQTT é respondida por `ReactionCollectorStopPacket` e `CommandReportBigEventResultRes`, com recompensas calculadas pelo Core e expostas pela ponte.
 26. **ESTADO_E_DUPLICATAS_APOS_EVENTO_ALEATORIO**: perfil (nível, dinheiro, pontos) confere com banco, missões consultam o Core, duplicata da escolha não reexecuta e menu de decisão obsoleto não fica ativo.
 
-**V5 NÃO HOMOLOGADA até o usuário fornecer:** `MUNDO_ABERTO_V5_NOVOS_TESTES=8/8`, `MUNDO_ABERTO_V5_FALHAS=0`, `JORNADA_CROWNICLES_RESULTADOS=26/26`, `JORNADA_CROWNICLES_FALHAS=0`, `LAB_SAIDA=0` e limpeza `BANCO_TEMPORARIO_REMOVIDO`/`MARIADB_PRIVADO_REMOVIDO`.
+**Gate V5 HOMOLOGADO no log Termux recebido; foram observados:** `MUNDO_ABERTO_V5_NOVOS_TESTES=8/8`, `MUNDO_ABERTO_V5_FALHAS=0`, `JORNADA_CROWNICLES_RESULTADOS=26/26`, `JORNADA_CROWNICLES_FALHAS=0`, `LAB_SAIDA=0` e limpeza `BANCO_TEMPORARIO_REMOVIDO`/`MARIADB_PRIVADO_REMOVIDO`.
 
 ## Evidências locais pré-Android
 
@@ -23,7 +23,7 @@ A V5 expande automaticamente o mesmo percurso do tutorial até depois do segundo
 - Pacote bridge: `PACOTE_INTEGRO=23/23`, nenhuma inicialização Core na verificação.
 - Guards: **11/11 PASS** (estrutura, baseline, 8 testes novos, nenhum evento forçado após tutorial, caminho original do mapa, ponte, segurança, saída dinâmica e SHA256).
 - ZIP Android: descompactado e validado byte a byte, sem erro.
-- **Execução Core/MariaDB real do novo lote ainda não foi executada no ambiente do assistente**, pois Termux Android tem suas dependências. Não confundir guards com sucesso do gameplay.
+- A execução do Core/MariaDB **foi realizada depois pelo usuário em Termux Android, com 26/26 PASS**. Os guards locais eram apenas preparação; ver extrato factual abaixo.
 
 ## Segurança e atribuição
 
@@ -39,3 +39,78 @@ A V5 expande automaticamente o mesmo percurso do tutorial até depois do segundo
 - [README](https://drive.google.com/file/d/1EL1ksNwv0ZJzjBeiz3JAdgbLTQei6jDQ/view).
 
 Diário Komekko: https://docs.google.com/document/d/1p6yD3vVhAP_sCNsAA8gl2tCWB4OsU0xaSFBLaC7Ztoo/edit
+
+
+## HOMOLOGAÇÃO V5 — log real Termux recebido em 16/11/2026
+
+```text
+V5_INTEGRIDADE=APROVADA
+LAB=JORNADA_CORE_NATIVO_MQTT_V5_MUNDO_ABERTO
+MARIADB_AMBIENTE=PRIVADO_DESCARTAVEL
+MARIADB_PRIVADO_PORTA=34021
+LAB_DB_CRIADO
+LAB_TCP_ISOLADO_OK
+CORE_MIGRATIONS_OK
+CORE_RECEPTOR_MQTT=MAIN_ORIGINAL
+CORE_MAIN_INIT_BLOQUEADO=SIM
+CORE_MQTT_PUBLISH=PACKETUTILS_ORIGINAL
+PASS=01_CORE_ORIGINAL_QUATRO_COMANDOS_E_COLETOR
+PASS=02_MQTT_SUBACK_ORIGINAL
+PASS=03_PERFIL_PRE_INICIO_CROWNICLES
+PASS=04_INVENTARIO_PRE_INICIO_CROWNICLES
+PASS=05_MISSOES_PRE_INICIO_CROWNICLES
+PASS=06_JOGAR_CROWNICLES_REPORT_E_MAPA_PERSISTIDO
+PASS=07_REENTREGA_JOGAR_SEM_NOVO_COMANDO
+PASS=08_MENU_E_REACAO_CROWNICLES_ORIGINAL
+PASS=09_PERFIL_APOS_EVENTO_CROWNICLES
+PASS=10_INVENTARIO_APOS_EVENTO_CROWNICLES
+PASS=11_MISSOES_APOS_EVENTO_CROWNICLES
+CONTINUIDADE_VIAGEM_REAL_DESTINO=29
+PASS=12_RELATORIO_DURANTE_VIAGEM_ORIGINAL
+CONTINUIDADE_EVENTO_60_FIXTURE=SIM
+PASS=13_AVANCAR_TEMPO_PELA_ROTINA_TESTE_ORIGINAL
+PASS=14_SEGUNDO_EVENTO_CROWNICLES_CHEGADA
+PASS=15_DUPLICATA_SEGUNDO_RELATORIO_BLOQUEADA
+PASS=16_ESCOLHA_SEGUNDO_EVENTO_NATIVO
+PASS=17_PERFIL_E_INVENTARIO_CONSISTENTES_DEPOIS_2_EVENTOS
+PASS=18_MISSOES_E_COLETOR_ANTIGO_CONSISTENTES
+MUNDO_ABERTO_DESTINOS_OFERECIDOS=10,17,6
+MUNDO_ABERTO_ROTA_ESCOLHIDA=10
+PASS=19_DESTINOS_DO_CONTINENTE_NATIVOS
+MUNDO_ABERTO_MAP_LINK=79
+PASS=20_ESCOLHA_DESTINO_ORIGINAL_VIA_MQTT
+MUNDO_ABERTO_VIAGEM_DURACAO=60
+PASS=21_VIAGEM_MUNDO_ABERTO_RELATORIO
+MUNDO_ABERTO_TEMPO_TESTE=62_MIN
+PASS=22_CHEGADA_ACELERADA_OFICIAL
+MUNDO_ABERTO_EVENTOS_ELEGIVEIS=3
+MUNDO_ABERTO_EVENTO_PRE_AMOSTRA=47
+MUNDO_ABERTO_EVENTO_SEM_FIXTURE=SIM
+PASS=23_CATALOGO_EVENTOS_E_SEM_FIXTURE
+MUNDO_ABERTO_EVENTO_SORTEADO=47
+PASS=24_EVENTO_ALEATORIO_CORE_ORIGINAL
+MUNDO_ABERTO_EVENTO_REAL_PONTOS=71
+MUNDO_ABERTO_EVENTO_REAL_MOEDAS=7
+MUNDO_ABERTO_EVENTO_REAL_XP=0
+PASS=25_ESCOLHA_EVENTO_ALEATORIO_ORIGINAL
+MUNDO_ABERTO_NIVEL_FINAL=3
+MUNDO_ABERTO_MOEDAS_FINAIS=15019
+PASS=26_ESTADO_E_DUPLICATAS_APOS_EVENTO_ALEATORIO
+MUNDO_ABERTO_V5_NOVOS_TESTES=8/8
+MUNDO_ABERTO_V5_FALHAS=0
+JORNADA_CROWNICLES_RESULTADOS=26/26
+JORNADA_CROWNICLES_FALHAS=0
+CORE_MAIN_INIT_COMPLETA_NAO_EXECUTADA=SIM
+WHATSAPP_REAL_NAO_ACESSADO=SIM
+MARIADB_SERVICO_LOCAL_COMPARTILHADO=NAO
+SCHEMA_DE_PRODUCAO_NAO_ACESSADO=SIM
+BANCO_TEMPORARIO_REMOVIDO
+MARIADB_PRIVADO_REMOVIDO
+LAB_SAIDA=0
+CODIGO_EXECUCAO=0
+LOG_COMPLETO=/data/data/com.termux/files/home/jornada_v5_resultado.log
+```
+
+**Escopo provado:** após baseline V3/V4, o próprio Core apresentou destinos [10,17,6], a escolha do mapa10 foi efetivada pelo pacote original e persistiu link79. A viagem oficial de 60 minutos foi adiantada 62 minutos com API oficial de teste. No mapa10, Core listou 3 eventos elegíveis, `nextEvent === null` e selecionou evento 47 sem fixture para esse terceiro evento; coletor original processou a escolha, creditando 71 pontos, 7 moedas e 0 XP, e o perfil final retornou nível 3, 15019 moedas. A terceira recompensa é do motor; moedas acumuladas incluem o evento60 **deliberadamente forçado** no tutorial anterior, que fornecia 15001 moedas e não representa economia típica de jogo normal. Duplicatas não repetiram comandos. Tudo isolado em MariaDB efêmero, sem tocar em WhatsApp/Keycloak/main/produção. 
+
+**Limites restantes:** a conta é sintética, o evento61 e o evento60 iniciais foram forçados para controle, e o próximo evento foi aleatório apenas dentro do mapa10. Não são homologados combate, PvE/PvP, economias variadas, reentrância/expiração de diferentes coletores, múltiplos jogadores, cadastro no site, mensagens WhatsApp reais, cron e `Core.init()` completo.
