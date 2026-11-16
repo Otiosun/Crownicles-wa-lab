@@ -1,0 +1,1040 @@
+{
+  "description": "Crownicles original source ledger. NOT a list of public commands, production access, or confirmed WhatsApp compatibility.",
+  "sourceRepository": "Crownicles/Crownicles",
+  "sourceCommit": "64d08c05f11949029317341735f6f73024f19f9b",
+  "generatedFrom": "Git tree API recursive; file paths only",
+  "limits": "Paths do not establish packet decorators, runtime handler registration, authorization or supported menu rendering. Excludes admin from player candidate list, not assertion of full discoverability.",
+  "totals": {
+    "treeFiles": 3659,
+    "commandSourceFiles": 183,
+    "playerCandidateFiles": 48,
+    "interactionCollectorSourceFiles": 56,
+    "commandPacketSourceFiles": 60,
+    "discordCommandSourceFiles": 113
+  },
+  "playerCandidateCommands": [
+    {
+      "source": "Core/src/commands/guild/GuildCommand.ts",
+      "family": "guild",
+      "candidateContract": "GuildCommand",
+      "bridgeStatus": "NOT_YET_VERIFIED",
+      "coreTestStatus": "NOT_YET_VERIFIED",
+      "nativeMutationStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Core/src/commands/guild/GuildCreateCommand.ts",
+      "family": "guild",
+      "candidateContract": "GuildCreateCommand",
+      "bridgeStatus": "NOT_YET_VERIFIED",
+      "coreTestStatus": "NOT_YET_VERIFIED",
+      "nativeMutationStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Core/src/commands/guild/GuildDailyCommand.ts",
+      "family": "guild",
+      "candidateContract": "GuildDailyCommand",
+      "bridgeStatus": "NOT_YET_VERIFIED",
+      "coreTestStatus": "NOT_YET_VERIFIED",
+      "nativeMutationStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Core/src/commands/guild/GuildDescriptionCommand.ts",
+      "family": "guild",
+      "candidateContract": "GuildDescriptionCommand",
+      "bridgeStatus": "NOT_YET_VERIFIED",
+      "coreTestStatus": "NOT_YET_VERIFIED",
+      "nativeMutationStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Core/src/commands/guild/GuildElderCommand.ts",
+      "family": "guild",
+      "candidateContract": "GuildElderCommand",
+      "bridgeStatus": "NOT_YET_VERIFIED",
+      "coreTestStatus": "NOT_YET_VERIFIED",
+      "nativeMutationStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Core/src/commands/guild/GuildElderRemoveCommand.ts",
+      "family": "guild",
+      "candidateContract": "GuildElderRemoveCommand",
+      "bridgeStatus": "NOT_YET_VERIFIED",
+      "coreTestStatus": "NOT_YET_VERIFIED",
+      "nativeMutationStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Core/src/commands/guild/GuildInviteCommand.ts",
+      "family": "guild",
+      "candidateContract": "GuildInviteCommand",
+      "bridgeStatus": "NOT_YET_VERIFIED",
+      "coreTestStatus": "NOT_YET_VERIFIED",
+      "nativeMutationStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Core/src/commands/guild/GuildKickCommand.ts",
+      "family": "guild",
+      "candidateContract": "GuildKickCommand",
+      "bridgeStatus": "NOT_YET_VERIFIED",
+      "coreTestStatus": "NOT_YET_VERIFIED",
+      "nativeMutationStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Core/src/commands/guild/GuildLeaveCommand.ts",
+      "family": "guild",
+      "candidateContract": "GuildLeaveCommand",
+      "bridgeStatus": "NOT_YET_VERIFIED",
+      "coreTestStatus": "NOT_YET_VERIFIED",
+      "nativeMutationStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Core/src/commands/guild/GuildShelterCommand.ts",
+      "family": "guild",
+      "candidateContract": "GuildShelterCommand",
+      "bridgeStatus": "NOT_YET_VERIFIED",
+      "coreTestStatus": "NOT_YET_VERIFIED",
+      "nativeMutationStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Core/src/commands/guild/GuildStorageCommand.ts",
+      "family": "guild",
+      "candidateContract": "GuildStorageCommand",
+      "bridgeStatus": "NOT_YET_VERIFIED",
+      "coreTestStatus": "NOT_YET_VERIFIED",
+      "nativeMutationStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Core/src/commands/mission/MissionsCommand.ts",
+      "family": "mission",
+      "candidateContract": "MissionsCommand",
+      "bridgeStatus": "NOT_YET_VERIFIED",
+      "coreTestStatus": "NOT_YET_VERIFIED",
+      "nativeMutationStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Core/src/commands/pet/PetCaressCommand.ts",
+      "family": "pet",
+      "candidateContract": "PetCaressCommand",
+      "bridgeStatus": "NOT_YET_VERIFIED",
+      "coreTestStatus": "NOT_YET_VERIFIED",
+      "nativeMutationStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Core/src/commands/pet/PetCommand.ts",
+      "family": "pet",
+      "candidateContract": "PetCommand",
+      "bridgeStatus": "NOT_YET_VERIFIED",
+      "coreTestStatus": "NOT_YET_VERIFIED",
+      "nativeMutationStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Core/src/commands/pet/PetExpeditionCommand.ts",
+      "family": "pet",
+      "candidateContract": "PetExpeditionCommand",
+      "bridgeStatus": "NOT_YET_VERIFIED",
+      "coreTestStatus": "NOT_YET_VERIFIED",
+      "nativeMutationStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Core/src/commands/pet/PetFeedCommand.ts",
+      "family": "pet",
+      "candidateContract": "PetFeedCommand",
+      "bridgeStatus": "NOT_YET_VERIFIED",
+      "coreTestStatus": "NOT_YET_VERIFIED",
+      "nativeMutationStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Core/src/commands/pet/PetFreeCommand.ts",
+      "family": "pet",
+      "candidateContract": "PetFreeCommand",
+      "bridgeStatus": "NOT_YET_VERIFIED",
+      "coreTestStatus": "NOT_YET_VERIFIED",
+      "nativeMutationStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Core/src/commands/pet/PetNickCommand.ts",
+      "family": "pet",
+      "candidateContract": "PetNickCommand",
+      "bridgeStatus": "NOT_YET_VERIFIED",
+      "coreTestStatus": "NOT_YET_VERIFIED",
+      "nativeMutationStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Core/src/commands/pet/PetSellCommand.ts",
+      "family": "pet",
+      "candidateContract": "PetSellCommand",
+      "bridgeStatus": "NOT_YET_VERIFIED",
+      "coreTestStatus": "NOT_YET_VERIFIED",
+      "nativeMutationStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Core/src/commands/pet/PetTransferCommand.ts",
+      "family": "pet",
+      "candidateContract": "PetTransferCommand",
+      "bridgeStatus": "NOT_YET_VERIFIED",
+      "coreTestStatus": "NOT_YET_VERIFIED",
+      "nativeMutationStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Core/src/commands/player/BlessingCommand.ts",
+      "family": "player",
+      "candidateContract": "BlessingCommand",
+      "bridgeStatus": "NOT_YET_VERIFIED",
+      "coreTestStatus": "NOT_YET_VERIFIED",
+      "nativeMutationStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Core/src/commands/player/ClassesCommand.ts",
+      "family": "player",
+      "candidateContract": "ClassesCommand",
+      "bridgeStatus": "NOT_YET_VERIFIED",
+      "coreTestStatus": "NOT_YET_VERIFIED",
+      "nativeMutationStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Core/src/commands/player/ClassesInfoCommand.ts",
+      "family": "player",
+      "candidateContract": "ClassesInfoCommand",
+      "bridgeStatus": "NOT_YET_VERIFIED",
+      "coreTestStatus": "NOT_YET_VERIFIED",
+      "nativeMutationStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Core/src/commands/player/DailyBonusCommand.ts",
+      "family": "player",
+      "candidateContract": "DailyBonusCommand",
+      "bridgeStatus": "NOT_YET_VERIFIED",
+      "coreTestStatus": "NOT_YET_VERIFIED",
+      "nativeMutationStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Core/src/commands/player/DefenseCommand.ts",
+      "family": "player",
+      "candidateContract": "DefenseCommand",
+      "bridgeStatus": "NOT_YET_VERIFIED",
+      "coreTestStatus": "NOT_YET_VERIFIED",
+      "nativeMutationStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Core/src/commands/player/DrinkCommand.ts",
+      "family": "player",
+      "candidateContract": "DrinkCommand",
+      "bridgeStatus": "NOT_YET_VERIFIED",
+      "coreTestStatus": "NOT_YET_VERIFIED",
+      "nativeMutationStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Core/src/commands/player/EquipCommand.ts",
+      "family": "player",
+      "candidateContract": "EquipCommand",
+      "bridgeStatus": "NOT_YET_VERIFIED",
+      "coreTestStatus": "NOT_YET_VERIFIED",
+      "nativeMutationStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Core/src/commands/player/FightCommand.ts",
+      "family": "player",
+      "candidateContract": "FightCommand",
+      "bridgeStatus": "NOT_YET_VERIFIED",
+      "coreTestStatus": "NOT_YET_VERIFIED",
+      "nativeMutationStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Core/src/commands/player/FightHistoryCommand.ts",
+      "family": "player",
+      "candidateContract": "FightHistoryCommand",
+      "bridgeStatus": "NOT_YET_VERIFIED",
+      "coreTestStatus": "NOT_YET_VERIFIED",
+      "nativeMutationStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Core/src/commands/player/FightPlayerStats.ts",
+      "family": "player",
+      "candidateContract": "FightPlayerStats",
+      "bridgeStatus": "NOT_YET_VERIFIED",
+      "coreTestStatus": "NOT_YET_VERIFIED",
+      "nativeMutationStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Core/src/commands/player/FightRewards.ts",
+      "family": "player",
+      "candidateContract": "FightRewards",
+      "bridgeStatus": "NOT_YET_VERIFIED",
+      "coreTestStatus": "NOT_YET_VERIFIED",
+      "nativeMutationStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Core/src/commands/player/FriendlyFightCommand.ts",
+      "family": "player",
+      "candidateContract": "FriendlyFightCommand",
+      "bridgeStatus": "NOT_YET_VERIFIED",
+      "coreTestStatus": "NOT_YET_VERIFIED",
+      "nativeMutationStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Core/src/commands/player/GardenCommand.ts",
+      "family": "player",
+      "candidateContract": "GardenCommand",
+      "bridgeStatus": "NOT_YET_VERIFIED",
+      "coreTestStatus": "NOT_YET_VERIFIED",
+      "nativeMutationStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Core/src/commands/player/InventoryCommand.ts",
+      "family": "player",
+      "candidateContract": "InventoryCommand",
+      "bridgeStatus": "NOT_YET_VERIFIED",
+      "coreTestStatus": "NOT_YET_VERIFIED",
+      "nativeMutationStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Core/src/commands/player/InventoryPotionUtils.ts",
+      "family": "player",
+      "candidateContract": "InventoryPotionUtils",
+      "bridgeStatus": "NOT_YET_VERIFIED",
+      "coreTestStatus": "NOT_YET_VERIFIED",
+      "nativeMutationStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Core/src/commands/player/JoinBoatCommand.ts",
+      "family": "player",
+      "candidateContract": "JoinBoatCommand",
+      "bridgeStatus": "NOT_YET_VERIFIED",
+      "coreTestStatus": "NOT_YET_VERIFIED",
+      "nativeMutationStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Core/src/commands/player/KingGuardFightCommand.ts",
+      "family": "player",
+      "candidateContract": "KingGuardFightCommand",
+      "bridgeStatus": "NOT_YET_VERIFIED",
+      "coreTestStatus": "NOT_YET_VERIFIED",
+      "nativeMutationStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Core/src/commands/player/LeagueRewardCommand.ts",
+      "family": "player",
+      "candidateContract": "LeagueRewardCommand",
+      "bridgeStatus": "NOT_YET_VERIFIED",
+      "coreTestStatus": "NOT_YET_VERIFIED",
+      "nativeMutationStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Core/src/commands/player/MapCommand.ts",
+      "family": "player",
+      "candidateContract": "MapCommand",
+      "bridgeStatus": "NOT_YET_VERIFIED",
+      "coreTestStatus": "NOT_YET_VERIFIED",
+      "nativeMutationStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Core/src/commands/player/PingCommand.ts",
+      "family": "player",
+      "candidateContract": "PingCommand",
+      "bridgeStatus": "NOT_YET_VERIFIED",
+      "coreTestStatus": "NOT_YET_VERIFIED",
+      "nativeMutationStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Core/src/commands/player/ProfileCommand.ts",
+      "family": "player",
+      "candidateContract": "ProfileCommand",
+      "bridgeStatus": "NOT_YET_VERIFIED",
+      "coreTestStatus": "NOT_YET_VERIFIED",
+      "nativeMutationStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Core/src/commands/player/RarityCommand.ts",
+      "family": "player",
+      "candidateContract": "RarityCommand",
+      "bridgeStatus": "NOT_YET_VERIFIED",
+      "coreTestStatus": "NOT_YET_VERIFIED",
+      "nativeMutationStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Core/src/commands/player/ReportCommand.ts",
+      "family": "player",
+      "candidateContract": "ReportCommand",
+      "bridgeStatus": "NOT_YET_VERIFIED",
+      "coreTestStatus": "NOT_YET_VERIFIED",
+      "nativeMutationStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Core/src/commands/player/RespawnCommand.ts",
+      "family": "player",
+      "candidateContract": "RespawnCommand",
+      "bridgeStatus": "NOT_YET_VERIFIED",
+      "coreTestStatus": "NOT_YET_VERIFIED",
+      "nativeMutationStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Core/src/commands/player/SellCommand.ts",
+      "family": "player",
+      "candidateContract": "SellCommand",
+      "bridgeStatus": "NOT_YET_VERIFIED",
+      "coreTestStatus": "NOT_YET_VERIFIED",
+      "nativeMutationStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Core/src/commands/player/TopCommand.ts",
+      "family": "player",
+      "candidateContract": "TopCommand",
+      "bridgeStatus": "NOT_YET_VERIFIED",
+      "coreTestStatus": "NOT_YET_VERIFIED",
+      "nativeMutationStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Core/src/commands/player/UnlockCommand.ts",
+      "family": "player",
+      "candidateContract": "UnlockCommand",
+      "bridgeStatus": "NOT_YET_VERIFIED",
+      "coreTestStatus": "NOT_YET_VERIFIED",
+      "nativeMutationStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Core/src/commands/player/UpdateCommand.ts",
+      "family": "player",
+      "candidateContract": "UpdateCommand",
+      "bridgeStatus": "NOT_YET_VERIFIED",
+      "coreTestStatus": "NOT_YET_VERIFIED",
+      "nativeMutationStatus": "NOT_YET_VERIFIED"
+    }
+  ],
+  "interactionCollectors": [
+    {
+      "source": "Lib/src/packets/interaction/ReactionCollectorAltar.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED",
+      "safetyStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/interaction/ReactionCollectorAnyShopSmallEvent.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED",
+      "safetyStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/interaction/ReactionCollectorBadPetSmallEvent.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED",
+      "safetyStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/interaction/ReactionCollectorBigEvent.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED",
+      "safetyStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/interaction/ReactionCollectorBuyCategorySlot.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED",
+      "safetyStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/interaction/ReactionCollectorBuyHeal.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED",
+      "safetyStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/interaction/ReactionCollectorCart.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED",
+      "safetyStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/interaction/ReactionCollectorChangeClass.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED",
+      "safetyStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/interaction/ReactionCollectorChooseDestination.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED",
+      "safetyStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/interaction/ReactionCollectorCity.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED",
+      "safetyStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/interaction/ReactionCollectorDailyBonus.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED",
+      "safetyStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/interaction/ReactionCollectorDefensePersonality.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED",
+      "safetyStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/interaction/ReactionCollectorDrink.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED",
+      "safetyStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/interaction/ReactionCollectorEpicShopSmallEvent.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED",
+      "safetyStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/interaction/ReactionCollectorEquip.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED",
+      "safetyStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/interaction/ReactionCollectorFight.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED",
+      "safetyStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/interaction/ReactionCollectorFightChooseAction.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED",
+      "safetyStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/interaction/ReactionCollectorFightPet.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED",
+      "safetyStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/interaction/ReactionCollectorGardener.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED",
+      "safetyStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/interaction/ReactionCollectorGoToPVEIsland.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED",
+      "safetyStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/interaction/ReactionCollectorGobletsGame.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED",
+      "safetyStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/interaction/ReactionCollectorGuildCreate.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED",
+      "safetyStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/interaction/ReactionCollectorGuildDescription.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED",
+      "safetyStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/interaction/ReactionCollectorGuildElder.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED",
+      "safetyStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/interaction/ReactionCollectorGuildElderRemove.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED",
+      "safetyStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/interaction/ReactionCollectorGuildInvite.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED",
+      "safetyStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/interaction/ReactionCollectorGuildKick.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED",
+      "safetyStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/interaction/ReactionCollectorGuildLeave.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED",
+      "safetyStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/interaction/ReactionCollectorInteractOtherPlayers.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED",
+      "safetyStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/interaction/ReactionCollectorItemAccept.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED",
+      "safetyStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/interaction/ReactionCollectorItemChoice.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED",
+      "safetyStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/interaction/ReactionCollectorJoinBoat.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED",
+      "safetyStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/interaction/ReactionCollectorLimoges.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED",
+      "safetyStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/interaction/ReactionCollectorLottery.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED",
+      "safetyStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/interaction/ReactionCollectorPacket.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED",
+      "safetyStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/interaction/ReactionCollectorPetExpedition.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED",
+      "safetyStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/interaction/ReactionCollectorPetExpeditionChoice.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED",
+      "safetyStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/interaction/ReactionCollectorPetExpeditionFinished.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED",
+      "safetyStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/interaction/ReactionCollectorPetFeedWithGuild.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED",
+      "safetyStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/interaction/ReactionCollectorPetFeedWithoutGuild.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED",
+      "safetyStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/interaction/ReactionCollectorPetFoodSmallEvent.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED",
+      "safetyStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/interaction/ReactionCollectorPetFree.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED",
+      "safetyStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/interaction/ReactionCollectorPetSell.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED",
+      "safetyStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/interaction/ReactionCollectorPetTransfer.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED",
+      "safetyStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/interaction/ReactionCollectorPveFight.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED",
+      "safetyStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/interaction/ReactionCollectorRecipeShopSmallEvent.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED",
+      "safetyStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/interaction/ReactionCollectorResetTimer.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED",
+      "safetyStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/interaction/ReactionCollectorSell.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED",
+      "safetyStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/interaction/ReactionCollectorShop.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED",
+      "safetyStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/interaction/ReactionCollectorShopSmallEvent.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED",
+      "safetyStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/interaction/ReactionCollectorSkipMissionShopItem.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED",
+      "safetyStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/interaction/ReactionCollectorStopPacket.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED",
+      "safetyStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/interaction/ReactionCollectorTokenMerchant.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED",
+      "safetyStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/interaction/ReactionCollectorUnlock.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED",
+      "safetyStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/interaction/ReactionCollectorUseTokens.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED",
+      "safetyStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/interaction/ReactionCollectorWitch.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED",
+      "safetyStatus": "NOT_YET_VERIFIED"
+    }
+  ],
+  "commandPackets": [
+    {
+      "source": "Lib/src/packets/commands/BlockedPacket.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/commands/CommandBlessingPacket.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/commands/CommandClassesInfoPacket.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/commands/CommandClassesPacket.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/commands/CommandDailyBonusPacket.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/commands/CommandDefensePacket.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/commands/CommandDrinkPacket.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/commands/CommandEquipPacket.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/commands/CommandExportGDPRPacket.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/commands/CommandFightCancelPacket.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/commands/CommandFightHistoryPacket.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/commands/CommandFightPacket.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/commands/CommandFriendlyFightPacket.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/commands/CommandGardenPacket.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/commands/CommandGetPlayerInfo.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/commands/CommandGetResourcesPacket.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/commands/CommandGuildCreatePacket.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/commands/CommandGuildDailyPacket.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/commands/CommandGuildDescriptionPacket.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/commands/CommandGuildElderPacket.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/commands/CommandGuildElderRemovePacket.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/commands/CommandGuildInvitePacket.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/commands/CommandGuildKickPacket.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/commands/CommandGuildLeavePacket.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/commands/CommandGuildPacket.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/commands/CommandGuildShelterPacket.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/commands/CommandGuildStoragePacket.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/commands/CommandInventoryPacket.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/commands/CommandJoinBoatPacket.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/commands/CommandLeagueRewardPacket.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/commands/CommandMaintenancePacket.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/commands/CommandMapPacket.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/commands/CommandMissionShopPacket.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/commands/CommandMissionsPacket.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/commands/CommandPetExpeditionPacket.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/commands/CommandPetFeedPacket.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/commands/CommandPetFreePacket.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/commands/CommandPetNickPacket.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/commands/CommandPetPacket.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/commands/CommandPetSellPacket.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/commands/CommandPetTransferPacket.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/commands/CommandPingPacket.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/commands/CommandProfilePacket.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/commands/CommandRarityPacket.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/commands/CommandReportPacket.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/commands/CommandRespawnPacket.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/commands/CommandSellPacket.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/commands/CommandSetPlayerInfo.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/commands/CommandTestListPacket.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/commands/CommandTestPacket.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/commands/CommandTopPacket.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/commands/CommandUnlockPacket.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/commands/CommandUpdatePacket.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/commands/ErrorPacket.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/commands/requirements/RequirementEffectPacket.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/commands/requirements/RequirementGuildNeededPacket.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/commands/requirements/RequirementGuildRolePacket.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/commands/requirements/RequirementLevelPacket.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/commands/requirements/RequirementRightPacket.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED"
+    },
+    {
+      "source": "Lib/src/packets/commands/requirements/RequirementWherePacket.ts",
+      "bridgeStatus": "NOT_YET_VERIFIED"
+    }
+  ],
+  "discordCommands": [
+    "Discord/src/commands/ChannelPermissionUtils.ts",
+    "Discord/src/commands/CommandDiscoveryUtils.ts",
+    "Discord/src/commands/CommandRegistrationUtils.ts",
+    "Discord/src/commands/CommandsManager.ts",
+    "Discord/src/commands/ICommand.ts",
+    "Discord/src/commands/SlashCommandBuilderGenerator.ts",
+    "Discord/src/commands/admin/DeleteCodeCommand.ts",
+    "Discord/src/commands/admin/ExportGDPRCommand.ts",
+    "Discord/src/commands/admin/GiveBadgeCommand.ts",
+    "Discord/src/commands/admin/LanguageCommand.ts",
+    "Discord/src/commands/admin/MaintenanceCommand.ts",
+    "Discord/src/commands/admin/TestCommand.ts",
+    "Discord/src/commands/guild/GuildCommand.ts",
+    "Discord/src/commands/guild/GuildCreateCommand.ts",
+    "Discord/src/commands/guild/GuildDailyCommand.ts",
+    "Discord/src/commands/guild/GuildDescriptionCommand.ts",
+    "Discord/src/commands/guild/GuildElderCommand.ts",
+    "Discord/src/commands/guild/GuildElderRemoveCommand.ts",
+    "Discord/src/commands/guild/GuildInviteCommand.ts",
+    "Discord/src/commands/guild/GuildKickCommand.ts",
+    "Discord/src/commands/guild/GuildLeaveCommand.ts",
+    "Discord/src/commands/guild/GuildShelterCommand.ts",
+    "Discord/src/commands/guild/GuildStorageCommand.ts",
+    "Discord/src/commands/mission/MissionShop.ts",
+    "Discord/src/commands/mission/MissionsCommand.ts",
+    "Discord/src/commands/notifications/NotificationsCommand.ts",
+    "Discord/src/commands/pet/PetCommand.ts",
+    "Discord/src/commands/pet/PetFeedCommand.ts",
+    "Discord/src/commands/pet/PetFreeCommand.ts",
+    "Discord/src/commands/pet/PetNickCommand.ts",
+    "Discord/src/commands/pet/PetSellCommand.ts",
+    "Discord/src/commands/pet/PetTransferCommand.ts",
+    "Discord/src/commands/pet/expedition/ExpeditionDisplayUtils.ts",
+    "Discord/src/commands/pet/expedition/ExpeditionEmbedBuilders.ts",
+    "Discord/src/commands/pet/expedition/PetExpeditionCollectors.ts",
+    "Discord/src/commands/pet/expedition/PetExpeditionHandler.ts",
+    "Discord/src/commands/player/BadgesCommand.ts",
+    "Discord/src/commands/player/BlessingCommand.ts",
+    "Discord/src/commands/player/ClassesCommand.ts",
+    "Discord/src/commands/player/ClassesInfoCommand.ts",
+    "Discord/src/commands/player/DailyBonusCommand.ts",
+    "Discord/src/commands/player/DefenseCommand.ts",
+    "Discord/src/commands/player/DrinkCommand.ts",
+    "Discord/src/commands/player/EquipCommand.ts",
+    "Discord/src/commands/player/FightCommand.ts",
+    "Discord/src/commands/player/FightHistoryCommand.ts",
+    "Discord/src/commands/player/FightInteractionUtils.ts",
+    "Discord/src/commands/player/FriendlyFightCommand.ts",
+    "Discord/src/commands/player/GardenCommand.ts",
+    "Discord/src/commands/player/HelpCommand.ts",
+    "Discord/src/commands/player/IdeaCommand.ts",
+    "Discord/src/commands/player/InventoryCommand.ts",
+    "Discord/src/commands/player/InviteCommand.ts",
+    "Discord/src/commands/player/JoinBoatCommand.ts",
+    "Discord/src/commands/player/LeagueRewardCommand.ts",
+    "Discord/src/commands/player/MapCommand.ts",
+    "Discord/src/commands/player/PingCommand.ts",
+    "Discord/src/commands/player/ProfileCommand.ts",
+    "Discord/src/commands/player/RarityCommand.ts",
+    "Discord/src/commands/player/ReportCommand.ts",
+    "Discord/src/commands/player/RespawnCommand.ts",
+    "Discord/src/commands/player/SellCommand.ts",
+    "Discord/src/commands/player/TopCommand.ts",
+    "Discord/src/commands/player/UnlockCommand.ts",
+    "Discord/src/commands/player/UpdateCommand.ts",
+    "Discord/src/commands/player/VoteCommand.ts",
+    "Discord/src/commands/player/report/CityMessageHandoff.ts",
+    "Discord/src/commands/player/report/ReportCityMenu.ts",
+    "Discord/src/commands/player/report/ReportCityMenuConstants.ts",
+    "Discord/src/commands/player/report/ReportCityMenuTypes.ts",
+    "Discord/src/commands/player/report/ReportFlowHelpers.ts",
+    "Discord/src/commands/player/report/blacksmith/BlacksmithEnchantmentTransferMenu.ts",
+    "Discord/src/commands/player/report/blacksmith/BlacksmithHandlers.ts",
+    "Discord/src/commands/player/report/blacksmith/BlacksmithMenu.ts",
+    "Discord/src/commands/player/report/blacksmith/BlacksmithMenuConstants.ts",
+    "Discord/src/commands/player/report/blacksmith/BlacksmithUpgradeDetailHelper.ts",
+    "Discord/src/commands/player/report/buyHeal/BuyHealHandlers.ts",
+    "Discord/src/commands/player/report/cityMenu/BossArchivistMenu.ts",
+    "Discord/src/commands/player/report/cityMenu/EnchanterMenu.ts",
+    "Discord/src/commands/player/report/cityMenu/InnMenu.ts",
+    "Discord/src/commands/player/report/cityMenu/MainMenu.ts",
+    "Discord/src/commands/player/report/cityMenu/NotaryMenu.ts",
+    "Discord/src/commands/player/report/confirmation/CityConfirmationMenu.ts",
+    "Discord/src/commands/player/report/guildDomain/GuildDomainHandlers.ts",
+    "Discord/src/commands/player/report/guildDomain/GuildDomainMenu.ts",
+    "Discord/src/commands/player/report/guildDomain/GuildDomainShared.ts",
+    "Discord/src/commands/player/report/guildDomain/GuildDomainViews.ts",
+    "Discord/src/commands/player/report/guildFoodShop/GuildFoodShopMenu.ts",
+    "Discord/src/commands/player/report/home/BedFeatureHandler.ts",
+    "Discord/src/commands/player/report/home/HomeCollectorUtils.ts",
+    "Discord/src/commands/player/report/home/HomeFeatureRegistry.ts",
+    "Discord/src/commands/player/report/home/HomeHandlers.ts",
+    "Discord/src/commands/player/report/home/HomeMenu.ts",
+    "Discord/src/commands/player/report/home/HomeMenuConstants.ts",
+    "Discord/src/commands/player/report/home/HomeMenuTypes.ts",
+    "Discord/src/commands/player/report/home/UpgradeStationFeatureHandler.ts",
+    "Discord/src/commands/player/report/home/features/ChestFeatureHandler.ts",
+    "Discord/src/commands/player/report/home/features/ChestPlantHandler.ts",
+    "Discord/src/commands/player/report/home/features/CookingFeatureHandler.ts",
+    "Discord/src/commands/player/report/home/features/CookingSpecialtyDisplay.ts",
+    "Discord/src/commands/player/report/home/features/GardenCompostHandlers.ts",
+    "Discord/src/commands/player/report/home/features/GardenFeatureHandler.ts",
+    "Discord/src/commands/player/report/home/index.ts",
+    "Discord/src/commands/player/report/inn/InnHandlers.ts",
+    "Discord/src/commands/player/report/pveFight/PveFightHandlers.ts",
+    "Discord/src/commands/player/report/royalBlacksmith/RoyalBlacksmithMenu.ts",
+    "Discord/src/commands/player/report/royalBlacksmith/RoyalBlacksmithMenuConstants.ts",
+    "Discord/src/commands/player/report/scrapDealer/ScrapDealerHandlers.ts",
+    "Discord/src/commands/player/report/scrapDealer/ScrapDealerMenu.ts",
+    "Discord/src/commands/player/report/scrapDealer/ScrapDealerMenuConstants.ts",
+    "Discord/src/commands/player/report/tokenMerchant/TokenMerchantHandlers.ts",
+    "Discord/src/commands/player/report/travel/TravelSummary.ts",
+    "Discord/src/commands/player/report/useTokens/UseTokensHandlers.ts"
+  ]
+}
