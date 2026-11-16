@@ -109,7 +109,7 @@ class Presenter{
  case 'CommandReportChooseDestinationRes':out.push(`🚶 Viagem iniciada para ${this.name('map_locations',p.mapId,`local #${p.mapId}`)}${Number.isFinite(p.tripDuration)?` • ${p.tripDuration} min`:''}.`);break;
  case 'BlockedPacket':out.push('⏳ Outra interação está pendente no motor.');break;
  case 'ErrorInternalPacket':out.push('Erro interno do motor. Consulte o log local, sem compartilhar segredos.');break;
- case 'RequirementEffectPacket':out.push('Seu estado atual impede essa ação.');break;
+ case 'RequirementEffectPacket':out.push(p.currentEffectId==='notStarted'?'Seu personagem ainda não iniciou a jornada. Envie /jogar para começar sua aventura.':'Seu estado atual impede essa ação.');break;
  case 'RequirementLevelPacket':out.push(`Nível necessário: ${p.requiredLevel??'?'}.`);break;
  case 'RequirementGuildNeededPacket':out.push('*✦ GUILDA NECESSÁRIA*\nVocê precisa pertencer a uma guilda para usar este recurso. Nenhuma ação foi executada.');break;
  case 'RequirementGuildRolePacket':out.push('*✦ PERMISSÃO DA GUILDA*\nSua função atual na guilda não permite essa ação. Nenhuma alteração foi realizada.');break;
