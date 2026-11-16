@@ -1,6 +1,6 @@
 # Jornada Crownicles — V8 Decisões simultâneas (16/11/2026)
 
-**Estado:** V8 preparada; **17/17 testes locais PASS** (16 guardas + 1 integração Gateway/Store SQLite com Core simulado); `node --check` PASS; `--verificar-pacote` = `PACOTE_INTEGRO=23/23`. **GATE NATIVO ANDROID 47/47 PENDENTE.** V7 anterior **40/40 homologada no Termux**, 7 novos/7, 18 respostas originais, 0 falhas, saída0; docs da V7 commit `34d1933e15395a1410320783b4c55c433a9a7bb2`. Não declarar 47/47 sem log Android.
+**Estado HOMOLOGADO em 16/11/2026:** V8 **47/47 testes reais PASS no Android Termux**, 7/7 novos, 0 falhas, LAB_SAIDA=0 e cleanup OK; além dos 17/17 testes locais e bundle 23/23. O log foi fornecido pelo responsável. V7 havia sido homologada 40/40.
 
 ## Objetivo: concorrência de operações mutantes
 
@@ -50,7 +50,7 @@ ZIP de download descompactado: byte a byte igual ao CJS
 - ZIP de fontes + builder + testes + bridge simulada + README, **171820 bytes**, SHA256 **`74f639d1fd0b2a323b31212f2b9b52f978b8650f003737ec1f98a1874540f65c`** — https://drive.google.com/file/d/1r8nhFApciZ9NrJhaNQQ42GK9eNNtmsj9/view
 - README em texto — https://drive.google.com/file/d/1StV5zUSJd5aw944oKeOLjonoOc8EJqg9/view
 
-## Gate V8 nativo pendente
+## Gate V8 nativo HOMOLOGADO (log real do responsável)
 
 ```text
 LAB=JORNADA_CORE_NATIVO_MQTT_V8_DECISOES_SIMULTANEAS
@@ -72,4 +72,53 @@ LAB_SAIDA=0
 
 Diário mestre https://docs.google.com/document/d/1p6yD3vVhAP_sCNsAA8gl2tCWB4OsU0xaSFBLaC7Ztoo/edit
 
-Quando o usuário retornar log: verificar **47/47**, comparar **7/7**, saída0, cleanup. Em caso de falha, corrigir estritamente o gate causal sem falsificar homologação e sem repetir /ping.
+O log real do Termux confirmou **47/47**, 7/7, saída0 e cleanup. O próximo objetivo de produto aprovado pelo responsável é abrir beta jogável via WhatsApp com **/cadastro explícito**, ativação/desativação por grupo pelo proprietário e UX rápida, usando dados beta resetáveis; veja PLANO-BETA-JOGAVEL-WHATSAPP.md. Não se deve extrapolar esse 47/47 para WhatsApp Baileys em operação.
+
+
+## Evidência Android V8 — enviada em 16/11/2026
+
+```text
+V8_INTEGRIDADE=APROVADA
+LAB=JORNADA_CORE_NATIVO_MQTT_V8_DECISOES_SIMULTANEAS
+MARIADB_AMBIENTE=PRIVADO_DESCARTAVEL
+MARIADB_PRIVADO_PORTA=43515
+LAB_DB_CRIADO
+LAB_TCP_ISOLADO_OK
+CORE_MIGRATIONS_OK
+CORE_RECEPTOR_MQTT=MAIN_ORIGINAL
+CORE_MAIN_INIT_BLOQUEADO=SIM
+CORE_MQTT_PUBLISH=PACKETUTILS_ORIGINAL
+PASS=01..40 (todos, baseline anterior)
+DECISOES_V8_JOGADORES_FICTICIOS=2
+PASS=41_NOVOS_JOGADORES_EFEMEROS_HABILITADOS
+DECISOES_V8_STARTS_PARALELOS=2
+PASS=42_INICIOS_DE_AVENTURA_MUTANTES_SIMULTANEOS
+DECISOES_V8_MENUS_ISOLADOS=SIM
+PASS=43_COLETORES_PRIVADOS_PARA_DOIS_JOGADORES
+DECISOES_V8_MUTACOES_PARALELAS=2
+DECISOES_V8_REPLAYS_EM_TRANSITO_BLOQUEADOS=2
+PASS=44_ESCOLHAS_SIMULTANEAS_COM_REPLAY_EM_TRANSITO
+DECISOES_V8_RECOMPENSAS_UNICAS=SIM
+PASS=45_RECOMPENSAS_PERSISTIDAS_EXATAMENTE_UMA_VEZ
+DECISOES_V8_COLETORES_ENCERRADOS=SIM
+PASS=46_COLETORES_FINALIZADOS_E_REPLAY_NOVO_SEM_DUPLICACAO
+DECISOES_V8_PERFIS_SEGREGADOS=4
+PASS=47_PERFIS_DOS_QUATRO_SEM_CROSSOVER
+DECISOES_V8_NOVOS_TESTES=7/7
+DECISOES_V8_FALHAS=0
+JORNADA_CROWNICLES_RESULTADOS=47/47
+JORNADA_CROWNICLES_FALHAS=0
+LAB_TESTES_TOTAIS=47/47
+LAB_TESTES_FALHARAM=0
+CORE_MAIN_INIT_COMPLETA_NAO_EXECUTADA=SIM
+WHATSAPP_REAL_NAO_ACESSADO=SIM
+MARIADB_SERVICO_LOCAL_COMPARTILHADO=NAO
+SCHEMA_DE_PRODUCAO_NAO_ACESSADO=SIM
+BANCO_TEMPORARIO_REMOVIDO
+MARIADB_PRIVADO_REMOVIDO
+LAB_SAIDA=0
+CODIGO_EXECUCAO=0
+LOG_COMPLETO=/data/data/com.termux/files/home/jornada_v8_resultado.log
+```
+
+**Interpretação precisa:** quatro jogadores fictícios, duas novas solicitações de aventura e duas mutações por coletores de pessoas diferentes sobrepostas; dois replays com mesmo wamid bloqueados durante o trânsito; saldos/pontos conferidos com banco privado e perfis segregados; cleanup integral. No mundo aberto dessa rodada o evento aleatório foi 26 (+66 pontos, +9 moedas, +47 XP), enquanto eventos iniciais 61/60 foram forçados no laboratório. **Não** valida competição de duas escolhas distintas contra o mesmo coletor, combate ou comércio, reconexão Baileys real, nem prontidão de bot ao público. O usuário explicitamente priorizou **beta jogável e dados resetáveis** na sequência.
