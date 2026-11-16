@@ -19,7 +19,7 @@ function normalizeOwner(value) {
   if (/^\d{8,25}$/.test(v)) return `${v}@s.whatsapp.net`;
   return normalizeJid(v);
 }
-const HELP = '*✦ BETA CROWNICLES*\n/cadastro — criar personagem\n/jogar — começar a jornada\n/aventura · /menu · /perfil · /inventario · /missoes\n\nEm grupos: somente grupos liberados pelo responsável. A beta pode ser reiniciada.';
+const HELP = '*✦ BETA CROWNICLES*\n/cadastro — criar personagem\n/jogar — começar a jornada\n/aventura · /menu · /perfil · /inventario · /missoes\n\nEm grupos: somente grupos liberados pelo responsável. Comandos de dono: /ativar, /desativar e, no privado, /chavegrupo (caso o WhatsApp oculte o numero). A beta pode ser reiniciada.';
 class BetaEntrance {
   constructor({ dir, ownerJids = [], createPlayer, dispatchGame, send, clock = Date.now }) {
     if (typeof dir !== 'string' || !path.isAbsolute(dir)) throw Error('DIRETORIO_BETA_ABSOLUTO_OBRIGATORIO');
@@ -32,6 +32,7 @@ class BetaEntrance {
       CREATE TABLE IF NOT EXISTS players(jid TEXT PRIMARY KEY, uuid TEXT NOT NULL UNIQUE, state TEXT NOT NULL, created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL);
       CREATE TABLE IF NOT EXISTS groups(id TEXT PRIMARY KEY, enabled INTEGER NOT NULL, updated_at INTEGER NOT NULL);
       CREATE TABLE IF NOT EXISTS seen(id TEXT PRIMARY KEY, created_at INTEGER NOT NULL);
+      CREATE TABLE IF NOT EXISTS group_keys(digest TEXT PRIMARY KEY, action TEXT NOT NULL, expires INTEGER NOT NULL, used INTEGER NOT NULL DEFAULT 0);
     `);
     this.owners = new Set(ownerJids.map(normalizeOwner));
     this.createPlayer = createPlayer;
@@ -55,15 +56,34 @@ class BetaEntrance {
     const cmd = text.trim().toLowerCase().split(/\s+/)[0];
     if (!cmd || (!cmd.startsWith('/') && !/^\d{1,3}$/.test(cmd))) return { handled: false, reason: 'not-command' };
     const owner = this.owners.has(sender);
-    const control = ['/ativar','/desativar','/grupos'].includes(cmd);
-    if (control && !owner) return { handled:false, reason:'not-owner' };
+    const groupSwitch = cmd === '/ativar' || cmd === '/desativar';
+    const control = groupSwitch || cmd === '/grupos' || cmd === '/chavegrupo';
+    if (cmd === '/grupos' && !owner) return { handled:false, reason:'not-owner' };
+    if (cmd === '/chavegrupo' && !owner) return { handled:false, reason:'not-owner' };
     if (isGroup && !this.groupEnabled(chat) && !control) return { handled:false, reason:'group-off' };
-    // A mesma chave de mensagem recebida duas vezes nunca deve executar ações duas vezes.
+    // Uma mensagem nao pode reutilizar chave ou duplicar comandos.
     if (this.db.prepare('INSERT OR IGNORE INTO seen(id,created_at) VALUES(?,?)').run(chat+'|'+id, this.clock()).changes === 0)
       return { handled:false, reason:'duplicate' };
     const answer = async(value, to=chat) => { await this.send(to, value); return { handled:true, kind:'reply', to, text:value }; };
-    if (cmd === '/ativar' || cmd === '/desativar') {
+    if (cmd === '/chavegrupo') {
+      if (isGroup) return answer('Solicite /chavegrupo no privado do Pinguino.');
+      const action=text.trim().toLowerCase().split(/\s+/)[1]==='desativar' ? '/desativar' : '/ativar';
+      const token=crypto.randomBytes(6).toString('hex').toUpperCase();
+      const digest=crypto.createHash('sha256').update(token).digest('hex');
+      const now=this.clock();
+      this.db.prepare('DELETE FROM group_keys WHERE expires < ? OR used=1').run(now);
+      this.db.prepare('INSERT INTO group_keys(digest,action,expires,used) VALUES(?,?,?,0)').run(digest,action,now+5*60000);
+      return answer('🔐 Autorização temporária de grupo\nNo grupo escolhido, envie: *'+action+' '+token+'*\nCódigo de uso único, válido por 5 minutos. Não compartilhe em outros grupos.',sender);
+    }
+    if (groupSwitch) {
       if (!isGroup) return answer('Use este comando dentro do grupo que deseja configurar.');
+      if (!owner) {
+        const token=String(text.trim().split(/\s+/)[1]||'').toUpperCase();
+        if (!/^[A-F0-9]{12}$/.test(token)) return {handled:false,reason:'not-owner'};
+        const digest=crypto.createHash('sha256').update(token).digest('hex');
+        const changed=this.db.prepare('UPDATE group_keys SET used=1 WHERE digest=? AND action=? AND used=0 AND expires>=?').run(digest,cmd,this.clock()).changes;
+        if (changed!==1) return {handled:false,reason:'invalid-group-key'};
+      }
       const enable = cmd === '/ativar' ? 1 : 0;
       this.db.prepare('INSERT INTO groups(id,enabled,updated_at) VALUES(?,?,?) ON CONFLICT(id) DO UPDATE SET enabled=excluded.enabled,updated_at=excluded.updated_at').run(chat,enable,this.clock());
       return answer(enable ? '✅ Beta ativada neste grupo. Use /cadastro para criar seu personagem.' : '🔕 Beta desativada neste grupo.');
