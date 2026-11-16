@@ -33,6 +33,9 @@ class BetaEntrance {
       CREATE TABLE IF NOT EXISTS groups(id TEXT PRIMARY KEY, enabled INTEGER NOT NULL, updated_at INTEGER NOT NULL);
       CREATE TABLE IF NOT EXISTS seen(id TEXT PRIMARY KEY, created_at INTEGER NOT NULL);
       CREATE TABLE IF NOT EXISTS group_keys(digest TEXT PRIMARY KEY, action TEXT NOT NULL, expires INTEGER NOT NULL, used INTEGER NOT NULL DEFAULT 0);
+      CREATE TABLE IF NOT EXISTS owner_aliases(jid TEXT PRIMARY KEY, created_at INTEGER NOT NULL);
+      CREATE TABLE IF NOT EXISTS jid_aliases(alias_jid TEXT PRIMARY KEY, canonical_jid TEXT NOT NULL, created_at INTEGER NOT NULL);
+      CREATE TABLE IF NOT EXISTS admin_claims(id INTEGER PRIMARY KEY, private_digest TEXT NOT NULL UNIQUE, group_digest TEXT UNIQUE, stage TEXT NOT NULL, expires INTEGER NOT NULL, private_jid TEXT, group_jid TEXT);
     `);
     this.owners = new Set(ownerJids.map(normalizeOwner));
     this.createPlayer = createPlayer;
@@ -52,12 +55,16 @@ class BetaEntrance {
     if (!chat || !sender || typeof id !== 'string' || !id.trim() || id.length > 256 || typeof text !== 'string')
       return { handled: false, reason: 'invalid-context' };
     const isGroup = chat.endsWith('@g.us');
+    // Check the transport sender BEFORE applying a trusted, previously proven alias.
     if (!isGroup && chat !== sender) return { handled:false, reason:'jid-mismatch' };
     const cmd = text.trim().toLowerCase().split(/\s+/)[0];
     if (!cmd || (!cmd.startsWith('/') && !/^\d{1,3}$/.test(cmd))) return { handled: false, reason: 'not-command' };
-    const owner = this.owners.has(sender);
+    const owner = this.owners.has(sender) || !!this.db.prepare('SELECT 1 FROM owner_aliases WHERE jid=?').get(sender);
+    const alias = this.db.prepare('SELECT canonical_jid FROM jid_aliases WHERE alias_jid=?').get(sender)?.canonical_jid;
+    const playerSender = alias || sender;
     const groupSwitch = cmd === '/ativar' || cmd === '/desativar';
-    const control = groupSwitch || cmd === '/grupos' || cmd === '/chavegrupo';
+    const claimCmd = cmd === '/vinculardono' || cmd === '/vinculargrupo';
+    const control = groupSwitch || claimCmd || cmd === '/grupos' || cmd === '/chavegrupo';
     if (cmd === '/grupos' && !owner) return { handled:false, reason:'not-owner' };
     if (cmd === '/chavegrupo' && !owner) return { handled:false, reason:'not-owner' };
     if (isGroup && !this.groupEnabled(chat) && !control) return { handled:false, reason:'group-off' };
@@ -65,6 +72,43 @@ class BetaEntrance {
     if (this.db.prepare('INSERT OR IGNORE INTO seen(id,created_at) VALUES(?,?)').run(chat+'|'+id, this.clock()).changes === 0)
       return { handled:false, reason:'duplicate' };
     const answer = async(value, to=chat) => { await this.send(to, value); return { handled:true, kind:'reply', to, text:value }; };
+    // Claim A comes from the administrator's local Termux, not a phone-number guess.
+    if (cmd === '/vinculardono') {
+      if (isGroup) return {handled:false, reason:'claim-requires-private'};
+      const code=String(text.trim().split(/\s+/)[1]||'').toUpperCase();
+      if (!/^[A-F0-9]{24}$/.test(code)) return {handled:false,reason:'invalid-admin-claim'};
+      const digest=crypto.createHash('sha256').update(code).digest('hex');
+      const now=this.clock();
+      const claim=this.db.prepare("SELECT id,stage,expires,private_jid FROM admin_claims WHERE private_digest=?").get(digest);
+      if (!claim || claim.stage!=='issued' || claim.expires<now) return {handled:false,reason:'invalid-admin-claim'};
+      const groupCode=crypto.randomBytes(12).toString('hex').toUpperCase();
+      const groupDigest=crypto.createHash('sha256').update(groupCode).digest('hex');
+      const updated=this.db.prepare("UPDATE admin_claims SET stage='private',private_jid=?,group_digest=? WHERE id=? AND stage='issued' AND expires>=?").run(sender,groupDigest,claim.id,now);
+      if (updated.changes!==1) return {handled:false,reason:'claim-race'};
+      this.db.prepare('INSERT OR IGNORE INTO owner_aliases(jid,created_at) VALUES(?,?)').run(sender,now);
+      return answer('✅ Seu WhatsApp privado foi vinculado como proprietário.\nPara vincular sua identidade nos grupos, envie no grupo: */vinculargrupo '+groupCode+'*\nEsse código vale por 10 minutos e só pode ser usado uma vez. Assim seu personagem do privado será o mesmo no grupo.',chat);
+    }
+    if (cmd === '/vinculargrupo') {
+      if (!isGroup) return {handled:false,reason:'claim-requires-group'};
+      const code=String(text.trim().split(/\s+/)[1]||'').toUpperCase();
+      if(!/^[A-F0-9]{24}$/.test(code))return {handled:false,reason:'invalid-group-claim'};
+      const digest=crypto.createHash('sha256').update(code).digest('hex');
+      const now=this.clock();
+      const claim=this.db.prepare("SELECT id,private_jid FROM admin_claims WHERE group_digest=? AND stage='private' AND expires>=?").get(digest,now);
+      if(!claim || !normalizeJid(claim.private_jid))return {handled:false,reason:'invalid-group-claim'};
+      // Reject conflicting alias ownership, never overwrite a prior linked account.
+      const existing=this.db.prepare('SELECT canonical_jid FROM jid_aliases WHERE alias_jid=?').get(sender);
+      if(existing && existing.canonical_jid!==claim.private_jid)return {handled:false,reason:'alias-conflict'};
+      this.db.exec('BEGIN IMMEDIATE');
+      try {
+        const consumed=this.db.prepare("UPDATE admin_claims SET stage='complete',group_jid=? WHERE id=? AND stage='private' AND expires>=?").run(sender,claim.id,now);
+        if(consumed.changes!==1)throw Error('CLAIM_JA_CONSUMIDO');
+        this.db.prepare('INSERT OR IGNORE INTO owner_aliases(jid,created_at) VALUES(?,?)').run(sender,now);
+        this.db.prepare('INSERT OR IGNORE INTO jid_aliases(alias_jid,canonical_jid,created_at) VALUES(?,?,?)').run(sender,claim.private_jid,now);
+        this.db.exec('COMMIT');
+      }catch(e){this.db.exec('ROLLBACK');return {handled:false,reason:'claim-transaction-failed'}}
+      return answer('✅ Identidades vinculadas com segurança. Seu personagem do privado agora é reconhecido nos grupos. Você pode usar /ativar e /desativar aqui sem código.');
+    }
     if (cmd === '/chavegrupo') {
       if (isGroup) return answer('Solicite /chavegrupo no privado do Pinguino.');
       const action=text.trim().toLowerCase().split(/\s+/)[1]==='desativar' ? '/desativar' : '/ativar';
@@ -94,33 +138,33 @@ class BetaEntrance {
       return answer(enabled.length ? '*Grupos ativos*\n'+enabled.map(x=>x.id).join('\n') : 'Nenhum grupo ativo. Envie /ativar dentro do grupo escolhido.');
     }
     if (cmd === '/cadastro') {
-      if (this.busy.has(sender)) return answer('⏳ Seu cadastro já está sendo preparado.');
-      this.busy.add(sender);
+      if (this.busy.has(playerSender)) return answer('⏳ Seu cadastro já está sendo preparado.');
+      this.busy.add(playerSender);
       try {
-        let row = this.player(sender);
-        if (row?.state === 'active') return answer('✅ Seu personagem já está cadastrado. Envie /jogar.', isGroup ? sender : chat);
+        let row = this.player(playerSender);
+        if (row?.state === 'active') return answer('✅ Seu personagem já está cadastrado. Envie /jogar.', isGroup ? playerSender : chat);
         if (!row) {
           const uuid = crypto.randomUUID();
-          this.db.prepare('INSERT INTO players(jid,uuid,state,created_at,updated_at) VALUES(?,?,?,?,?)').run(sender,uuid,'pending',this.clock(),this.clock());
-          row = this.player(sender);
+          this.db.prepare('INSERT INTO players(jid,uuid,state,created_at,updated_at) VALUES(?,?,?,?,?)').run(playerSender,uuid,'pending',this.clock(),this.clock());
+          row = this.player(playerSender);
         }
         // createPlayer DEVE ser idempotente por UUID; o mesmo UUID será reutilizado após falha/reinício.
-        await this.createPlayer(row.uuid, sender);
-        this.db.prepare("UPDATE players SET state='active',updated_at=? WHERE jid=? AND uuid=?").run(this.clock(),sender,row.uuid);
-        return answer('✅ Cadastro concluído! Seu personagem foi criado no Crownicles.\nEnvie /jogar para iniciar a aventura.\n\n*Beta de testes:* progresso pode ser reiniciado.', isGroup ? sender : chat);
+        await this.createPlayer(row.uuid, playerSender);
+        this.db.prepare("UPDATE players SET state='active',updated_at=? WHERE jid=? AND uuid=?").run(this.clock(),playerSender,row.uuid);
+        return answer('✅ Cadastro concluído! Seu personagem foi criado no Crownicles.\nEnvie /jogar para iniciar a aventura.\n\n*Beta de testes:* progresso pode ser reiniciado.', isGroup ? playerSender : chat);
       } catch (e) {
-        return answer('⚠️ O cadastro ainda não terminou. Use /cadastro novamente quando o motor estiver disponível. Não criaremos outro personagem.', isGroup ? sender : chat);
-      } finally { this.busy.delete(sender); }
+        return answer('⚠️ O cadastro ainda não terminou. Use /cadastro novamente quando o motor estiver disponível. Não criaremos outro personagem.', isGroup ? playerSender : chat);
+      } finally { this.busy.delete(playerSender); }
     }
-    if (cmd === '/ajuda' || cmd === '/comandos') return answer(HELP, isGroup ? sender : chat);
-    const row = this.player(sender);
-    if (!row || row.state !== 'active') return answer('Você precisa criar um personagem primeiro. Envie /cadastro.', isGroup ? sender : chat);
+    if (cmd === '/ajuda' || cmd === '/comandos') return answer(HELP, isGroup ? playerSender : chat);
+    const row = this.player(playerSender);
+    if (!row || row.state !== 'active') return answer('Você precisa criar um personagem primeiro. Envie /cadastro.', isGroup ? playerSender : chat);
     const idForGateway = id;
     // Respostas de aventura e inventário são privadas nesta primeira integração.
     // Não roteá-las ao grupo usando estado global "último chat" (risco de vazamento sob concorrência).
-    const ok = await this.dispatchGame({ id:idForGateway, playerJid:sender, playerUUID:row.uuid, text, replyJid:sender, sourceChat:chat });
-    if (!ok) return answer('⏳ O motor não aceitou esse comando. Tente /menu ou /perfil.', isGroup ? sender : chat);
-    return {handled:true, kind:'game', player:sender, replyJid:sender};
+    const ok = await this.dispatchGame({ id:idForGateway, playerJid:playerSender, playerUUID:row.uuid, text, replyJid:playerSender, sourceChat:chat });
+    if (!ok) return answer('⏳ O motor não aceitou esse comando. Tente /menu ou /perfil.', isGroup ? playerSender : chat);
+    return {handled:true, kind:'game', player:playerSender, replyJid:playerSender};
   }
 }
 function makeCoreRegistration({ Player, InventoryInfo, InventorySlot, ItemCategory }) {
