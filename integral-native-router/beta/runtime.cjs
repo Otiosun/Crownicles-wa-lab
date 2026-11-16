@@ -7,6 +7,14 @@ const fs=require('node:fs'),path=require('node:path'),os=require('node:os');
 const crypto=require('node:crypto'),{spawn,spawnSync}=require('node:child_process');
 const {createServer,connect:netConnect}=require('node:net'),{createRequire}=require('node:module');
 const Module=require('node:module');
+// Baileys/libsignal sometimes dump private ratchet material in console.log.
+// Preserve warnings but never print raw SessionEntry objects (rootKey/privKey).
+const rawLog=console.log.bind(console);
+console.log=(...a)=>{
+ const prefix=typeof a[0]==='string'?a[0]:'';
+ if (/^Closing session:/i.test(prefix)) return rawLog('[LIBSIGNAL] Sessao rotacionada (detalhes confidenciais ocultados)');
+ return rawLog(...a);
+};
 const {createBetaRuntime}=require('./integracao.cjs');
 const {Presenter}=require('./bridge/presenter.cjs');
 const {CrowniclesCore}=require('./bridge/core.cjs');
