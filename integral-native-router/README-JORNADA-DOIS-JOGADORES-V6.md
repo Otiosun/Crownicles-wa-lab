@@ -1,6 +1,6 @@
 # Crownicles — Jornada V6, dois jogadores fictícios (16/11/2026)
 
-**STATUS:** V6 preparada com **14/14 testes locais (estruturais) PASS**, verificação do bundle bridge **23/23**, sintaxe Node aprovada, mas **GATE NATIVO ANDROID 33/33 AINDA PENDENTE**. Baseline V5 **26/26 PASS REAL no Termux**, documentado no README da V5, commit `0e6de42b4d33f2bcbc30db217ec43e1bcdad5966`.
+**STATUS CORRIGIDO (16/11/2026): V6 EXECUTADA NO TERMUX e REPROVADA nos testes novos (26/33 PASS, 7/7 novos FAIL, LAB_SAIDA=2).** Baseline V5 26/26 PASS real permaneceu íntegra. A origem foi identificada no interceptor do laboratório com checagem rígida do UUID do primeiro jogador. **V6.1 já preparada:** [diagnóstico, código corrigido e evidências locais](README-JORNADA-DOIS-JOGADORES-V6_1.md); execução Android da V6.1 ainda pendente.
 
 ## Escopo da V6
 
@@ -51,6 +51,6 @@ MARIADB_PRIVADO_REMOVIDO
 LAB_SAIDA=0
 ```
 
-Não declarar gate 33/33 até evidência real. Progredir a partir do erro preciso, sem mexer em main/produção.
+O log real V6 comprovou **26/33**, não 33/33. Falha original reproduzida: `CORE_SEM_PACOTE_NATIVO_/perfil` e `/jogar` no segundo jogador; coletores e economia seguintes falharam em cascata. Marcadores de limpeza e isolamento permaneceram válidos. Aplicada correção isolada na V6.1. Não declarar 33/33 antes de log nativo da V6.1, nem mexer em main/produção.
 
 **Diário Mestre:** https://docs.google.com/document/d/1p6yD3vVhAP_sCNsAA8gl2tCWB4OsU0xaSFBLaC7Ztoo/edit
