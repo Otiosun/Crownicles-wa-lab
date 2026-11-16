@@ -21,7 +21,11 @@ class CrowniclesCore extends EventEmitter{
   if(this.closed)throw Error('MQTT_ADAPTADOR_ENCERRADO');
   if(this.config.mqttIsolated===true)assertLabConfig(this.config,this.origin);
   const mqtt=this.mqttModule||require(require.resolve('mqtt',{paths:[this.config.coreDir]}));
-  const client=mqtt.connect(this.config.mqttUrl,{connectTimeout:7000,reconnectPeriod:1500,clean:true});
+  // Explicit subscription on each CONNECT is the only source of readiness.
+  // MQTT.js default resubscribe caches topics and may callback [] for a second
+  // manual subscribe even though its own resubscribe is still in flight.
+  // QoS 0 requests must not queue through outages (mutations are not replayable).
+  const client=mqtt.connect(this.config.mqttUrl,{connectTimeout:7000,reconnectPeriod:1500,clean:true,resubscribe:false,queueQoSZero:false});
   this.client=client;
   client.on('connect',()=>{
    if(this.closed)return;
