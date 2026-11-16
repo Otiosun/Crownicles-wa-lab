@@ -1,0 +1,9 @@
+{
+  "name":"crownicles-whatsapp-beta-isolada",
+  "version":"0.1.0",
+  "private":true,
+  "description":"Beta independente WhatsApp usando Core original Crownicles 6.2.0.b",
+  "type":"commonjs",
+  "scripts":{"check":"node --check runtime.cjs && node runtime.cjs --preflight", "start":"node runtime.cjs"},
+  "dependencies":{"@whiskeysockets/baileys":"6.7.24","pino":"^9.0.0","qrcode-terminal":"^0.12.0"}
+}
