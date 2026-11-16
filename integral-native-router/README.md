@@ -1,46 +1,47 @@
-# Crownicles integral — camada de comandos nativos reaproveitável (laboratório)
+# Crownicles original — integração por famílias V2 (laboratório isolado)
 
-**Data:** 15 de novembro de 2026. **Código original:** Crownicles 6.2.0.b, commit `64d08c05f11949029317341735f6f73024f19f9b`. **Não é um instalador de produção. Não muda o WhatsApp, o Core, nem a base MariaDB existente.**
+**Fonte:** Crownicles/Crownicles 6.2.0.b, commit `64d08c05f11949029317341735f6f73024f19f9b`.  **Data:** 16/11/2026.
 
-## Por que esta entrega existe
+## Meta do produto (inalterada)
 
-A meta é conservar **o Crownicles inteiro** (código, regras, mundos, desafios, economia, coletores, eventos, classes, pets, guildas, missões e demais recursos), servindo seus contratos pelo WhatsApp e pelo site. A V6 homologou 22 cenários de equipamentos no Android; não é a entrega do RPG inteiro. A arquitetura anterior replicava parsers para diferentes famílias de comandos. Esta V1 introduz um **roteador nativo declarativo** para que as próximas famílias sejam adicionadas por contratos auditados, sem repetir mecanismo de identidade, nonce, SQLite, MQTT e confirmação.
+Portar o **Crownicles inteiro** (todos os recursos originais úteis/estáveis/compatíveis), e não criar RPG inspirado ou limitado. WhatsApp e site devem acessar o **mesmo motor Crownicles original**; localização pt-BR existente deve ser reaproveitada. O jogo ainda **não tem nome final**. Não instalar ou iniciar segunda instância do bot/WhatsApp/Core. Não habilitar ações mutáveis na instância real antes de homologação de MQTT/Baileys/site e regra de idempotência/reconciliação.
 
-## Alterações reais no clone isolado
+## O que entrou nesta entrega V2
 
-- `src/native-universal.cjs` **NOVO**: declara alias PT-BR, classe exata de pacote, payload, risco, menu de prévia e renderizações de retorno. Um único mecanismo comum e bloqueio por padrão.
-- `src/gateway.cjs` **MODIFICADO**: integra parser universal **após** as rotas antigas, reaproveitando `startConfirmedRequest` e seu nonce único no SQLite. Mantém jogador vinculado ao número, expiração, no-replay, menu por jogador, fechamento de requisições, filtro de identidade e dedupe. Requisição nativa nunca sai antes do commit da confirmação. Resposta vazia de carinho encerra apenas a requisição correspondente, sem declarar recompensa nem reenviar.
-- `src/presenter.cjs` **MODIFICADO**: usa renderização nativa para Ping e criação de guilda, sem expor IDs.
-- `test/native-universal.test.cjs` **NOVO**: 20 testes abrangendo o roteador, termos inválidos, origem do ID, falsos nonces, cancelamento, replay, outro jogador, TTL, adulteração de menu e replies sem resultado.
-- Regressão completa **820/820 PASS** no ambiente local Node 22 (os 800 testes anteriores também passaram); arquivo TAP junto no pacote.
+- **12 contratos de acesso nativo**, dos quais **8 novos** em comparação à base V1.1: `CommandGuildDescriptionPacketReq`, `CommandGuildLeavePacketReq`, `CommandGuildElderRemovePacketReq`, `CommandGuildKickPacketReq`, `CommandPetFreePacketReq`, `CommandPetTransferPacketReq`, `CommandFriendlyFightPacketReq`, `CommandUnlockPacketReq`. O motor original continua determinando autoridade, custo, tempo de espera, sucessos e efeitos.
+- O parser compartilha schema e validação para 5 formatos de argumento (`none`, `self`, `guildName`, `description`, `rank`). Não aceita pacote arbitrário, parâmetros JSON, IDs falsos ou privilégio administrativo.
+- **8 coletores de confirmação originais auditados**: criação de guilda, descrição, saída, remoção de ancião, expulsão, libertação de jogador, libertação de pet, confirmação de libertação de pet no abrigo. Preservam a ordem de índices original e validam formato dos dados.
+- **Confirmadores que não identificam destinatário por nome verificável ficam bloqueados**, mesmo no laboratório: expulsão, remoção de ancião e libertação de outros jogadores. O Core só fornece UUID nesses coletores. A identidade deve ser vinculada e exibida corretamente antes de permitir qualquer aceitação; cancelamento segue disponível.
+- Saída de guilda exibe possibilidade de **DESTRUIÇÃO** quando `isGuildDestroyed=true`. A confirmação local do pedido e a confirmação posterior do Core são diferentes, cada uma com seu nonce. O Core ainda executa a ação somente após a segunda resposta.
+- O renderizador reconhece os retornos e bloqueios originais auditados de guilda, pets, expedições, combate amistoso e libertação. Não inventa recompensas no caso de resposta vazia ou não conclusiva.
+- `tools/audit-integral-coverage.cjs` mede automaticamente os módulos do Core original, pacotes, coletores e referências da ponte com avisos explícitos sobre diferença entre **declarado / mencionado / interagível / homologado**. Lê código-fonte apenas; não abre rede nem banco.
 
-## Quatro contratos originais exercitados na base de roteamento
+## Provas e limites
 
-| Comando WhatsApp | Pacote oficial | Regra |
-|---|---|---|
-| `/ping` | `CommandPingPacketReq {time}` | Consulta sem alteração, utiliza hora enviada pelo cliente |
-| `/acariciar` | `CommandPetCaressPacketReq {}` | Laboratório isolado apenas; executa `MissionsController.update` no Core original, não assumir recompensa |
-| `/resgatarexpedicao` | `CommandPetExpeditionResolvePacketReq {}` | Laboratório isolado apenas; Core original arbitra expedição, bloqueio, recompensas e travas |
-| `/criarguilda NOME` | `CommandGuildCreatePacketReq {keycloakId,askedGuildName}` | Laboratório isolado apenas; Core verifica nome, dinheiro, guilda e emite confirmação oficial |
+- **849/849 testes Node 22 PASS** nesta cópia; **820** eram a regressão anterior e **29 novos** cobrem roteamento, schemas, identidade, preservação do índice de reação, dupla confirmação, bloqueio de ações sem nome e inventário seguro.
+- **A V1.1 anterior permanece homologada nativamente no Termux: 27/27**, com Core 6.2.0.b, MariaDB e SQLite, sem Baileys ou MQTT real. **Os novos casos V2 ainda não rodaram com Core nativo no Android**; os testes V2 usam um FakeCore para respostas. Nunca confundir `849/849` com homologação do RPG completo.
+- Há **48 pacotes de comando decorados** encontrados no scan anterior do Core. A V2 tem **12 rotas nativas declarativas**; existem rotas legadas também, porém a contagem não é cobertura funcional nem porcentagem de jogo pronta.
+- Os **56 módulos de coletores** do Crownicles incluem muitos estados com opções bloqueadas no WhatsApp; os oito novos descritores não transformam isso automaticamente em 56 mecânicas completas.
+- `ReactionCollectorPetTransferData` e `ReactionCollectorPetFreeSelectionData` continuam incompletos para permitir transferência/libertação através do abrigo. O comando inicial pode ser solicitado no **LAB**, mas as opções de segundo nível sem validação não são enviadas ao Core.
+- Não foi testado MQTT real, retransmissões perdidas, Baileys, WhatsApp real, site/Keycloak, reinício do MariaDB ou launch de produção. A instância live atual foi preservada.
 
-Nenhuma economia, dano, XP, NPC ou sorte é recriada no roteador. As ações mutáveis só são aceitas com todos os sinais `CROWNICLES_WA_UNIVERSAL_COMMANDS=lab` + `CROWNICLES_WA_LAB_ISOLATED=SIM_ISOLADO` + `WA_BAILEYS_SEND_MODE` ausente/vazio + `CROWNICLES_WA_EQUIP_ACTIONS` não habilitado. **Mesmo com esses sinais, o código deste arquivo não foi instalado em produção**. `/sistemas` mostra o conjunto experimental sem enviar nenhum pacote ao motor. Comandos administrativos ou payload arbitrário **nunca** são liberados.
+## Próximos dois gargalos globais
 
-## Prova adicional de Core/MariaDB no Termux (ainda NÃO executada)
+1. Resolver autenticação/identificação do jogador-alvo com nome verificável, e serializar/validar todos os coletores restantes como escolha segura (sem permitir efeitos desconhecidos).
+2. Homologar uma vez o transporte MQTT isolado e o Baileys sem produção, com deduplicação/reconciliação para não repetir operações irreversíveis quando a resposta se perde. Reaproveitar módulos web originais no site.
 
-- Artefato único: `crownicles_integral_core_gateway_lab_v1.cjs`, arquivo SHA256 abaixo.
-- Reutiliza o laboratório efêmero V6 e seus **22 cenários nativos** previamente homologados no Termux; o script encapsula uma cópia exata dos **21 módulos atuais**, sem instalação no gateway real.
-- **Cinco cenários novos**: 23 Ping com classe oficial Core e jogador no MariaDB; 24 tentativa de fundar guilda sem moedas com classe oficial Core e conferência de não-mutação; 25 resposta vazia de carinho (simulação de resposta, **não** valida progresso de missão); 26 mutações bloqueadas fora do laboratório; 27 código de confirmação de outro jogador não funciona. Os cinco ainda não foram executados no celular: não contabilizar como aprovados.
-- Expectativa no Termux: `LAB_TESTES_TOTAIS=27/27`, `LAB_TESTES_FALHARAM=0`, `BANCO_TEMPORARIO_REMOVIDO`, `LAB_SAIDA=0`. Falhas fornecem etapa e stack filtrada e ainda fazem limpeza. Não conecta MQTT ou Baileys, não chama `Crownicles.init`, não usa usuários reais.
+**Artefato:** esta pasta é uma cópia isolada do laboratório; não copiar `src/` sobre `.run/wa-gateway` nem executar `Core/src/main.ts` no ambiente ativo.
 
-**Mesmo que a V1 passe 27/27, o Crownicles inteiro ainda NÃO está jogável via WhatsApp.** Faltam muitas interfaces e validações por família, MQTT real, Baileys real, o site, tratamento de resposta perdida e revisão de UX em PT-BR. A camada declarativa apenas elimina uma classe de trabalho repetitivo.
+### Como executar teste local Node22, em uma cópia isolada
 
-## Política de publicação e licenciamento
+```bash
+node --test test/*.test.cjs
+```
 
-- O clone e os testes **não** devem substituir a pasta `.run/wa-gateway` nem alterar o bot ativo.
-- Respostas de comandos que não possuam renderizador ainda permanecem bloqueadas/fail-closed; a fonte original é o árbitro de regras e recompensas.
-- `Core/src/main.ts` inicia `crowniclesInstance.init()`; não executar um segundo main para provar o transporte.
-- Crownicles é **AGPL-3.0-or-later**; modificações/serviço deverão cumprir as obrigações da licença e de atribuição conforme aplicáveis.
+Para emitir inventário em um ambiente que possua o código original descompactado:
 
-## Próxima convergência — sem um teste por mecânica
+```bash
+node tools/audit-integral-coverage.cjs "$HOME/crownicles-whatsapp-lab/crownicles-dev"
+```
 
-Preencher um registro por família de contratos (jogador, guildas, pets, combate, exploração, cidade e economia), aproveitando em lote o Core e coletores originais. Um adaptador genérico compartilhado atende consultas e confirmações; ações não classificadas conservam bloqueio seguro. O objetivo é **cobertura dos 48 contratos de comando do Core + coletores relacionados**, não repetir 48 implementações independentes. Para site, reaproveitar RestWs e autenticação Keycloak oficial, com avaliação de maturidade de RestWs.
+**Atenção:** a análise por referência de pacote é apenas um limite inferior, não valida a funcionalidade no WhatsApp. O instrumento não lê credenciais, dados dos jogadores, sessões ou banco SQL.
