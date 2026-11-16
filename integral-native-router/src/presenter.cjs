@@ -63,7 +63,7 @@ class Presenter{
  formatMenu(m){const when=Number.isFinite(m.endTime)?new Date(m.endTime).toLocaleTimeString('pt-BR'):'?';const options=m.options||[];const shown=options.map((o,i)=>({o,i})).filter(x=>x.o.supported);const pending=options.length-shown.length;return [m.title.startsWith('*')?m.title:`*${m.title}*`,m.story,'',...shown.map(({o,i})=>`${i+1}. ${o.label}${o.requiresConfirmation?' [confirmação]':''}`),'',pending?`${pending} possibilidade${pending===1?'':'s'} adicional${pending===1?'':'is'} indisponível${pending===1?'':'eis'} nesta versão.`:'',`Responda com o número até ${when}.`,shown.some(x=>x.o.requiresConfirmation)?'Ações marcadas exigem prévia e um código único de confirmação.':'' ].filter(Boolean).join('\n')}
  formatProfile(p){const d=p.playerData;if(!d)return 'Perfil indisponível.';const eff=d.effect||{};const mm=eff.hasTimeDisplay&&Number.isFinite(eff.timeLeft)&&eff.timeLeft>0?` (${Math.ceil(eff.timeLeft/60000)} min restantes)` :'';
  return ['🧙 PERFIL DO VIAJANTE',`Nível ${d.level} • ${this.name('classes',d.classId,'Recruta')}`,`Vida: ${d.health?.value??'?'} / ${d.health?.max??'?'}`,`XP: ${d.experience?.value??'?'} / ${d.experience?.max??'?'}`,`Pontos: ${d.rank?.score??'?'}`,`Moedas: ${d.money??'?'}`,tokenBalance(d.tokens),`Estado: ${fx[eff.effect]||eff.effect||'Normal'}${mm}`,`Destino: ${this.name('map_locations',d.destinationId,'Local desconhecido')}`].filter(Boolean).join('\n')}
- formatInventory(p){if(!p.foundPlayer||!p.data)return 'Inventário indisponível.';
+ formatInventory(p){if(!p.foundPlayer||!p.data)return p.foundPlayer===false?'*✦ INVENTÁRIO*\nSeu personagem ainda não iniciou a jornada. Envie /jogar para começar.':'Inventário indisponível.';
  const d=p.data;
  const out=['🎒 INVENTÁRIO',`Arma: ${this.name('weapons',d.weapon?.id,'—')}`,`Proteção: ${this.name('armors',d.armor?.id,'—')}`,`Poção: ${this.name('potions',d.potion?.id,'—')}`,`Objeto: ${this.name('objects',d.object?.id,'—')}`,slotSummary(d.slots),`Materiais: ${(d.materials||[]).reduce((sum,x)=>sum+(x.quantity||0),0)}`];
  const groups=[['Armas na reserva','backupWeapons','weapons'],['Proteções na reserva','backupArmors','armors'],['Poções na reserva','backupPotions','potions'],['Objetos na reserva','backupObjects','objects']];
@@ -88,7 +88,7 @@ class Presenter{
  switch(n){
  case 'CommandProfilePacketRes':out.push(this.formatProfile(p));break;
  case 'CommandInventoryPacketRes':out.push(this.formatInventory(p));break;
- case 'CommandProfilePlayerNotFound':out.push('Seu personagem ainda não iniciou a jornada.');break;
+ case 'CommandProfilePlayerNotFound':out.push('Seu personagem ainda não iniciou a jornada. Envie /jogar para começar sua aventura.');break;
  case 'ReactionCollectorCreationPacket':{if(!p.id||!Number.isFinite(p.endTime)||!Array.isArray(p.reactions)){out.push('O menu chegou incompleto; nenhuma decisão será enviada.');break}const m=this.menu(p);store.saveMenu(wa,m);out.push(this.formatMenu(m));break}
  case 'ReactionCollectorStopPacket':store.clearMenu(wa,p.id);break;
  case 'ReactionCollectorEnded':store.clearMenu(wa,p.id);out.push('⌛ A escolha expirou.');break;
