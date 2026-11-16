@@ -26,7 +26,7 @@ O arquivo de socket estava presente, mas não aceitava conexão; isso ocorreu **
 - `node ...cjs --verificar-pacote`: `PACOTE_INTEGRO=23/23`, `VERIFICACAO_PACOTE_SEM_INICIALIZAR_CORE=SIM`.
 - `node --test crownicles_jornada_mariadb_fallback_v2.test.cjs`: **8/8 PASS** (5 caminhos de socket/segurança e 3 guardas).
 - **Sem teste de execução com MariaDB real neste ambiente**: binários de servidor ausentes na infraestrutura local. Não declarar homologação nem recontar 871 testes Node de ponte da rodada anterior.
-- Arquivo runner 125828 bytes, SHA256 `4b8d5a30a499a46b26485a1d9ab0e97e41ac45fd90e1e69d8399531f790a8463`.
+- Arquivo runner 125830 bytes, SHA256 `4b8d5a30a499a46b26485a1d9ab0e97e41ac45fd90e1e69d8399531f790a8463`.
 
 ## Artefatos persistidos na conta Komekko
 - <https://drive.google.com/file/d/1iYXFQYd5PTe5FlOO6LyVZdCnU7Znzt4E/view> — runner Android V2
