@@ -1,6 +1,6 @@
 # Crownicles V6.1 — correção do laboratório multijogador (16/11/2026)
 
-**STATUS:** execução V6 anterior = **26/33 PASS**, 7/7 testes novos falharam, `LAB_SAIDA=2`. Correção V6.1 pronta, **20/20 testes locais PASS**, bundle bridge **23/23**, mas **Android nativo ainda pendente**. V5 26/26 permanece homologada.
+**STATUS ATUALIZADO EM 16/11/2026: V6.1 HOMOLOGADA NO TERMUX, 33/33 PASS, 7/7 novos, 0 falhas, `LAB_SAIDA=0`, `CODIGO_EXECUCAO=0`.** A execução V6 anterior havia falhado 26/33; V6.1 corrigiu o interceptor de identidades. Os 20/20 testes locais e bundle bridge 23/23 são evidências adicionais, não substituem a homologação nativa.
 
 ## Erro do usuário na V6
 
@@ -54,7 +54,7 @@ O interceptador do receptor MQTT ORIGINAL do Core tinha guarda de laboratório `
 - [ZIP código + 20 testes + fontes bridge simulador + README](https://drive.google.com/file/d/1xxcziy9bYFM44ld_7GldZzk1V1KAG-CC/view) — **165714 bytes**, SHA256 `b466bc37c0828ac35f8e0239987e54d89b978284525285094fbbb5605c323206`.
 - [README](https://drive.google.com/file/d/1gvk7ZUY5zqEoqBrMCdR2xh3nVmm8Sbkf/view).
 
-## Gate Termux (pendente)
+## Gate Termux (cumprido, conforme log Android recebido)
 
 ```text
 V6_1_INTEGRIDADE=APROVADA
@@ -75,6 +75,84 @@ MARIADB_PRIVADO_REMOVIDO
 LAB_SAIDA=0
 ```
 
+**Homologação confirmada: 33/33 PASS no Android, segundo jogador com números/UUIDs fictícios e decisões segregadas, sem crossover observado no ensaio sequencial.** Concorrência simultânea de comandos, grupos reais e integração de contas continuam NÃO homologados.
+
 **Limites de segurança preservados:** `Core.init()` bloqueado, identities fictícias, MQTT loopback e banco/daemon MariaDB privativos, nenhuma sessão WhatsApp real, Keycloak, site, cron, banco de produção ou branch main acessados. Se houver nova falha, corrigir gate e causa específica, sem repetir /ping ou trabalhos de implantação.
 
 Diário mestre: https://docs.google.com/document/d/1p6yD3vVhAP_sCNsAA8gl2tCWB4OsU0xaSFBLaC7Ztoo/edit
+
+
+## Log real da V6.1 — 16/11/2026
+
+Enviado pelo responsável após verificação de SHA256 do CJS. Síntese dos marcadores observados:
+
+```text
+V6_1_INTEGRIDADE=APROVADA
+LAB=JORNADA_CORE_NATIVO_MQTT_V6_1_DOIS_JOGADORES
+MARIADB_AMBIENTE=PRIVADO_DESCARTAVEL
+MARIADB_PRIVADO_PORTA=46123
+LAB_DB_CRIADO
+LAB_TCP_ISOLADO_OK
+CORE_MIGRATIONS_OK
+CORE_RECEPTOR_MQTT=MAIN_ORIGINAL
+CORE_MAIN_INIT_BLOQUEADO=SIM
+CORE_MQTT_PUBLISH=PACKETUTILS_ORIGINAL
+PASS=01_CORE_ORIGINAL_QUATRO_COMANDOS_E_COLETOR
+PASS=02_MQTT_SUBACK_ORIGINAL
+PASS=03_PERFIL_PRE_INICIO_CROWNICLES
+PASS=04_INVENTARIO_PRE_INICIO_CROWNICLES
+PASS=05_MISSOES_PRE_INICIO_CROWNICLES
+PASS=06_JOGAR_CROWNICLES_REPORT_E_MAPA_PERSISTIDO
+PASS=07_REENTREGA_JOGAR_SEM_NOVO_COMANDO
+PASS=08_MENU_E_REACAO_CROWNICLES_ORIGINAL
+PASS=09_PERFIL_APOS_EVENTO_CROWNICLES
+PASS=10_INVENTARIO_APOS_EVENTO_CROWNICLES
+PASS=11_MISSOES_APOS_EVENTO_CROWNICLES
+PASS=12_RELATORIO_DURANTE_VIAGEM_ORIGINAL
+PASS=13_AVANCAR_TEMPO_PELA_ROTINA_TESTE_ORIGINAL
+PASS=14_SEGUNDO_EVENTO_CROWNICLES_CHEGADA
+PASS=15_DUPLICATA_SEGUNDO_RELATORIO_BLOQUEADA
+PASS=16_ESCOLHA_SEGUNDO_EVENTO_NATIVO
+PASS=17_PERFIL_E_INVENTARIO_CONSISTENTES_DEPOIS_2_EVENTOS
+PASS=18_MISSOES_E_COLETOR_ANTIGO_CONSISTENTES
+PASS=19_DESTINOS_DO_CONTINENTE_NATIVOS
+PASS=20_ESCOLHA_DESTINO_ORIGINAL_VIA_MQTT
+PASS=21_VIAGEM_MUNDO_ABERTO_RELATORIO
+PASS=22_CHEGADA_ACELERADA_OFICIAL
+PASS=23_CATALOGO_EVENTOS_E_SEM_FIXTURE
+MUNDO_ABERTO_EVENTO_SEM_FIXTURE=SIM
+MUNDO_ABERTO_EVENTO_SORTEADO=26
+PASS=24_EVENTO_ALEATORIO_CORE_ORIGINAL
+PASS=25_ESCOLHA_EVENTO_ALEATORIO_ORIGINAL
+PASS=26_ESTADO_E_DUPLICATAS_APOS_EVENTO_ALEATORIO
+DOIS_JOGADORES_IDENTIDADES=2_DISTINTAS
+PASS=27_SEGUNDA_IDENTIDADE_PRE_INICIO
+DOIS_JOGADORES_EVENTO_WA2=61
+PASS=28_SEGUNDO_JOGADOR_EVENTO_CORE_NATIVO
+DOIS_JOGADORES_MENU_SEPARADO=SIM
+PASS=29_MENUS_PRIVADOS_SEM_VAZAMENTO
+DOIS_JOGADORES_WA2_PONTOS=62
+PASS=30_REACAO_JOGADOR2_APLICADA_SOMENTE_A_ELE
+DOIS_JOGADORES_SALDOS_INDEPENDENTES=SIM
+PASS=31_PERSISTENCIA_SEPARADA_DOS_DOIS_JOGADORES
+DOIS_JOGADORES_REPLAY_WA2_BLOQUEADO=SIM
+PASS=32_DUPLICATA_SEGUNDO_JOGADOR_NAO_AFETA_ESTADO
+DOIS_JOGADORES_PERFIS_CROSSOVER=NAO
+PASS=33_PERFIS_NATIVOS_SEGREGADOS_E_NUMERO_DESCONHECIDO
+DOIS_JOGADORES_V6_NOVOS_TESTES=7/7
+DOIS_JOGADORES_V6_FALHAS=0
+JORNADA_CROWNICLES_RESULTADOS=33/33
+JORNADA_CROWNICLES_FALHAS=0
+CORE_MAIN_INIT_COMPLETA_NAO_EXECUTADA=SIM
+WHATSAPP_REAL_NAO_ACESSADO=SIM
+MARIADB_SERVICO_LOCAL_COMPARTILHADO=NAO
+MARIADB_INSTANCIA_PRIVADA=SIM
+SCHEMA_DE_PRODUCAO_NAO_ACESSADO=SIM
+BANCO_TEMPORARIO_REMOVIDO
+MARIADB_PRIVADO_REMOVIDO
+LAB_SAIDA=0
+CODIGO_EXECUCAO=0
+LOG_COMPLETO=/data/data/com.termux/files/home/jornada_v6_1_resultado.log
+```
+
+Interpretação: o próprio Core original persistiu os dois personagens distintos e a ponte entregou as respectivas respostas somente ao número de laboratório associado; menus não vazaram, reentrega não duplicou. Os sistemas testados funcionaram **sequencialmente**, no mesmo broker e banco efêmeros. A execução não prova corrida de dois comandos simultâneos nem prontidão para usuários reais. Próximo gate recomendado: concorrência simultânea de duas identidades e comportamento sob replay de coletor, com limites e cleanup.
