@@ -20,9 +20,32 @@ MQTT.js 5.15.2, `resubscribe:true` por padrão, mantém cache de tópicos e reas
 
 ## Qualidade comprovada x pendente
 
-`node --test test/*.test.cjs`: **862/862 PASS, 0 fail, 0 skip**, Node v22.16.0, em ambiente de desenvolvimento. `node --check` na fonte, no runner e no arquivo autossuficiente: PASS. Manifesto 24/24 hashes íntegros. Sem Mosquitto no container, comportamento seguro `MQTT_REAL_FALHOU=MOSQUITTO_AUSENTE` e `LAB_SAIDA=1`: esperado. **V5 ainda NÃO foi executada no Android; não declarar 5/5.**
+`node --test test/*.test.cjs`: **862/862 PASS, 0 fail, 0 skip**, Node v22.16.0, em ambiente de desenvolvimento. `node --check` na fonte, no runner e no arquivo autossuficiente: PASS. Manifesto 24/24 hashes íntegros. Sem Mosquitto no container, comportamento seguro `MQTT_REAL_FALHOU=MOSQUITTO_AUSENTE` e `LAB_SAIDA=1`: esperado. **V5 executada e homologada no Termux: MQTT/TCP real 5/5 PASS, 0 falhas, LAB_SAIDA=0.** A regressão local 862/862 é uma prova distinta.
 
-Próximo único ensaio: arquivo V5 com hash verificado no Termux. Sucesso somente com `PASS=05_RECONEXAO_E_SEGUNDA_SOLICITACAO_UNICA`, `MQTT_WIRE_TESTES=5/5`, `MQTT_WIRE_FALHAS=0` e `LAB_SAIDA=0`. Persistindo falha, trazer `MQTT_RECONNECT_DIAG` e corrigir causa específica. Não iniciar Core main, MariaDB, Baileys/WhatsApp nem usar credenciais. Propriedade do projeto: preservar o máximo do Crownicles original, sem desenvolver novo RPG.
+## Homologação real Android / Termux — fornecida pelo usuário em 16/11/2026
+
+```text
+LAB=MQTT_REAL_ISOLADO_V5
+BROKER_HOST=127.0.0.1
+BROKER_PORTA_TEMPORARIA=23788
+PREFIXO_TEMPORARIO=cw_wa_mqtt_lab_9213e3749e2f1d99ccc297a2
+PASS=01_BROKER_ISOLADO_E_ASSINATURAS_REAIS
+PASS=02_GATEWAY_SQLITE_MQTT_PING_END_TO_END
+PASS=03_ORIGEM_INVALIDA_E_DUPLICATAS_REJEITADAS
+PASS=04_QUEDA_BROKER_SEM_REENVIO_AUTOMATICO
+MQTT_RECONNECT_DIAG={"tcp":1,"mosquitto_alive":1,"gateway_socket":1,"gateway_suback":1,"mock_socket":1,"mock_suback":1,"gateway_connects":2,"gateway_disconnects":1,"events":{"mock":{"connect":2,"reconnect":1,"offline":1,"close":1,"error":0,"suback":2,"subfail":0},"gateway":{"connect":2,"reconnect":1,"offline":1,"close":1,"error":0}},"elapsed_ms":1367,"original_requests":1,"current_requests":1}
+PASS=05_RECONEXAO_E_SEGUNDA_SOLICITACAO_UNICA
+MQTT_WIRE_TESTES=5/5
+MQTT_WIRE_FALHAS=0
+CORE_ORIGINAL_NAO_INICIADO=SIM
+WHATSAPP_REAL_NAO_ACESSADO=SIM
+BANCO_MARIADB_NAO_ACESSADO=SIM
+LAB_SAIDA=0
+```
+
+**GATE MQTT REAL V5 = APROVADO**, incluindo segundo SUBACK do mock, SUBACK do gateway e teste da segunda solicitação após reinício. O campo `original_requests=1;current_requests=1` documenta que a primeira operação não foi reenviada. A confirmação real de nova operação é a linha PASS=05 do runner. O diagnóstico de reconexão ficou pronto em 1367 ms, sem falhas de subscribe. Não confundir esse sucesso com a inicialização do motor Core original (explicitamente não iniciado), acesso ao WhatsApp, MariaDB persistente ou integração end-to-end de jogo.
+
+**Próxima etapa:** preparar e homologar a ligação com o Core nativo original sob broker/DB efêmeros, sem executar `Core/src/main.ts` nem contato com produção. Reutilizar o que já existe no Core e no laboratório nativo 27/27; o MQTT real V5 não precisa ser repetido. O nome do jogo continua indefinido.
 
 ## Proteções
 
