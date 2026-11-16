@@ -24,3 +24,33 @@ test('makeCoreRegistration uses original models idempotently, no event fixture',
  await fn('aa-bb');await fn('aa-bb');assert.equal(players.size,1);assert.equal(inv.size,1);assert.equal(slots.size,4);assert.equal([...players.values()][0].nextEvent,undefined);
 });
 test('allow registration via phone owner normalized; owner identity only',async()=>{const x=setup({ownerJids:['5511999000099']});try{const r=await x.e.handle(x.input('a',owner,'/ativar',grp));assert.equal(r.handled,true)}finally{x.close()}});
+
+test('dono pode emitir chave no privado e autorizar um grupo com LID sem PN',async()=>{
+ const x=setup();const lid='123456789012345@lid';try{
+  await x.e.handle(x.input('g1',owner,'/chavegrupo'));
+  const msg=x.sent.at(-1);const token=/\/ativar ([A-F0-9]{12})/.exec(msg.text)?.[1];
+  assert.equal(msg.jid,owner);assert(token);
+  const result=await x.e.handle(x.input('g2',lid,'/ativar '+token,grp));
+  assert.equal(result.handled,true);assert.equal(x.e.groupEnabled(grp),true);
+  const replay=await x.e.handle(x.input('g3',lid,'/ativar '+token,'120363222222222222@g.us'));
+  assert.equal(replay.reason,'invalid-group-key');assert.equal(x.e.groupEnabled('120363222222222222@g.us'),false);
+ }finally{x.close()}
+});
+test('chave de grupo expirada ou comando diferente nao concede acesso',async()=>{
+ let now=100000;const x=setup({clock:()=>now});const lid='123456789012345@lid';
+ try{await x.e.handle(x.input('i1',owner,'/chavegrupo'));
+  const token=/\/ativar ([A-F0-9]{12})/.exec(x.sent.at(-1).text)?.[1];assert(token);
+  const wrong=await x.e.handle(x.input('i2',lid,'/desativar '+token,grp));assert.equal(wrong.handled,false);
+  now+=300001;const expired=await x.e.handle(x.input('i3',lid,'/ativar '+token,grp));
+  assert.equal(expired.reason,'invalid-group-key');assert.equal(x.e.groupEnabled(grp),false);
+ }finally{x.close()}
+});
+test('codigo nunca permite emitir chave a terceiro ou ativar em privado',async()=>{
+ const x=setup();try{
+  const no=await x.e.handle(x.input('i1',waA,'/chavegrupo'));assert.equal(no.handled,false);
+  await x.e.handle(x.input('i2',owner,'/chavegrupo'));
+  const token=/\/ativar ([A-F0-9]{12})/.exec(x.sent.at(-1).text)?.[1];assert(token);
+  const r=await x.e.handle(x.input('i3',waA,'/ativar '+token));assert.match(r.text,/dentro do grupo/i);
+  assert.equal(x.e.groupEnabled(grp),false);
+ }finally{x.close()}
+});
