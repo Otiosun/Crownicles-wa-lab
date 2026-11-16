@@ -1,0 +1,17 @@
+'use strict';
+const {test}=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
+const {extractText}=require('./runtime.cjs');
+const js=fs.readFileSync(path.join(__dirname,'runtime.cjs'),'utf8');
+const pkg=require('./package.json');
+test('conteudo conversacao WhatsApp texto',()=>assert.equal(extractText({message:{conversation:'/cadastro'}}),'/cadastro'));
+test('mensagem citada extendedText',()=>assert.equal(extractText({message:{extendedTextMessage:{text:'/ativar'}}}),'/ativar'));
+test('mensagem efemera',()=>assert.equal(extractText({message:{ephemeralMessage:{message:{conversation:'/menu'}}}}),'/menu'));
+test('legenda imagem',()=>assert.equal(extractText({message:{imageMessage:{caption:'/perfil'}}}),'/perfil'));
+test('ausencia de texto nao vira comando',()=>assert.equal(extractText({message:{}}),null));
+test('Core.main original e init protegido',()=>{assert.match(js,/require\(path\.join\(dist,'main\.js'\)\)/);assert.match(js,/gameInstance\.init=function\(\)/)});
+test('DB beta persistente e isolado',()=>{assert.match(js,/crownicles-beta/);assert.match(js,/crownicles_beta_game|prefix\+'_game'/);assert.doesNotMatch(js,/DROP DATABASE|rmSync\(dataDir/)});
+test('somente binding beta explicito',()=>{assert.match(js,/createBetaRuntime/);assert.match(js,/ownerJids:\[cfg\.ownerNumber\]/)});
+test('numero diferente do dono',()=>assert.match(js,/cfg\.botNumber===cfg\.ownerNumber/));
+test('Baileys separada com autenticacao local',()=>{assert.match(js,/baileys-auth/);assert.match(js,/requestPairingCode/)});
+test('MQTT loopback',()=>{assert.match(js,/127\.0\.0\.1/);assert.match(js,/assertLabConfig\(mqttCfg,origin\)/)});
+test('congelar versao legada Baileys validada',()=>assert.equal(pkg.dependencies['@whiskeysockets/baileys'],'6.7.24'));
