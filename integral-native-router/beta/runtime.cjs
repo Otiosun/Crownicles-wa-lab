@@ -20,6 +20,7 @@ const {Presenter}=require('./bridge/presenter.cjs');
 const {CrowniclesCore}=require('./bridge/core.cjs');
 const {assertLabConfig}=require('./bridge/mqtt-isolation.cjs');
 const {normalizeJid}=require('./entrada.cjs');
+const {probeReadHandlers}=require('./feature-manifest.cjs');
 const {resolveIncomingSender}=require('./group-sender.cjs');
 const {groupIdentityDisposition}=require('./group-identity-policy.cjs');
 process.umask(0o077);
@@ -153,6 +154,10 @@ async function initCore(portMaria,cfg,req,admin){
  for(const [packet,rel] of Object.entries(compiledPaths)){
   require(path.join(dist,rel));if(typeof gameInstance.packetListener.getListener(packet)!=='function')throw Error('HANDLER_CROWNICLES_AUSENTE_'+packet)
  }
+ const nativeRead=probeReadHandlers({dist,listener:gameInstance.packetListener});
+ const enabledPackets=new Set([...Object.keys(compiledPaths),...nativeRead.available]);
+ status('BETA_LEITURAS_NATIVAS',nativeRead.available.length);
+ status('BETA_LEITURAS_PENDENTES',nativeRead.unavailable.length);
  const {MapCache}=require(path.join(dist,'core','maps','MapCache.js'));
  const {LogsMapLinks}=require(path.join(dist,'core','database','logs','models','LogsMapLinks.js'));
  const original=LogsMapLinks.findAll;LogsMapLinks.findAll=async()=>[];
@@ -160,7 +165,7 @@ async function initCore(portMaria,cfg,req,admin){
  require(path.join(dist,'core','fights','AiBehaviorController.js')).initializeAllClassBehaviors();
  require(path.join(dist,'core','fights','PetAssistManager.js')).initializeAllPetBehaviors();
  status('CORE_ORIGINAL','PRONTO');status('CORE_DB','BETA_PERSISTENTE');
- return {bootstrap,shim,models:gameInstance.gameDatabase.sequelize.models};
+ return {bootstrap,shim,models:gameInstance.gameDatabase.sequelize.models,enabledPackets};
 }
 async function startMqtt(req,coreBoot){
  const portMqtt=await randomMqttPort();
@@ -303,7 +308,7 @@ async function main(){
  bridgeRuntime=createBetaRuntime({dataDir:stateDir,ownerJids:[cfg.ownerNumber],core:bridgeCore,
   presenter:new Presenter(path.join(gameRoot,'Lang','pt')),send:waSender,
   Player:coreBoot.models.Player,InventoryInfo:coreBoot.models.InventoryInfo,
-  InventorySlot:coreBoot.models.InventorySlot,ItemCategory});
+  InventorySlot:coreBoot.models.InventorySlot,ItemCategory,enabledPackets:coreBoot.enabledPackets});
  eventTimer=setInterval(()=>{
     try{bridgeRuntime.gateway.maintenance()}catch(e){status('MAINTENANCE_ERRO',e.code||'ERRO_INTERNO')}
     try{bridgeRuntime.beta.maintenance()}catch(e){status('BETA_MAINTENANCE_ERRO',e.code||'ERRO_INTERNO')}
