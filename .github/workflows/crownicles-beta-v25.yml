@@ -12,6 +12,8 @@ on:
       - 'integral-native-router/beta/response-context.test.cjs'
       - 'integral-native-router/beta/group-identity-policy.cjs'
       - 'integral-native-router/beta/group-identity-policy.test.cjs'
+      - 'integral-native-router/beta/group-sender.test.cjs'
+      - 'integral-native-router/beta/group-sender.cjs'
       - 'integral-native-router/beta/context-dispatch.cjs'
       - 'integral-native-router/beta/context-dispatch.test.cjs'
       - 'integral-native-router/beta/integracao.cjs'
@@ -54,8 +56,10 @@ jobs:
           node --check response-context.test.cjs
           node --check group-identity-policy.cjs
           node --check group-identity-policy.test.cjs
+          node --check group-sender.cjs
+          node --check group-sender.test.cjs
           node --check context-dispatch.cjs
           node --check context-dispatch.test.cjs
           node --check integracao.cjs
       - name: Testar comandos, persistencia e seguranca em SQLite descartavel
-        run: node --test entrada.test.cjs owner-link.test.cjs response-context.test.cjs group-identity-policy.test.cjs context-dispatch.test.cjs
+        run: node --test entrada.test.cjs owner-link.test.cjs response-context.test.cjs group-identity-policy.test.cjs context-dispatch.test.cjs group-sender.test.cjs
