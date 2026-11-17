@@ -1,0 +1,99 @@
+'use strict';
+const {test}=require('node:test'),assert=require('node:assert/strict');
+const {EventEmitter}=require('node:events');
+const fs=require('node:fs'),os=require('node:os'),path=require('node:path');
+const {createBetaRuntime}=require('./integracao.cjs');
+const P1='5511999000001@s.whatsapp.net',P2='5511999000002@s.whatsapp.net';
+const GROUP='120363111111111111@g.us',OWNER='5511999000099@s.whatsapp.net';
+const BASE=['CommandReportPacketReq','CommandProfilePacketReq','CommandInventoryPacketReq','CommandMissionsPacketReq','ReactionCollectorReactPacket'];
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+function fixture(extra=[],reply=true){
+ const dir=fs.mkdtempSync(path.join(os.tmpdir(),'cw-beta-v27-'));
+ const sent=[],calls=[],users=new Map(),inventory=new Map(),slots=new Map();let seq=0;
+ const make=(map,key,decorate=()=>({}))=>({findOrCreate:async({where,defaults})=>{const k=key(where);if(!map.has(k))map.set(k,{...defaults,...decorate()});return [map.get(k),true]}});
+ class FakeCore extends EventEmitter{
+  constructor(){super();this.ready=true;}
+  send(name,data,uuid,id){calls.push({name,data,uuid,id});if(reply)setImmediate(()=>this.emit('response',{context:{frontEndSubOrigin:id,keycloakId:uuid},packets:[{name:'RequirementEffectPacket',packet:{currentEffectId:'notStarted',remainingTime:0}}]}));}
+ }
+ const core=new FakeCore();
+ const rt=createBetaRuntime({dataDir:dir,ownerJids:[OWNER],core,send:async(jid,text)=>sent.push({jid,text}),
+  enabledPackets:new Set([...BASE,...extra]),
+  presenter:{apply:()=>'*SAIDA CORE*',formatMenu:()=>'*MENU*',allowEquipActions:false},
+  Player:make(users,w=>w.keycloakId,()=>({id:++seq})),InventoryInfo:make(inventory,w=>w.playerId),InventorySlot:make(slots,w=>`${w.playerId}:${w.itemCategory}:${w.slot}`),ItemCategory:{WEAPON:0,ARMOR:1,POTION:2,OBJECT:3}});
+ const send=(id,sender,text,chat=sender)=>rt.handle({id,chatJid:chat,senderJid:sender,text});
+ return {dir,rt,core,send,sent,calls,users,close(){rt.close();fs.rmSync(dir,{recursive:true,force:true})}};
+}
+async function until(condition){for(let i=0;i<35;i++){if(condition())return;await sleep(10)}throw Error('TIMEOUT_TESTE')}
+test('comandos adicionais reutilizam Gateway e pacote nativo sem recriar regras',async()=>{
+ const x=fixture(['CommandPetPacketReq']);try{
+  await x.send('cad-1',P1,'/cadastro');await x.send('pet-1',P1,'/pet');
+  await until(()=>x.calls.length>0);
+  assert.equal(x.calls.length,1);assert.equal(x.calls[0].name,'CommandPetPacketReq');
+  assert.equal(x.calls[0].uuid,x.rt.beta.player(P1).uuid);
+  await until(()=>x.sent.some(m=>m.text==='*SAIDA CORE*'));
+  assert(x.sent.filter(m=>m.text==='*SAIDA CORE*').every(m=>m.jid===P1));
+ }finally{x.close()}
+});
+test('rota que existe na ponte mas nao foi registrada nao dispara Core',async()=>{
+ const x=fixture([]);try{
+  await x.send('cad-2',P1,'/cadastro');await x.send('deny-1',P1,'/pet');
+  await until(()=>x.sent.some(m=>m.text.includes('ainda não foi habilitado')));
+  assert.equal(x.calls.length,0);
+  assert.equal(x.rt.gateway.store.getMenu(P1),null);
+ }finally{x.close()}
+});
+test('ajuda real nao anuncia comandos bloqueados no Core',async()=>{
+ const x=fixture(['CommandMapPacketReq','CommandPetPacketReq']);try{
+  await x.send('on',OWNER,'/ativar',GROUP);
+  const result=await x.send('help-group',P1,'/ajuda',GROUP);
+  assert.equal(result.to,GROUP);assert(result.text.includes('/mapa'));assert(result.text.includes('/pet'));
+  assert(!result.text.includes('/ranking'));assert(!result.text.includes('/equipamentos'));assert(!result.text.includes('/combate'));
+  const pv=await x.send('help-pv',P1,'/comandos');assert.equal(pv.to,P1);
+  assert.equal(x.users.size,0);
+ }finally{x.close()}
+});
+test('negacao de combate nao consome dinheiro, nao cria pedido MQTT, nem altera menu',async()=>{
+ const x=fixture([]);try{
+  await x.send('cad-3',P1,'/cadastro');await x.send('fight-1',P1,'/combate');
+  await until(()=>x.sent.some(m=>m.text.includes('ainda não foi habilitado')));
+  assert.equal(x.calls.length,0);assert.equal(x.rt.store.getMenu(P1),null);
+ }finally{x.close()}
+});
+test('duas contas em dois grupos mantem Core e saida privada separados',async()=>{
+ const x=fixture(['CommandPetPacketReq']);const G2='120363222222222222@g.us';try{
+  await x.send('g1',OWNER,'/ativar',GROUP);await x.send('g2',OWNER,'/ativar',G2);
+  await x.send('a',P1,'/cadastro',GROUP);await x.send('b',P2,'/cadastro',G2);
+  await x.send('pa',P1,'/pet',GROUP);await x.send('pb',P2,'/pet',G2);
+  await until(()=>x.calls.length===2);
+  await until(()=>x.sent.filter(m=>m.text==='*SAIDA CORE*').length===2);
+  assert.notEqual(x.calls[0].uuid,x.calls[1].uuid);
+  assert.deepEqual(new Set(x.sent.filter(m=>m.text==='*SAIDA CORE*').map(m=>m.jid)),new Set([P1,P2]));
+ }finally{x.close()}
+});
+test('mesmo wamid de grupo nao reexecuta uma rota da ponte',async()=>{
+ const x=fixture(['CommandPetPacketReq']);try{
+  await x.send('cad-r',P1,'/cadastro');await x.send('pet-r',P1,'/pet');
+  await x.send('pet-r',P1,'/pet');await until(()=>x.calls.length===1);
+  assert.equal(x.calls.length,1);
+ }finally{x.close()}
+});
+test('resposta Core atrasada apos fechar a beta nao consulta SQLite encerrado',async()=>{
+ const x=fixture([],false);let id,uuid;
+ try{
+  await x.send('registration',P1,'/cadastro');await x.send('report',P1,'/jogar');
+  await until(()=>x.calls.length===1);
+  id=x.calls[0].id;uuid=x.calls[0].uuid;
+ }finally{x.close()}
+ assert.doesNotThrow(()=>x.core.emit('response',{context:{frontEndSubOrigin:id,keycloakId:uuid},packets:[]}));
+});
+test('envio de outbox em andamento nao usa banco depois do close',async()=>{
+ const {Gateway}=require('./bridge/gateway.cjs');
+ let release;const pending=new Promise(resolve=>{release=resolve});
+ const core=new EventEmitter();core.ready=true;
+ let calls=0;
+ const store={nextOut:()=>calls++===0?{id:'out-1',wa:P1,text:'ola'}:null,
+  sent:()=>{throw Error('STORE_FECHADO')},failed:()=>{throw Error('STORE_FECHADO')}};
+ const gateway=new Gateway({bindings:{}},store,{},core,async()=>pending);
+ const work=gateway.flush();gateway.close();release();
+ await assert.doesNotReject(work);
+});
