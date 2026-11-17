@@ -241,6 +241,8 @@ async function startBaileys(cfg,coreBoot){
      const adminCmd=cmd==='/ativar'||cmd==='/desativar';
       const helpCmd=cmd==='/ajuda'||cmd==='/comandos';
       const infoCmd=cmd==='/grupo'||cmd==='/regras';
+      const vinculoCmd=cmd==='/vinculargrupo';
+      if(isGroup&&vinculoCmd)status('GRUPO_VINCULO_RECEBIDO','SIM');
       if(isGroup&&infoCmd)status('GRUPO_INFO_RECEBIDA','SIM');
       if(isGroup&&helpCmd)status('GRUPO_AJUDA_RECEBIDA','SIM');
      if(isGroup&&adminCmd){
@@ -267,6 +269,8 @@ async function startBaileys(cfg,coreBoot){
      if(isGroup&&adminCmd){status('GRUPO_COMANDO_RESULTADO',result?.handled===true?'OK':(result?.reason||'NAO_TRATADO'))}
       if(isGroup&&helpCmd)status('GRUPO_AJUDA_RESULTADO',result?.handled===true?'OK':(result?.reason||'NAO_TRATADO'));
       if(isGroup&&infoCmd)status('GRUPO_INFO_RESULTADO',result?.handled===true?'OK':(result?.reason||'NAO_TRATADO'));
+      if(isGroup&&vinculoCmd)status('GRUPO_VINCULO_RESULTADO',result?.handled===true?'OK':(result?.reason||'NAO_TRATADO'));
+      if(isGroup&&result?.kind==='game')status('GRUPO_JOGO_RESPOSTA_PLANEJADA','PRIVADO');
     }catch(e){status('MENSAGEM_FALHOU',String(e.message||e).slice(0,150))}
    }
   });
