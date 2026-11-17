@@ -8,6 +8,8 @@ on:
       - 'integral-native-router/beta/entrada.cjs'
       - 'integral-native-router/beta/entrada.test.cjs'
       - 'integral-native-router/beta/owner-link.test.cjs'
+      - 'integral-native-router/beta/response-context.cjs'
+      - 'integral-native-router/beta/response-context.test.cjs'
       - 'integral-native-router/beta/admin-link.cjs'
       - 'integral-native-router/beta/runtime.cjs'
       - '.github/workflows/crownicles-beta-v25.yml'
@@ -43,5 +45,7 @@ jobs:
           node --check admin-link.cjs
           node --check entrada.test.cjs
           node --check owner-link.test.cjs
+          node --check response-context.cjs
+          node --check response-context.test.cjs
       - name: Testar comandos, persistencia e seguranca em SQLite descartavel
-        run: node --test entrada.test.cjs owner-link.test.cjs
+        run: node --test entrada.test.cjs owner-link.test.cjs response-context.test.cjs
