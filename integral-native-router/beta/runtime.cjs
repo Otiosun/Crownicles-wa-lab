@@ -21,6 +21,7 @@ const {CrowniclesCore}=require('./bridge/core.cjs');
 const {assertLabConfig}=require('./bridge/mqtt-isolation.cjs');
 const {normalizeJid}=require('./entrada.cjs');
 const {resolveIncomingSender}=require('./group-sender.cjs');
+const {groupIdentityDisposition}=require('./group-identity-policy.cjs');
 process.umask(0o077);
 const HOME=process.env.HOME;
 if(!HOME||!path.isAbsolute(HOME))throw Error('HOME_INVALIDO');
@@ -240,20 +241,22 @@ async function startBaileys(cfg,coreBoot){
      const isGroup=chat.endsWith('@g.us');
      const adminCmd=cmd==='/ativar'||cmd==='/desativar';
       const helpCmd=cmd==='/ajuda'||cmd==='/comandos';
+      const infoCmd=cmd==='/grupo'||cmd==='/regras';
+      const vinculoCmd=cmd==='/vinculargrupo';
+      if(isGroup&&vinculoCmd)status('GRUPO_VINCULO_RECEBIDO','SIM');
+      if(isGroup&&infoCmd)status('GRUPO_INFO_RECEBIDA','SIM');
       if(isGroup&&helpCmd)status('GRUPO_AJUDA_RECEBIDA','SIM');
      if(isGroup&&adminCmd){
       status('GRUPO_CONTROLE_RECEBIDO','SIM');
       status('GRUPO_TIPO_IDENTIDADE',resolved.mode);
      }
      if(!sender){if(isGroup&&adminCmd)status('GRUPO_COMANDO_RECUSADO','SEM_PARTICIPANTE');continue}
-     // Unknown LID cannot be silently equated to a PN account or create an extra character.
+     // Never infer PN from LID digits. Public group info needs no number;
+     // verified aliases may play; owner challenges stay inside BetaEntrance.
      if(isGroup&&resolved.mode==='lid-unresolved'){
-      if(adminCmd&&!/^[a-f0-9]{12}$/i.test(body.trim().split(/\s+/)[1]||'')){
-       status('GRUPO_AUTORIZACAO','CHAVE_NECESSARIA');
-       await socketClient.sendMessage(chat,{text:'🔐 Para ativar/desativar este grupo, o responsável deve enviar /chavegrupo no privado do Pinguino e depois /ativar CODIGO (ou /desativar CODIGO) aqui.'});
-       continue;
-      }
-      if(!adminCmd){
+      const verifiedAlias=!!bridgeRuntime.beta.db.prepare('SELECT 1 FROM jid_aliases WHERE alias_jid=?').get(sender);
+      const disposition=groupIdentityDisposition({command:cmd,verifiedAlias});
+      if(disposition==='private-only'){
        if(cmd.startsWith('/')||/^\d{1,3}$/.test(cmd)){
         status('GRUPO_IDENTIDADE','LID_SEM_PN');
         await socketClient.sendMessage(chat,{text:'Para evitar criar um personagem duplicado, use os comandos do jogo no privado do Pinguino enquanto o WhatsApp não disponibiliza seu número neste grupo.'});
@@ -263,7 +266,14 @@ async function startBaileys(cfg,coreBoot){
      }
      const result=await bridgeRuntime.handle({id:msg.key.id,chatJid:chat,senderJid:sender,text:body,fromMe:false});
      if(isGroup&&adminCmd){status('GRUPO_COMANDO_RESULTADO',result?.handled===true?'OK':(result?.reason||'NAO_TRATADO'))}
+     if(isGroup&&resolved.mode==='lid-unresolved'&&adminCmd&&result?.reason==='not-owner'){
+      status('GRUPO_AUTORIZACAO','CHAVE_NECESSARIA');
+      await socketClient.sendMessage(chat,{text:'🔐 Para ativar/desativar este grupo, o responsável deve solicitar /chavegrupo no privado e enviar o comando com o código aqui.'});
+     }
       if(isGroup&&helpCmd)status('GRUPO_AJUDA_RESULTADO',result?.handled===true?'OK':(result?.reason||'NAO_TRATADO'));
+      if(isGroup&&infoCmd)status('GRUPO_INFO_RESULTADO',result?.handled===true?'OK':(result?.reason||'NAO_TRATADO'));
+      if(isGroup&&vinculoCmd)status('GRUPO_VINCULO_RESULTADO',result?.handled===true?'OK':(result?.reason||'NAO_TRATADO'));
+      if(isGroup&&result?.kind==='game')status('GRUPO_JOGO_RESPOSTA_PLANEJADA','PRIVADO');
     }catch(e){status('MENSAGEM_FALHOU',String(e.message||e).slice(0,150))}
    }
   });
@@ -294,7 +304,10 @@ async function main(){
   presenter:new Presenter(path.join(gameRoot,'Lang','pt')),send:waSender,
   Player:coreBoot.models.Player,InventoryInfo:coreBoot.models.InventoryInfo,
   InventorySlot:coreBoot.models.InventorySlot,ItemCategory});
- eventTimer=setInterval(()=>{try{bridgeRuntime.gateway.maintenance()}catch(e){status('MAINTENANCE_ERRO',e.message)}},15000);
+ eventTimer=setInterval(()=>{
+    try{bridgeRuntime.gateway.maintenance()}catch(e){status('MAINTENANCE_ERRO',e.code||'ERRO_INTERNO')}
+    try{bridgeRuntime.beta.maintenance()}catch(e){status('BETA_MAINTENANCE_ERRO',e.code||'ERRO_INTERNO')}
+  },15000);
  status('BETA_CADASTRO','HABILITADO');status('BETA_GRUPOS','SOMENTE_ATIVADOS');
  await startBaileys(cfg,coreBoot);
 }

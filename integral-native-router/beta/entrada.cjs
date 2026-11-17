@@ -19,7 +19,8 @@ function normalizeOwner(value) {
   if (/^\d{8,25}$/.test(v)) return `${v}@s.whatsapp.net`;
   return normalizeJid(v);
 }
-const HELP = '*✦ BETA CROWNICLES*\n/cadastro — criar personagem\n/jogar — começar a jornada\n/aventura · /menu · /perfil · /inventario · /missoes\n\nEm grupos: somente grupos liberados pelo responsável. Comandos de dono: /ativar, /desativar e, no privado, /chavegrupo (caso o WhatsApp oculte o numero). A beta pode ser reiniciada.';
+const HELP = "*✦ CROWNICLES — GUIA DE JORNADA*\n\n*Começar*\n/cadastro — criar seu aventureiro\n/jogar — começar ou continuar a história\n\n*Sua aventura*\n/menu · /aventura — seguir a jornada\n/perfil · /inventario · /missoes — consultar seu progresso\n\n*No grupo*\n/ajuda · /comandos — consultar os comandos\n/grupo — conferir se o RPG está habilitado\n/regras — entender as respostas públicas e privadas\n\nA aventura e os dados do personagem chegam no privado. Informações gerais aparecem no grupo. O responsável pode usar /ativar e /desativar no próprio grupo.";
+const GROUP_RULES = "*✦ COMO FUNCIONA O GRUPO*\n\n/ajuda, /comandos, /grupo e /regras são públicos.\nAs respostas pessoais da aventura, inventário e ficha vão para o privado de cada jogador.\nCada pessoa mantém seu próprio personagem.\nSomente o responsável pode ativar ou desativar o RPG por aqui.";
 class BetaEntrance {
   constructor({ dir, ownerJids = [], createPlayer, dispatchGame, send, clock = Date.now }) {
     if (typeof dir !== 'string' || !path.isAbsolute(dir)) throw Error('DIRETORIO_BETA_ABSOLUTO_OBRIGATORIO');
@@ -32,6 +33,7 @@ class BetaEntrance {
       CREATE TABLE IF NOT EXISTS players(jid TEXT PRIMARY KEY, uuid TEXT NOT NULL UNIQUE, state TEXT NOT NULL, created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL);
       CREATE TABLE IF NOT EXISTS groups(id TEXT PRIMARY KEY, enabled INTEGER NOT NULL, updated_at INTEGER NOT NULL);
       CREATE TABLE IF NOT EXISTS seen(id TEXT PRIMARY KEY, created_at INTEGER NOT NULL);
+      CREATE INDEX IF NOT EXISTS seen_created_at_idx ON seen(created_at);
       CREATE TABLE IF NOT EXISTS group_keys(digest TEXT PRIMARY KEY, action TEXT NOT NULL, expires INTEGER NOT NULL, used INTEGER NOT NULL DEFAULT 0);
       CREATE TABLE IF NOT EXISTS owner_aliases(jid TEXT PRIMARY KEY, created_at INTEGER NOT NULL);
       CREATE TABLE IF NOT EXISTS jid_aliases(alias_jid TEXT PRIMARY KEY, canonical_jid TEXT NOT NULL, created_at INTEGER NOT NULL);
@@ -43,9 +45,17 @@ class BetaEntrance {
     this.send = send;
     this.clock = clock;
     this.busy = new Set();
+    this.lastMaintenanceAt = null;
     this.closed = false;
   }
   close() { if (!this.closed) {this.closed = true; this.db.close();} }
+  maintenance() {
+    if (this.closed) return 0;
+    const now = this.clock();
+    if (this.lastMaintenanceAt !== null && now - this.lastMaintenanceAt < 60*60*1000) return 0;
+    this.lastMaintenanceAt = now;
+    return this.db.prepare('DELETE FROM seen WHERE created_at < ?').run(now-30*24*60*60*1000).changes;
+  }
   groupEnabled(jid) { return this.db.prepare('SELECT enabled FROM groups WHERE id=?').get(jid)?.enabled === 1; }
   player(jid) { return this.db.prepare('SELECT * FROM players WHERE jid=?').get(jid) ?? null; }
   async handle({ id, chatJid, senderJid, text, fromMe = false }) {
@@ -64,7 +74,7 @@ class BetaEntrance {
     const playerSender = alias || sender;
     const groupSwitch = cmd === '/ativar' || cmd === '/desativar';
     const claimCmd = cmd === '/vinculardono' || cmd === '/vinculargrupo';
-    const control = groupSwitch || claimCmd || cmd === '/grupos' || cmd === '/chavegrupo';
+    const control = groupSwitch || claimCmd || cmd === '/grupos' || cmd === '/chavegrupo' || cmd === '/grupo';
     if (cmd === '/grupos' && !owner) return { handled:false, reason:'not-owner' };
     if (cmd === '/chavegrupo' && !owner) return { handled:false, reason:'not-owner' };
     if (isGroup && !this.groupEnabled(chat) && !control) return { handled:false, reason:'group-off' };
@@ -130,7 +140,7 @@ class BetaEntrance {
       }
       const enable = cmd === '/ativar' ? 1 : 0;
       this.db.prepare('INSERT INTO groups(id,enabled,updated_at) VALUES(?,?,?) ON CONFLICT(id) DO UPDATE SET enabled=excluded.enabled,updated_at=excluded.updated_at').run(chat,enable,this.clock());
-      return answer(enable ? '✅ Beta ativada neste grupo. Use /cadastro para criar seu personagem.' : '🔕 Beta desativada neste grupo.');
+      return answer(enable ? '✅ O RPG está disponível neste grupo! Use /ajuda para começar.' : '🔕 O RPG foi pausado neste grupo.');
     }
     if (cmd === '/grupos') {
       if (isGroup) return answer('Consulte /grupos no privado.');
@@ -142,7 +152,7 @@ class BetaEntrance {
       this.busy.add(playerSender);
       try {
         let row = this.player(playerSender);
-        if (row?.state === 'active') return answer('✅ Seu personagem já está cadastrado. Envie /jogar.', isGroup ? playerSender : chat);
+        if (row?.state === 'active') return answer('✅ Seu aventureiro já está pronto. Use /jogar para continuar.', isGroup ? playerSender : chat);
         if (!row) {
           const uuid = crypto.randomUUID();
           this.db.prepare('INSERT INTO players(jid,uuid,state,created_at,updated_at) VALUES(?,?,?,?,?)').run(playerSender,uuid,'pending',this.clock(),this.clock());
@@ -151,13 +161,18 @@ class BetaEntrance {
         // createPlayer DEVE ser idempotente por UUID; o mesmo UUID será reutilizado após falha/reinício.
         await this.createPlayer(row.uuid, playerSender);
         this.db.prepare("UPDATE players SET state='active',updated_at=? WHERE jid=? AND uuid=?").run(this.clock(),playerSender,row.uuid);
-        return answer('✅ Cadastro concluído! Seu personagem foi criado no Crownicles.\nEnvie /jogar para iniciar a aventura.\n\n*Beta de testes:* progresso pode ser reiniciado.', isGroup ? playerSender : chat);
+        return answer('✅ Aventureiro criado!\nUse /jogar para dar o primeiro passo.\n\n*Aviso:* este mundo ainda está em testes.', isGroup ? playerSender : chat);
       } catch (e) {
         return answer('⚠️ O cadastro ainda não terminou. Use /cadastro novamente quando o motor estiver disponível. Não criaremos outro personagem.', isGroup ? playerSender : chat);
       } finally { this.busy.delete(playerSender); }
     }
     // Help is public in enabled groups; gameplay and player details remain private.
     if (cmd === '/ajuda' || cmd === '/comandos') return answer(HELP, chat);
+    if (cmd === '/regras') return answer(GROUP_RULES, chat);
+    if (cmd === '/grupo') {
+      if (!isGroup) return answer('Consulte /grupo dentro do grupo desejado. Para a lista de grupos habilitados, o responsável pode usar /grupos no privado.');
+      return answer(this.groupEnabled(chat) ? '✦ RPG habilitado neste grupo. Use /ajuda para ver os comandos.' : '✦ RPG ainda não habilitado neste grupo. O responsável pode usar /ativar aqui.');
+    }
     const row = this.player(playerSender);
     if (!row || row.state !== 'active') return answer('Você precisa criar um personagem primeiro. Envie /cadastro.', isGroup ? playerSender : chat);
     const idForGateway = id;
@@ -180,4 +195,4 @@ function makeCoreRegistration({ Player, InventoryInfo, InventorySlot, ItemCatego
     return row;
   };
 }
-module.exports = {BetaEntrance, normalizeJid, normalizeOwner, makeCoreRegistration, HELP};
+module.exports = {BetaEntrance, normalizeJid, normalizeOwner, makeCoreRegistration, HELP, GROUP_RULES};

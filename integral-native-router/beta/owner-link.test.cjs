@@ -38,3 +38,36 @@ test('chave expirada nao pode elevar privilegio',async()=>{let fakeNow=100000;co
 test('grupo exige chave mesmo que outro participante seja admin do WhatsApp',async()=>{const x=setup();try{const code=issue(x.base);const r=await x.beta.handle(x.message('x',EXTRA,'/ativar',GROUP));assert.equal(r.reason,'not-owner');assert.equal(x.beta.groupEnabled(GROUP),false);const p=await x.beta.handle(x.message('y',EXTRA,'/vinculardono '+code,GROUP));assert.equal(p.reason,'claim-requires-private');}finally{x.done()}});
 test('vinculo persiste apos reinicializacao sem alterar banco de jogo',async()=>{const x=setup();try{await bind(x);x.beta.close();const b=x.newBeta();const r=await b.handle(x.message('later',PN,'/ativar',GROUP));assert.equal(r.handled,true);b.close();}finally{x.done()}});
 test('nao aceita reivindicar mesma identidade grupo para privado diferente',async()=>{const x=setup();try{await bind(x);const code=issue(x.base);const pv=await x.beta.handle(x.message('pNew',EXTRA,'/vinculardono '+code));const token=/\/vinculargrupo ([A-F0-9]{24})/.exec(pv.text)[1];const result=await x.beta.handle(x.message('gNew',PN,'/vinculargrupo '+token,GROUP));assert.equal(result.reason,'alias-conflict');assert.equal(x.beta.db.prepare('SELECT canonical_jid FROM jid_aliases WHERE alias_jid=?').get(PN).canonical_jid,PRIVATE);}finally{x.done()}});
+
+test('LID de grupo validado pela segunda etapa permanece dono e usa personagem privado',async()=>{
+ const x=setup();const GROUP_LID='444444444444444@lid';
+ try{
+  await x.beta.handle(x.message('cad-private-lid',PRIVATE,'/cadastro'));
+  const original=x.beta.player(PRIVATE).uuid;
+  const first=await x.beta.handle(x.message('link-first-lid',PRIVATE,'/vinculardono '+issue(x.base)));
+  const token=/\/vinculargrupo ([A-F0-9]{24})/.exec(first.text)?.[1];
+  assert(token);
+  const linked=await x.beta.handle(x.message('link-second-lid',GROUP_LID,'/vinculargrupo '+token,GROUP));
+  assert.equal(linked.handled,true);
+  assert.equal(x.beta.db.prepare('SELECT canonical_jid FROM jid_aliases WHERE alias_jid=?').get(GROUP_LID).canonical_jid,PRIVATE);
+  const enabled=await x.beta.handle(x.message('group-on-lid',GROUP_LID,'/ativar',GROUP));
+  assert.equal(enabled.handled,true);
+  assert.equal(enabled.to,GROUP);
+  assert.equal(x.beta.groupEnabled(GROUP),true);
+  const play=await x.beta.handle(x.message('game-by-lid',GROUP_LID,'/jogar',GROUP));
+  assert.equal(play.handled,true);
+  assert.equal(x.events.at(-1).playerUUID,original);
+  assert.equal(x.events.at(-1).playerJid,PRIVATE);
+  assert.equal(x.events.at(-1).replyJid,PRIVATE);
+  assert.equal(countPlayer(x.beta.db),1);
+ }finally{x.done()}
+});
+test('LID sem prova nunca vira dono quando tenta ativar grupo',async()=>{
+ const x=setup();try{
+  const unknown='555555555555555@lid';
+  const r=await x.beta.handle(x.message('unknown-owner-lid',unknown,'/ativar',GROUP));
+  assert.equal(r.reason,'not-owner');
+  assert.equal(x.beta.groupEnabled(GROUP),false);
+  assert.equal(x.beta.db.prepare('SELECT 1 FROM owner_aliases WHERE jid=?').get(unknown),undefined);
+ }finally{x.done()}
+});

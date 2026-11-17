@@ -27,3 +27,24 @@ test('Chat privado usa JID da propria conversa',async()=>{
  const x=await resolveIncomingSender({key:{remoteJid:OWNER}});
  assert.equal(x.senderJid,OWNER);assert.equal(x.mode,'direct');
 });
+
+test('mapeamento do socket que falha nao infere numero pelo LID',async()=>{
+ const sock={signalRepository:{lidMapping:{getPNForLID:async()=>{throw Error('falha')}}}};
+ const x=await resolveIncomingSender({key:{remoteJid:GROUP,participant:LID}},sock);
+ assert.equal(x.senderJid,LID);assert.equal(x.mode,'lid-unresolved');
+});
+test('outro LID devolvido pelo cache nao pode ser interpretado como PN',async()=>{
+ const sock={signalRepository:{lidMapping:{getPNForLID:async()=> '999999999999999@lid'}}};
+ const x=await resolveIncomingSender({key:{remoteJid:GROUP,participant:LID}},sock);
+ assert.equal(x.senderJid,LID);assert.equal(x.mode,'lid-unresolved');
+});
+test('JID de chat invalido nao gera identidade de usuario',async()=>{
+ const x=await resolveIncomingSender({key:{remoteJid:'INVALIDO',participant:OWNER}});
+ assert.equal(x.senderJid,null);assert.equal(x.mode,'invalid');
+});
+test('PN observado nao aciona busca de LID desnecessariamente',async()=>{
+ let invoked=false;
+ const sock={signalRepository:{lidMapping:{getPNForLID:()=>{invoked=true;throw Error('nao pode')}}}};
+ const x=await resolveIncomingSender({key:{remoteJid:GROUP,participant:LID,participantPn:OWNER}},sock);
+ assert.equal(x.senderJid,OWNER);assert.equal(x.mode,'pn');assert.equal(invoked,false);
+});

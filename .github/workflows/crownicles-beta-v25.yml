@@ -1,0 +1,65 @@
+name: Crownicles Beta — regressao segura
+
+on:
+  push:
+    branches:
+      - feat/crownicles-beta-group-ux-v25
+    paths:
+      - 'integral-native-router/beta/entrada.cjs'
+      - 'integral-native-router/beta/entrada.test.cjs'
+      - 'integral-native-router/beta/owner-link.test.cjs'
+      - 'integral-native-router/beta/response-context.cjs'
+      - 'integral-native-router/beta/response-context.test.cjs'
+      - 'integral-native-router/beta/group-identity-policy.cjs'
+      - 'integral-native-router/beta/group-identity-policy.test.cjs'
+      - 'integral-native-router/beta/group-sender.test.cjs'
+      - 'integral-native-router/beta/group-sender.cjs'
+      - 'integral-native-router/beta/context-dispatch.cjs'
+      - 'integral-native-router/beta/context-dispatch.test.cjs'
+      - 'integral-native-router/beta/integracao.cjs'
+      - 'integral-native-router/beta/admin-link.cjs'
+      - 'integral-native-router/beta/runtime.cjs'
+      - '.github/workflows/crownicles-beta-v25.yml'
+  pull_request:
+    branches:
+      - feat/crownicles-integral-native-router
+    paths:
+      - 'integral-native-router/beta/**'
+      - '.github/workflows/crownicles-beta-v25.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  unit-beta:
+    name: Regressao beta sem Baileys, MariaDB ou dados reais
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    defaults:
+      run:
+        working-directory: integral-native-router/beta
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Checar versao e sintaxe
+        run: |
+          node --version
+          node --check entrada.cjs
+          node --check runtime.cjs
+          node --check admin-link.cjs
+          node --check entrada.test.cjs
+          node --check owner-link.test.cjs
+          node --check response-context.cjs
+          node --check response-context.test.cjs
+          node --check group-identity-policy.cjs
+          node --check group-identity-policy.test.cjs
+          node --check group-sender.cjs
+          node --check group-sender.test.cjs
+          node --check context-dispatch.cjs
+          node --check context-dispatch.test.cjs
+          node --check integracao.cjs
+      - name: Testar comandos, persistencia e seguranca em SQLite descartavel
+        run: node --test entrada.test.cjs owner-link.test.cjs response-context.test.cjs group-identity-policy.test.cjs context-dispatch.test.cjs group-sender.test.cjs
