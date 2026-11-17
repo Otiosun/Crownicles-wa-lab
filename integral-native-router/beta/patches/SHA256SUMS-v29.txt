@@ -1,0 +1,4 @@
+716a60570bc986cd32272ef36bab067eeebd322620993db56b698b0149785cd5  collector-flow.test.cjs
+a7be769a59c62ddeb7deb0911cd5c245e2277b48132d9b84ea2509343f45fd61  patch-gateway-v29.cjs
+116ef9af9a488144d7e4da5f8cb2e8a8418e8df3f769c50d3c8c9774815bdb0f  instalar-v29-termux.sh
+c45d6a658b591aec9bf90d0ad0dc97e18208a12f767dca2e3c9c6aea64e57dbb  LEIA-ME.md
