@@ -240,6 +240,8 @@ async function startBaileys(cfg,coreBoot){
      const isGroup=chat.endsWith('@g.us');
      const adminCmd=cmd==='/ativar'||cmd==='/desativar';
       const helpCmd=cmd==='/ajuda'||cmd==='/comandos';
+      const infoCmd=cmd==='/grupo'||cmd==='/regras';
+      if(isGroup&&infoCmd)status('GRUPO_INFO_RECEBIDA','SIM');
       if(isGroup&&helpCmd)status('GRUPO_AJUDA_RECEBIDA','SIM');
      if(isGroup&&adminCmd){
       status('GRUPO_CONTROLE_RECEBIDO','SIM');
@@ -264,6 +266,7 @@ async function startBaileys(cfg,coreBoot){
      const result=await bridgeRuntime.handle({id:msg.key.id,chatJid:chat,senderJid:sender,text:body,fromMe:false});
      if(isGroup&&adminCmd){status('GRUPO_COMANDO_RESULTADO',result?.handled===true?'OK':(result?.reason||'NAO_TRATADO'))}
       if(isGroup&&helpCmd)status('GRUPO_AJUDA_RESULTADO',result?.handled===true?'OK':(result?.reason||'NAO_TRATADO'));
+      if(isGroup&&infoCmd)status('GRUPO_INFO_RESULTADO',result?.handled===true?'OK':(result?.reason||'NAO_TRATADO'));
     }catch(e){status('MENSAGEM_FALHOU',String(e.message||e).slice(0,150))}
    }
   });
@@ -294,7 +297,10 @@ async function main(){
   presenter:new Presenter(path.join(gameRoot,'Lang','pt')),send:waSender,
   Player:coreBoot.models.Player,InventoryInfo:coreBoot.models.InventoryInfo,
   InventorySlot:coreBoot.models.InventorySlot,ItemCategory});
- eventTimer=setInterval(()=>{try{bridgeRuntime.gateway.maintenance()}catch(e){status('MAINTENANCE_ERRO',e.message)}},15000);
+ eventTimer=setInterval(()=>{
+    try{bridgeRuntime.gateway.maintenance()}catch(e){status('MAINTENANCE_ERRO',e.code||'ERRO_INTERNO')}
+    try{bridgeRuntime.beta.maintenance()}catch(e){status('BETA_MAINTENANCE_ERRO',e.code||'ERRO_INTERNO')}
+  },15000);
  status('BETA_CADASTRO','HABILITADO');status('BETA_GRUPOS','SOMENTE_ATIVADOS');
  await startBaileys(cfg,coreBoot);
 }
