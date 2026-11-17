@@ -1,0 +1,15 @@
+# Crownicles Beta V2.7 — recuperação controlada da ponte antiga
+
+**Status:** atualização candidata. Testes locais em cópia isolada aprovados, **não instalada nem homologada no WhatsApp real**.
+
+**Descoberta:** a Beta V2.1 já continha os 23 módulos da ponte Crownicles W3/L11. O `BetaEntrance` da V2.4 respondia `/ajuda` antes de encaminhar ao Gateway; por isso o menu parecia ter perdido opções. Os handlers adicionais não eram todos verificados no `runtime.cjs`.
+
+**Implementação:** mantenha a beta original persistente, com a sessão Baileys/MQTT/MariaDB sem alteração. O instalador faz backup e substitui APENAS `entrada.cjs`, `integracao.cjs`, `runtime.cjs`, `bridge/gateway.cjs`; adiciona `feature-manifest.cjs` e `group-identity-policy.cjs`. A nova lista `/ajuda` mostra somente comandos cujos handlers foram identificados e registrados no Core original, mais comandos locais. O `Gateway` rejeita pacotes de Core não habilitados, sem gastar ou atribuir recompensas fictícias. Pessoas LID sem mapeamento podem consultar ajuda pública, mas não conseguem criar personagem nem receber privilégios sem provas de identidade. Respostas de jogo continuam no **privado** para proteger informações pessoais.
+
+**Importante:** o carregamento/registro dos 16 handlers opcionais não foi executado neste ambiente com o Core real do Termux. Cada um é opcional e fail-closed: se a dependência original não puder ser carregada, permanece indisponível. Uma listagem no `/ajuda` indica que o handler está disponível, NÃO que todo o seu fluxo foi homologado. Ações irreversíveis de outros lotes continuam bloqueadas até testes nativos; equipamento com mutação permanece desabilitado por padrão. O jogo e o site ainda não estão terminados.
+
+**Modo de uso posterior no Termux:** extraia o ZIP em pasta própria, pare a beta com Ctrl+C, entre na pasta extraída e rode `bash instalar-v27-termux.sh`. O script não pareia WhatsApp, não inicia processos e recusa instalar com a beta ativa. Ao concluir, execute manualmente `cd ~/crownicles-whatsapp-lab/crownicles-beta/app && bash start.sh` e examine `BETA_LEITURAS_NATIVAS`, `BETA_LEITURAS_PENDENTES`, `BETA_CADASTRO`, `BETA_GRUPOS` e `WHATSAPP_BETA`. Verifique `/ajuda`, `/pet`, `/mapa`, `/guilda` apenas no grupo de testes; não faça compras/transações nesta primeira homologação. Compartilhe apenas marcadores, sem credenciais ou telefones.
+
+**Provas:** 81/81 testes locais Beta (entrada, integração, proprietário, LID, prova de handler, bloqueio de mutações, dois jogadores e dois grupos), 849/849 regressões da ponte histórica com Gateway substituído em diretório descartável. Staging do instalador inclui validação idempotente e teste de bloqueio com bot ativo; segunda aplicação do patch de fontes é idempotente. CI Github e WhatsApp real desta V2.7 não foram aprovados ainda.
+
+**Preservação de dados:** antigo personagem W3 e novo personagem Beta podem pertencer a bancos diferentes. Nunca mesclar ou apagar UUIDs, SQLite, MariaDB ou auth com base em PN/LID inferido. Sem instalador de migração de jogadores neste lote.

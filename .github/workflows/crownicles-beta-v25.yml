@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - feat/crownicles-beta-group-ux-v25
+      - feat/crownicles-beta-consolidation-v27
     paths:
       - 'integral-native-router/beta/entrada.cjs'
       - 'integral-native-router/beta/entrada.test.cjs'
@@ -17,12 +18,17 @@ on:
       - 'integral-native-router/beta/context-dispatch.cjs'
       - 'integral-native-router/beta/context-dispatch.test.cjs'
       - 'integral-native-router/beta/integracao.cjs'
+      - 'integral-native-router/beta/feature-manifest.cjs'
+      - 'integral-native-router/beta/feature-manifest.test.cjs'
+      - 'integral-native-router/beta/feature-integration.test.cjs'
+      - 'integral-native-router/beta/bridge/**'
       - 'integral-native-router/beta/admin-link.cjs'
       - 'integral-native-router/beta/runtime.cjs'
       - '.github/workflows/crownicles-beta-v25.yml'
   pull_request:
     branches:
       - feat/crownicles-integral-native-router
+      - feat/crownicles-beta-group-ux-v25
     paths:
       - 'integral-native-router/beta/**'
       - '.github/workflows/crownicles-beta-v25.yml'
@@ -61,5 +67,9 @@ jobs:
           node --check context-dispatch.cjs
           node --check context-dispatch.test.cjs
           node --check integracao.cjs
+          node --check feature-manifest.cjs
+          node --check feature-manifest.test.cjs
+          node --check feature-integration.test.cjs
+          for file in bridge/*.cjs; do node --check "$file"; done
       - name: Testar comandos, persistencia e seguranca em SQLite descartavel
-        run: node --test entrada.test.cjs owner-link.test.cjs response-context.test.cjs group-identity-policy.test.cjs context-dispatch.test.cjs group-sender.test.cjs
+        run: node --test *.test.cjs
