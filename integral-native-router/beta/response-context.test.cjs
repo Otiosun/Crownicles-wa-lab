@@ -74,3 +74,23 @@ test('falha na consulta de grupo cai para privado',()=>{
  x.register(t('a',U1,P1,G1,'group-info'));
  assert.equal(x.resolve({requestId:'a',playerUUID:U1}).to,P1);
 });
+test('200 respostas reordenadas em dois grupos nao trocam destinatarios',()=>{
+ const x=new ResponseContextIndex({maxEntries:300,groupEnabled:()=>true});
+ const records=[];
+ for(let i=0;i<200;i++){
+  const playerUUID='11111111-1111-4111-8111-'+i.toString(16).padStart(12,'0');
+  const sourceChat=i%2?G1:G2, privateJid=i%2?P1:P2;
+  const visibility=i%5===0?'group-info':'private';
+  const requestId='msg-'+(i%7);
+  const expected=visibility==='group-info'?sourceChat:privateJid;
+  const record={requestId,playerUUID,privateJid,sourceChat,visibility,expected};
+  assert.equal(x.register(record).ok,true);
+  records.push(record);
+ }
+ for(const r of records.reverse()){
+  const output=x.resolve(r);
+  assert.equal(output.to,r.expected);
+  assert.equal(x.finish(r),true);
+ }
+ assert.equal(x.size,0);
+});
