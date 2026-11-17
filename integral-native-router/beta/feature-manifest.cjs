@@ -34,6 +34,15 @@ const NATIVE_MENU_HANDLERS=Object.freeze({
  CommandClassesPacketReq:'commands/player/ClassesCommand.js',
  CommandJoinBoatPacketReq:'commands/player/JoinBoatCommand.js'
 });
+// W3/L10+L11 originally implemented these actions with an explicit local
+// authorization menu, nonce-bound preview and Core-side validation. The initial
+// WhatsApp command MUST NOT submit the native request; only confirmation does.
+const NATIVE_AUTH_HANDLERS=Object.freeze({
+ CommandRespawnPacketReq:'commands/player/RespawnCommand.js',
+ CommandLeagueRewardPacketReq:'commands/player/LeagueRewardCommand.js',
+ CommandGuildDailyPacketReq:'commands/guild/GuildDailyCommand.js',
+ CommandPetNickPacketReq:'commands/pet/PetNickCommand.js'
+});
 const HELP_GROUPS=Object.freeze([
  {title:'Sua aventura',entries:[['/jogar · /aventura','CommandReportPacketReq'],['/menu','local'],['/cadastro','local'],['/perfil','CommandProfilePacketReq'],['/inventario','CommandInventoryPacketReq'],['/missoes','CommandMissionsPacketReq']]},
  {title:'Personagem e mundo',entries:[['/pet','CommandPetPacketReq'],['/classes','CommandClassesInfoPacketReq'],['/mapa','CommandMapPacketReq'],['/historico','CommandFightHistoryPacketReq'],['/raridades','CommandRarityPacketReq'],['/ranking','CommandTopPacketReq'],['/versao','CommandUpdatePacketReq']]},
@@ -42,7 +51,9 @@ const HELP_GROUPS=Object.freeze([
   ['/combate','CommandFightPacketReq'],['/vender','CommandSellPacketReq'],
   ['/alimentar','CommandPetFeedPacketReq'],['/pocao','CommandDrinkPacketReq'],
   ['/diario','CommandDailyBonusPacketReq'],['/mudarclasse','CommandClassesPacketReq'],
-  ['/embarcar','CommandJoinBoatPacketReq']
+  ['/embarcar','CommandJoinBoatPacketReq'],
+  ['/renascer','CommandRespawnPacketReq'],['/recompensaliga','CommandLeagueRewardPacketReq'],
+  ['/diarioguilda','CommandGuildDailyPacketReq'],['/renomearpet NOME','CommandPetNickPacketReq']
  ]}
 ]);
 function probeReadHandlers({dist,listener,load=require,exists=fs.existsSync}={}){
@@ -67,6 +78,9 @@ function probeReadHandlers({dist,listener,load=require,exists=fs.existsSync}={})
 function probeMenuHandlers(options={}){
  return probeHandlerTable(NATIVE_MENU_HANDLERS,options);
 }
+function probeAuthHandlers(options={}){
+ return probeHandlerTable(NATIVE_AUTH_HANDLERS,options);
+}
 function probeHandlerTable(table,{dist,listener,load=require,exists=fs.existsSync}={}){
  if(typeof dist!=='string'||!path.isAbsolute(dist)||!listener||typeof listener.getListener!=='function'||typeof load!=='function'||typeof exists!=='function')throw TypeError('CORE_PROBE_INVALIDO');
  const available=[],unavailable=[];
@@ -86,6 +100,8 @@ function probeHandlerTable(table,{dist,listener,load=require,exists=fs.existsSyn
  return Object.freeze({available:Object.freeze(available),unavailable:Object.freeze(unavailable)});
 }
 function renderHelp(available){
+// Kept separate from menus that don't mutate until collector confirmation.
+
  const enabled=new Set(available||[]);
  let lines=['*✦ CROWNICLES — COMANDOS*',''];
  for(const section of HELP_GROUPS){
@@ -97,4 +113,4 @@ function renderHelp(available){
  'Seu progresso e as respostas da aventura chegam no privado. Outros sistemas são liberados após validação no Core.');
  return lines.join('\n');
 }
-module.exports={NATIVE_READ_HANDLERS,NATIVE_MENU_HANDLERS,HELP_GROUPS,probeReadHandlers,probeMenuHandlers,renderHelp};
+module.exports={NATIVE_READ_HANDLERS,NATIVE_MENU_HANDLERS,NATIVE_AUTH_HANDLERS,HELP_GROUPS,probeReadHandlers,probeMenuHandlers,probeAuthHandlers,renderHelp};
