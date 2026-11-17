@@ -31,8 +31,8 @@
 
 ## Próximo lote técnico, sem atalhos
 1. Obter/inventariar fontes rastreáveis do gateway e store originais do bundle V8, confirmar SHA e licença.
-2. Criar um contexto imutável por pedido: (id mensagem WhatsApp, chat de origem, jogador canônico, permissão de visibilidade).
-3. Correlacionar respostas nativas do Core (frontEndSubOrigin / request id) ao contexto antes de responder; tratar respostas atrasadas, duplicadas e fora de ordem.
+2. **Implementado isoladamente, integração pendente:** `response-context.cjs` cria índice por (ID de mensagem, UUID do jogador), chat de origem, PV canônico e permissão explícita (`private` por padrão; `group-info` condicionado a grupo ON). Nunca publica dados do Core sem revisão.
+3. Integrar o índice aos pontos de entrada e saída rastreáveis da ponte original, depois correlacionar respostas nativas do Core (frontEndSubOrigin / request id) ao contexto antes de responder; tratar respostas atrasadas, duplicadas e fora de ordem.
 4. Só publicar no grupo o que é classificado como coletivo. Ficha, inventário, códigos e informações de outros jogadores ficam em PV.
 5. Exercitar concorrência 2 grupos x 2 jogadores, reinício, 100 comandos reordenados, Bad MAC sem vazar material criptográfico, mensagens antigas e falhas de envio.
 6. Ampliar localização completa PT-BR **sobre o conteúdo original** e verificar comando a comando; não reconstruir Crownicles nem introduzir regras Pilgram duplicadas.
@@ -40,3 +40,9 @@
 
 ## Aplicação
 A V2.5 NÃO está instalada no bot Android. Nenhum comando ou script é executado em segundo plano. A aplicação exige o Pinguino parado, cópia de segurança, validação com Node e reinício manual, mantendo a sessão Baileys.
+
+## Evidência adicional de laboratório e artefato de continuidade
+- `response-context.test.cjs`: **11/11 em Node 22.16 local**, com normalizador compatível isolado (não integração), inclusive 200 respostas reordenadas entre dois grupos, sem destinatários trocados. O módulo da branch usa `normalizeJid` existente em `entrada.cjs`.
+- Testes de entrada/owner no GitHub Actions: workflow definido, **sem execução confirmada** no momento deste registro.
+- Pacote V2.5 com instalador offline e fontes experimentais: https://drive.google.com/file/d/1CtVRccRnyD4KxukaH2sEeut9l5pmKcr6/view (Drive Komekko, arquivo zip verificado, não distribuído/publicado).
+- PR experimental em rascunho: https://github.com/Otiosun/Crownicles-wa-lab/pull/1, sem merge.
