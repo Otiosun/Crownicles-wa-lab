@@ -11,6 +11,12 @@ on:
       - 'integral-native-router/beta/admin-link.cjs'
       - 'integral-native-router/beta/runtime.cjs'
       - '.github/workflows/crownicles-beta-v25.yml'
+  pull_request:
+    branches:
+      - feat/crownicles-integral-native-router
+    paths:
+      - 'integral-native-router/beta/**'
+      - '.github/workflows/crownicles-beta-v25.yml'
   workflow_dispatch:
 
 permissions:
