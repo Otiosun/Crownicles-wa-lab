@@ -115,7 +115,14 @@ function renderPacket(name,p,models){
   case 'CommandDrinkPacketRes':return `*✦ POÇÃO CONSUMIDA*\n${nature[p.itemNature]||'Efeito'}: ${Number.isFinite(p.value)?fmt(p.value):'valor informado pelo motor'}. Consulte /perfil.`;
   case 'CommandDailyBonusNoAvailableObject':return '*✦ BÔNUS DIÁRIO*\nVocê não possui objeto adequado para esse bônus.';
   case 'CommandDailyBonusCancelPacket':return '*✦ BÔNUS DIÁRIO*\nVocê não consumiu o bônus.';
-  case 'CommandDailyBonusInCooldown':return '*✦ BÔNUS DIÁRIO*\nA recarga ainda não terminou. O motor definirá quando estará disponível.';
+  case 'CommandDailyBonusInCooldown':{
+  // Original Core sends milliseconds since epoch and a duration in hours.
+  // Never guess a date if either value is missing or malformed.
+  const start=p?.lastDailyTimestamp,hours=p?.timeBetweenDailies;
+  const finish=Number.isFinite(start)&&start>1e12&&Number.isFinite(hours)&&hours>=0&&hours<=168?start+hours*3600000:NaN;
+  const when=Number.isFinite(finish)&&finish>Date.now()&&finish<Date.now()+8*86400000?new Date(finish).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo'}):'';
+  return '*✦ BÔNUS DIÁRIO*\nA recarga ainda não terminou.'+(when?'\nDisponível a partir de '+when+' (horário de Brasília).':'');
+ }
   case 'CommandDailyBonusPacketRes':return `*✦ BÔNUS RECEBIDO*\n${nature[p.itemNature]||'Efeito'}: ${Number.isFinite(p.value)?fmt(p.value):'valor confirmado pelo motor'}.`;
   case 'CommandEquipErrorNoItem':return '*✦ EQUIPAMENTOS*\nNenhum equipamento disponível para consultar.';
   case 'CommandEquipActionRes':return p.success===true?'*✦ EQUIPAMENTO ATUALIZADO*\nO motor confirmou a alteração. Confira /inventario.':'*✦ EQUIPAMENTO NÃO ALTERADO*\nO motor recusou a operação.';
