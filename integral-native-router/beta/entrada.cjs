@@ -22,7 +22,7 @@ function normalizeOwner(value) {
 const HELP = "*✦ CROWNICLES — GUIA DE JORNADA*\n\n*Começar*\n/cadastro — criar seu aventureiro\n/jogar — começar ou continuar a história\n\n*Sua aventura*\n/menu · /aventura — seguir a jornada\n/perfil · /inventario · /missoes — consultar seu progresso\n\n*No grupo*\n/ajuda · /comandos — consultar os comandos\n/grupo — conferir se o RPG está habilitado\n/regras — entender as respostas públicas e privadas\n\nA aventura e os dados do personagem chegam no privado. Informações gerais aparecem no grupo. O responsável pode usar /ativar e /desativar no próprio grupo.";
 const GROUP_RULES = "*✦ COMO FUNCIONA O GRUPO*\n\n/ajuda, /comandos, /grupo e /regras são públicos.\nAs respostas pessoais da aventura, inventário e ficha vão para o privado de cada jogador.\nCada pessoa mantém seu próprio personagem.\nSomente o responsável pode ativar ou desativar o RPG por aqui.";
 class BetaEntrance {
-  constructor({ dir, ownerJids = [], createPlayer, dispatchGame, send, clock = Date.now }) {
+  constructor({ dir, ownerJids = [], createPlayer, dispatchGame, send, clock = Date.now, getHelp = null }) {
     if (typeof dir !== 'string' || !path.isAbsolute(dir)) throw Error('DIRETORIO_BETA_ABSOLUTO_OBRIGATORIO');
     if (typeof createPlayer !== 'function' || typeof dispatchGame !== 'function' || typeof send !== 'function')
       throw Error('CALLBACKS_OBRIGATORIOS');
@@ -42,6 +42,7 @@ class BetaEntrance {
     this.owners = new Set(ownerJids.map(normalizeOwner));
     this.createPlayer = createPlayer;
     this.dispatchGame = dispatchGame;
+    this.getHelp = typeof getHelp === 'function' ? getHelp : () => HELP;
     this.send = send;
     this.clock = clock;
     this.busy = new Set();
@@ -167,7 +168,7 @@ class BetaEntrance {
       } finally { this.busy.delete(playerSender); }
     }
     // Help is public in enabled groups; gameplay and player details remain private.
-    if (cmd === '/ajuda' || cmd === '/comandos') return answer(HELP, chat);
+    if (cmd === '/ajuda' || cmd === '/comandos') return answer(this.getHelp(), chat);
     if (cmd === '/regras') return answer(GROUP_RULES, chat);
     if (cmd === '/grupo') {
       if (!isGroup) return answer('Consulte /grupo dentro do grupo desejado. Para a lista de grupos habilitados, o responsável pode usar /grupos no privado.');
