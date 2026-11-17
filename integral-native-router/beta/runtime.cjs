@@ -20,7 +20,7 @@ const {Presenter}=require('./bridge/presenter.cjs');
 const {CrowniclesCore}=require('./bridge/core.cjs');
 const {assertLabConfig}=require('./bridge/mqtt-isolation.cjs');
 const {normalizeJid}=require('./entrada.cjs');
-const {probeReadHandlers}=require('./feature-manifest.cjs');
+const {probeReadHandlers,probeMenuHandlers}=require('./feature-manifest.cjs');
 const {resolveIncomingSender}=require('./group-sender.cjs');
 const {groupIdentityDisposition}=require('./group-identity-policy.cjs');
 process.umask(0o077);
@@ -155,9 +155,12 @@ async function initCore(portMaria,cfg,req,admin){
   require(path.join(dist,rel));if(typeof gameInstance.packetListener.getListener(packet)!=='function')throw Error('HANDLER_CROWNICLES_AUSENTE_'+packet)
  }
  const nativeRead=probeReadHandlers({dist,listener:gameInstance.packetListener});
- const enabledPackets=new Set([...Object.keys(compiledPaths),...nativeRead.available]);
+ const nativeMenus=probeMenuHandlers({dist,listener:gameInstance.packetListener});
+ const enabledPackets=new Set([...Object.keys(compiledPaths),...nativeRead.available,...nativeMenus.available]);
  status('BETA_LEITURAS_NATIVAS',nativeRead.available.length);
  status('BETA_LEITURAS_PENDENTES',nativeRead.unavailable.length);
+ status('BETA_MENUS_NATIVOS',nativeMenus.available.length);
+ status('BETA_MENUS_PENDENTES',nativeMenus.unavailable.length);
  const {MapCache}=require(path.join(dist,'core','maps','MapCache.js'));
  const {LogsMapLinks}=require(path.join(dist,'core','database','logs','models','LogsMapLinks.js'));
  const original=LogsMapLinks.findAll;LogsMapLinks.findAll=async()=>[];
@@ -245,26 +248,22 @@ async function startBaileys(cfg,coreBoot){
      const cmd=body.trim().toLowerCase().split(/\s+/)[0];
      const isGroup=chat.endsWith('@g.us');
      const adminCmd=cmd==='/ativar'||cmd==='/desativar';
-      const helpCmd=cmd==='/ajuda'||cmd==='/comandos';
-      const infoCmd=cmd==='/grupo'||cmd==='/regras';
-      const vinculoCmd=cmd==='/vinculargrupo';
-      if(isGroup&&vinculoCmd)status('GRUPO_VINCULO_RECEBIDO','SIM');
-      if(isGroup&&infoCmd)status('GRUPO_INFO_RECEBIDA','SIM');
-      if(isGroup&&helpCmd)status('GRUPO_AJUDA_RECEBIDA','SIM');
+     const helpCmd=cmd==='/ajuda'||cmd==='/comandos';
+     if(isGroup&&helpCmd)status('GRUPO_AJUDA_RECEBIDA','SIM');
      if(isGroup&&adminCmd){
       status('GRUPO_CONTROLE_RECEBIDO','SIM');
       status('GRUPO_TIPO_IDENTIDADE',resolved.mode);
      }
      if(!sender){if(isGroup&&adminCmd)status('GRUPO_COMANDO_RECUSADO','SEM_PARTICIPANTE');continue}
-     // Never infer PN from LID digits. Public group info needs no number;
-     // verified aliases may play; owner challenges stay inside BetaEntrance.
+     // Public info needs no PN. Verified LIDs reach the normal game handler.
+     // Owner challenges still require exact owner alias or one-use token.
      if(isGroup&&resolved.mode==='lid-unresolved'){
       const verifiedAlias=!!bridgeRuntime.beta.db.prepare('SELECT 1 FROM jid_aliases WHERE alias_jid=?').get(sender);
-      const disposition=groupIdentityDisposition({command:cmd,verifiedAlias});
-      if(disposition==='private-only'){
+      const policy=groupIdentityDisposition({command:cmd,verifiedAlias});
+      if(policy==='private-only'){
        if(cmd.startsWith('/')||/^\d{1,3}$/.test(cmd)){
         status('GRUPO_IDENTIDADE','LID_SEM_PN');
-        await socketClient.sendMessage(chat,{text:'Para evitar criar um personagem duplicado, use os comandos do jogo no privado do Pinguino enquanto o WhatsApp não disponibiliza seu número neste grupo.'});
+        await socketClient.sendMessage(chat,{text:'Para evitar criar um personagem duplicado, use os comandos do jogo no privado do bot enquanto seu numero nao estiver disponivel neste grupo.'});
        }
        continue;
       }
@@ -273,12 +272,9 @@ async function startBaileys(cfg,coreBoot){
      if(isGroup&&adminCmd){status('GRUPO_COMANDO_RESULTADO',result?.handled===true?'OK':(result?.reason||'NAO_TRATADO'))}
      if(isGroup&&resolved.mode==='lid-unresolved'&&adminCmd&&result?.reason==='not-owner'){
       status('GRUPO_AUTORIZACAO','CHAVE_NECESSARIA');
-      await socketClient.sendMessage(chat,{text:'🔐 Para ativar/desativar este grupo, o responsável deve solicitar /chavegrupo no privado e enviar o comando com o código aqui.'});
+      await socketClient.sendMessage(chat,{text:'Para ativar ou desativar, solicite /chavegrupo no privado e envie o comando com codigo neste grupo.'});
      }
-      if(isGroup&&helpCmd)status('GRUPO_AJUDA_RESULTADO',result?.handled===true?'OK':(result?.reason||'NAO_TRATADO'));
-      if(isGroup&&infoCmd)status('GRUPO_INFO_RESULTADO',result?.handled===true?'OK':(result?.reason||'NAO_TRATADO'));
-      if(isGroup&&vinculoCmd)status('GRUPO_VINCULO_RESULTADO',result?.handled===true?'OK':(result?.reason||'NAO_TRATADO'));
-      if(isGroup&&result?.kind==='game')status('GRUPO_JOGO_RESPOSTA_PLANEJADA','PRIVADO');
+     if(isGroup&&helpCmd)status('GRUPO_AJUDA_RESULTADO',result?.handled===true?'OK':(result?.reason||'NAO_TRATADO'));
     }catch(e){status('MENSAGEM_FALHOU',String(e.message||e).slice(0,150))}
    }
   });
@@ -309,10 +305,7 @@ async function main(){
   presenter:new Presenter(path.join(gameRoot,'Lang','pt')),send:waSender,
   Player:coreBoot.models.Player,InventoryInfo:coreBoot.models.InventoryInfo,
   InventorySlot:coreBoot.models.InventorySlot,ItemCategory,enabledPackets:coreBoot.enabledPackets});
- eventTimer=setInterval(()=>{
-    try{bridgeRuntime.gateway.maintenance()}catch(e){status('MAINTENANCE_ERRO',e.code||'ERRO_INTERNO')}
-    try{bridgeRuntime.beta.maintenance()}catch(e){status('BETA_MAINTENANCE_ERRO',e.code||'ERRO_INTERNO')}
-  },15000);
+ eventTimer=setInterval(()=>{try{bridgeRuntime.gateway.maintenance()}catch(e){status('MAINTENANCE_ERRO',e.message)}},15000);
  status('BETA_CADASTRO','HABILITADO');status('BETA_GRUPOS','SOMENTE_ATIVADOS');
  await startBaileys(cfg,coreBoot);
 }

@@ -23,10 +23,27 @@ const NATIVE_READ_HANDLERS=Object.freeze({
  CommandBlessingPacketReq:'commands/player/BlessingCommand.js',
  CommandDefensePacketReq:'commands/player/DefenseCommand.js'
 });
+// These original requests only open Crownicles collectors/menus. No custom RPG
+// rules or automatic confirmation. Mutating decisions still use the W3 nonce.
+const NATIVE_MENU_HANDLERS=Object.freeze({
+ CommandFightPacketReq:'commands/player/FightCommand.js',
+ CommandSellPacketReq:'commands/player/SellCommand.js',
+ CommandPetFeedPacketReq:'commands/pet/PetFeedCommand.js',
+ CommandDrinkPacketReq:'commands/player/DrinkCommand.js',
+ CommandDailyBonusPacketReq:'commands/player/DailyBonusCommand.js',
+ CommandClassesPacketReq:'commands/player/ClassesCommand.js',
+ CommandJoinBoatPacketReq:'commands/player/JoinBoatCommand.js'
+});
 const HELP_GROUPS=Object.freeze([
- {title:'Sua aventura',entries:[['/jogar · /aventura','CommandReportPacketReq'],['/menu','local'],['/perfil','CommandProfilePacketReq'],['/inventario','CommandInventoryPacketReq'],['/missoes','CommandMissionsPacketReq']]},
+ {title:'Sua aventura',entries:[['/jogar · /aventura','CommandReportPacketReq'],['/menu','local'],['/cadastro','local'],['/perfil','CommandProfilePacketReq'],['/inventario','CommandInventoryPacketReq'],['/missoes','CommandMissionsPacketReq']]},
  {title:'Personagem e mundo',entries:[['/pet','CommandPetPacketReq'],['/classes','CommandClassesInfoPacketReq'],['/mapa','CommandMapPacketReq'],['/historico','CommandFightHistoryPacketReq'],['/raridades','CommandRarityPacketReq'],['/ranking','CommandTopPacketReq'],['/versao','CommandUpdatePacketReq']]},
- {title:'Guildas e atividades',entries:[['/guilda','CommandGuildPacketReq'],['/despensa','CommandGuildStoragePacketReq'],['/abrigo','CommandGuildShelterPacketReq'],['/expedicao','CommandPetExpeditionPacketReq'],['/equipamentos','CommandEquipPacketReq'],['/jardim','CommandGardenPacketReq'],['/bencao','CommandBlessingPacketReq'],['/defesa','CommandDefensePacketReq'],['/ping','CommandPingPacketReq']]}
+ {title:'Guildas e atividades',entries:[['/guilda','CommandGuildPacketReq'],['/despensa','CommandGuildStoragePacketReq'],['/abrigo','CommandGuildShelterPacketReq'],['/expedicao','CommandPetExpeditionPacketReq'],['/equipamentos','CommandEquipPacketReq'],['/jardim','CommandGardenPacketReq'],['/bencao','CommandBlessingPacketReq'],['/defesa','CommandDefensePacketReq'],['/ping','CommandPingPacketReq']]},
+ {title:'Escolhas e encontros',entries:[
+  ['/combate','CommandFightPacketReq'],['/vender','CommandSellPacketReq'],
+  ['/alimentar','CommandPetFeedPacketReq'],['/pocao','CommandDrinkPacketReq'],
+  ['/diario','CommandDailyBonusPacketReq'],['/mudarclasse','CommandClassesPacketReq'],
+  ['/embarcar','CommandJoinBoatPacketReq']
+ ]}
 ]);
 function probeReadHandlers({dist,listener,load=require,exists=fs.existsSync}={}){
  if(typeof dist!=='string'||!path.isAbsolute(dist)||!listener||typeof listener.getListener!=='function'||typeof load!=='function'||typeof exists!=='function')throw TypeError('CORE_PROBE_INVALIDO');
@@ -47,6 +64,27 @@ function probeReadHandlers({dist,listener,load=require,exists=fs.existsSync}={})
  }
  return Object.freeze({available:Object.freeze(available),unavailable:Object.freeze(unavailable)});
 }
+function probeMenuHandlers(options={}){
+ return probeHandlerTable(NATIVE_MENU_HANDLERS,options);
+}
+function probeHandlerTable(table,{dist,listener,load=require,exists=fs.existsSync}={}){
+ if(typeof dist!=='string'||!path.isAbsolute(dist)||!listener||typeof listener.getListener!=='function'||typeof load!=='function'||typeof exists!=='function')throw TypeError('CORE_PROBE_INVALIDO');
+ const available=[],unavailable=[];
+ for(const [packet,rel] of Object.entries(table)){
+  const file=path.join(dist,rel);
+  let ok=false;
+  try{
+   // Match Core packet registration, not presence of a JS file alone.
+   if(typeof listener.getListener(packet)==='function')ok=true;
+   else if(exists(file)){
+    load(file);
+    ok=typeof listener.getListener(packet)==='function';
+   }
+  }catch{ok=false}
+  (ok?available:unavailable).push(packet);
+ }
+ return Object.freeze({available:Object.freeze(available),unavailable:Object.freeze(unavailable)});
+}
 function renderHelp(available){
  const enabled=new Set(available||[]);
  let lines=['*✦ CROWNICLES — COMANDOS*',''];
@@ -54,9 +92,9 @@ function renderHelp(available){
   const commands=section.entries.filter(([,packet])=>packet==='local'||enabled.has(packet)).map(([command])=>command);
   if(commands.length){lines.push('*'+section.title+'*',...commands,'');}
  }
- lines.push('*No grupo*','/ajuda · /comandos','/ativar · /desativar (responsável, no grupo)','',
- 'Para decisões, use /menu e responda com o número indicado. Ações com custos exigem confirmação quando disponível.',
+ lines.push('*No grupo*','/ajuda · /comandos','/ativar · /desativar (responsável, no grupo)','/grupo · /regras','',
+ 'Abertura de menus não executa compras ou escolhas. Para decidir, use /menu e responda com o número indicado. Custos e efeitos exigem prévia e confirmação.',
  'Seu progresso e as respostas da aventura chegam no privado. Outros sistemas são liberados após validação no Core.');
  return lines.join('\n');
 }
-module.exports={NATIVE_READ_HANDLERS,HELP_GROUPS,probeReadHandlers,renderHelp};
+module.exports={NATIVE_READ_HANDLERS,NATIVE_MENU_HANDLERS,HELP_GROUPS,probeReadHandlers,probeMenuHandlers,renderHelp};
