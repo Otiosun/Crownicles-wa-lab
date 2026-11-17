@@ -7,6 +7,7 @@ on:
       - feat/crownicles-beta-consolidation-v27
       - feat/crownicles-beta-menus-v28
       - feat/crownicles-beta-collector-safety-v29
+      - feat/crownicles-beta-original-auth-v30
     paths:
       - 'integral-native-router/beta/entrada.cjs'
       - 'integral-native-router/beta/entrada.test.cjs'
@@ -24,6 +25,7 @@ on:
       - 'integral-native-router/beta/feature-manifest.test.cjs'
       - 'integral-native-router/beta/feature-integration.test.cjs'
       - 'integral-native-router/beta/collector-flow.test.cjs'
+      - 'integral-native-router/beta/native-auth-v30.test.cjs'
       - 'integral-native-router/beta/bridge/**'
       - 'integral-native-router/beta/admin-link.cjs'
       - 'integral-native-router/beta/runtime.cjs'
@@ -34,6 +36,7 @@ on:
       - feat/crownicles-beta-group-ux-v25
       - feat/crownicles-beta-consolidation-v27
       - feat/crownicles-beta-menus-v28
+      - feat/crownicles-beta-collector-safety-v29
     paths:
       - 'integral-native-router/beta/**'
       - '.github/workflows/crownicles-beta-v25.yml'
@@ -76,6 +79,9 @@ jobs:
           node --check feature-manifest.test.cjs
           node --check feature-integration.test.cjs
           node --check collector-flow.test.cjs
+          node --check native-auth-v30.test.cjs
+          node --check bridge/lote08.cjs
+          node --check patches/patch-v30.cjs
           for file in bridge/*.cjs; do node --check "$file"; done
       - name: Testar comandos, persistencia e seguranca em SQLite descartavel
         run: node --test --test-reporter=tap *.test.cjs
