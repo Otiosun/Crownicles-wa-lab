@@ -69,3 +69,56 @@ test('ajuda e comandos em grupo ativo respondem no grupo sem expor dados de joga
   assert.equal(privateResult.to,waA);
  }finally{x.close()}
 });
+
+test('grupo informa estado ON/OFF sem liberar nenhum comando do jogo',async()=>{
+ const x=setup();try{
+  const before=await x.e.handle(x.input('g-off',waA,'/grupo',grp));
+  assert.equal(before.handled,true);
+  assert.equal(before.to,grp);
+  assert.match(before.text,/não habilitado/i);
+  assert.equal(x.e.player(waA),null);
+  assert.equal((await x.e.handle(x.input('game-off',waA,'/jogar',grp))).reason,'group-off');
+  await x.e.handle(x.input('on',owner,'/ativar',grp));
+  const after=await x.e.handle(x.input('g-on',waA,'/grupo',grp));
+  assert.equal(after.to,grp);
+  assert.match(after.text,/habilitado/i);
+  assert.equal(x.e.player(waA),null);
+ }finally{x.close()}
+});
+test('regras e ajuda no grupo publicam somente orientacao geral',async()=>{
+ const x=setup();try{
+  await x.e.handle(x.input('on',owner,'/ativar',grp));
+  const a=await x.e.handle(x.input('help-public',waA,'/ajuda',grp));
+  const b=await x.e.handle(x.input('rules-public',waB,'/regras',grp));
+  assert.equal(a.to,grp);
+  assert.equal(b.to,grp);
+  assert.match(a.text,/privado/i);
+  assert.match(b.text,/privado/i);
+  assert.equal(x.e.player(waA),null);
+  assert.equal(x.e.player(waB),null);
+  const privateHelp=await x.e.handle(x.input('help-private',waA,'/ajuda'));
+  const privateRules=await x.e.handle(x.input('rules-private',waB,'/regras'));
+  assert.equal(privateHelp.to,waA);
+  assert.equal(privateRules.to,waB);
+  assert.equal((await x.e.handle(x.input('off-rules',waA,'/regras','120363222222222222@g.us'))).reason,'group-off');
+ }finally{x.close()}
+});
+test('limpeza periodica limita duplicatas antigas sem tocar personagem ou grupo',async()=>{
+ let now=50*24*60*60*1000;const x=setup({clock:()=>now});try{
+  await x.e.handle(x.input('on',owner,'/ativar',grp));
+  await x.e.handle(x.input('signup',waA,'/cadastro'));
+  const player=x.e.player(waA).uuid;
+  const old=now-31*24*60*60*1000;
+  x.e.db.prepare('INSERT INTO seen(id,created_at) VALUES(?,?)').run('old-check',old);
+  x.e.db.prepare('INSERT INTO seen(id,created_at) VALUES(?,?)').run('fresh-check',now);
+  assert.equal(x.e.maintenance(),1);
+  assert.equal(x.e.maintenance(),0);
+  assert.equal(x.e.db.prepare('SELECT 1 FROM seen WHERE id=?').get('old-check'),undefined);
+  assert(x.e.db.prepare('SELECT 1 FROM seen WHERE id=?').get('fresh-check'));
+  now+=60*60*1000+1;
+  x.e.db.prepare('INSERT INTO seen(id,created_at) VALUES(?,?)').run('old-check-2',old);
+  assert.equal(x.e.maintenance(),1);
+  assert.equal(x.e.player(waA).uuid,player);
+  assert.equal(x.e.groupEnabled(grp),true);
+ }finally{x.close()}
+});
