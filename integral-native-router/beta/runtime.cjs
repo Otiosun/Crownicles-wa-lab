@@ -239,6 +239,8 @@ async function startBaileys(cfg,coreBoot){
      const cmd=body.trim().toLowerCase().split(/\s+/)[0];
      const isGroup=chat.endsWith('@g.us');
      const adminCmd=cmd==='/ativar'||cmd==='/desativar';
+      const helpCmd=cmd==='/ajuda'||cmd==='/comandos';
+      if(isGroup&&helpCmd)status('GRUPO_AJUDA_RECEBIDA','SIM');
      if(isGroup&&adminCmd){
       status('GRUPO_CONTROLE_RECEBIDO','SIM');
       status('GRUPO_TIPO_IDENTIDADE',resolved.mode);
@@ -261,6 +263,7 @@ async function startBaileys(cfg,coreBoot){
      }
      const result=await bridgeRuntime.handle({id:msg.key.id,chatJid:chat,senderJid:sender,text:body,fromMe:false});
      if(isGroup&&adminCmd){status('GRUPO_COMANDO_RESULTADO',result?.handled===true?'OK':(result?.reason||'NAO_TRATADO'))}
+      if(isGroup&&helpCmd)status('GRUPO_AJUDA_RESULTADO',result?.handled===true?'OK':(result?.reason||'NAO_TRATADO'));
     }catch(e){status('MENSAGEM_FALHOU',String(e.message||e).slice(0,150))}
    }
   });
