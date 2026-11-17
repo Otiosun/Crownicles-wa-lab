@@ -156,7 +156,8 @@ class BetaEntrance {
         return answer('⚠️ O cadastro ainda não terminou. Use /cadastro novamente quando o motor estiver disponível. Não criaremos outro personagem.', isGroup ? playerSender : chat);
       } finally { this.busy.delete(playerSender); }
     }
-    if (cmd === '/ajuda' || cmd === '/comandos') return answer(HELP, isGroup ? playerSender : chat);
+    // Help is public in enabled groups; gameplay and player details remain private.
+    if (cmd === '/ajuda' || cmd === '/comandos') return answer(HELP, chat);
     const row = this.player(playerSender);
     if (!row || row.state !== 'active') return answer('Você precisa criar um personagem primeiro. Envie /cadastro.', isGroup ? playerSender : chat);
     const idForGateway = id;
