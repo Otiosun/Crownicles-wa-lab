@@ -74,78 +74,12 @@ for f in runtime.cjs feature-manifest.cjs feature-manifest.test.cjs feature-inte
  tail -n 35 "$BACKUP/regressao.tap"
  echo 'ERRO=TESTES_V28_2_REPROVADOS_SEM_ALTERAR';exit 3
 }
-if ! grep -q '^# fail 0
-echo "TESTES_BETA_V28_2=$COUNT/$COUNT"
-check_running
-# Files changed by any concurrent editor during testing? Fail, no overwrite.
-cmp -s "$APP/runtime.cjs" "$BACKUP/runtime.cjs" && cmp -s "$APP/feature-manifest.cjs" "$BACKUP/feature-manifest.cjs" || {
- echo 'ERRO=BASE_ALTERADA_DURANTE_TESTES';exit 2
-}
-CHANGED=1
-install -m 600 "$STAGE/runtime.cjs" "$APP/runtime.cjs"
-install -m 600 "$STAGE/feature-manifest.cjs" "$APP/feature-manifest.cjs"
-cmp -s "$APP/runtime.cjs" "$STAGE/runtime.cjs" && cmp -s "$APP/feature-manifest.cjs" "$STAGE/feature-manifest.cjs" || {
- echo 'ERRO=VERIFICACAO_COPIA';exit 3
-}
-CHANGED=0
-trap - EXIT
-rm -rf "$STAGE"
-echo 'ATUALIZACAO_BETA_V28_2=INSTALADA'
-echo 'BANCO_E_PERSONAGENS=NAO_ALTERADOS'
-echo 'SESSAO_BAILEYS=NAO_ALTERADA'
-echo "BACKUP_CODIGO=$BACKUP"
-echo 'REINICIO_MANUAL=bash start.sh'
-echo 'WHATSAPP_REAL_V28_2_PENDENTE=SIM'
- "$BACKUP/regressao.tap";then
+if ! grep -q '^# fail 0$' "$BACKUP/regressao.tap";then
  tail -n 25 "$BACKUP/regressao.tap"
  echo 'ERRO=REGRESSAO_INCOMPLETA';exit 3
 fi
-COUNT="$(grep '^# pass [0-9][0-9]*
-echo "TESTES_BETA_V28_2=$COUNT/$COUNT"
-check_running
-# Files changed by any concurrent editor during testing? Fail, no overwrite.
-cmp -s "$APP/runtime.cjs" "$BACKUP/runtime.cjs" && cmp -s "$APP/feature-manifest.cjs" "$BACKUP/feature-manifest.cjs" || {
- echo 'ERRO=BASE_ALTERADA_DURANTE_TESTES';exit 2
-}
-CHANGED=1
-install -m 600 "$STAGE/runtime.cjs" "$APP/runtime.cjs"
-install -m 600 "$STAGE/feature-manifest.cjs" "$APP/feature-manifest.cjs"
-cmp -s "$APP/runtime.cjs" "$STAGE/runtime.cjs" && cmp -s "$APP/feature-manifest.cjs" "$STAGE/feature-manifest.cjs" || {
- echo 'ERRO=VERIFICACAO_COPIA';exit 3
-}
-CHANGED=0
-trap - EXIT
-rm -rf "$STAGE"
-echo 'ATUALIZACAO_BETA_V28_2=INSTALADA'
-echo 'BANCO_E_PERSONAGENS=NAO_ALTERADOS'
-echo 'SESSAO_BAILEYS=NAO_ALTERADA'
-echo "BACKUP_CODIGO=$BACKUP"
-echo 'REINICIO_MANUAL=bash start.sh'
-echo 'WHATSAPP_REAL_V28_2_PENDENTE=SIM'
- "$BACKUP/regressao.tap" | tail -1 | awk '{print $3}')"
-TOTAL="$(grep '^# tests [0-9][0-9]*
-echo "TESTES_BETA_V28_2=$COUNT/$COUNT"
-check_running
-# Files changed by any concurrent editor during testing? Fail, no overwrite.
-cmp -s "$APP/runtime.cjs" "$BACKUP/runtime.cjs" && cmp -s "$APP/feature-manifest.cjs" "$BACKUP/feature-manifest.cjs" || {
- echo 'ERRO=BASE_ALTERADA_DURANTE_TESTES';exit 2
-}
-CHANGED=1
-install -m 600 "$STAGE/runtime.cjs" "$APP/runtime.cjs"
-install -m 600 "$STAGE/feature-manifest.cjs" "$APP/feature-manifest.cjs"
-cmp -s "$APP/runtime.cjs" "$STAGE/runtime.cjs" && cmp -s "$APP/feature-manifest.cjs" "$STAGE/feature-manifest.cjs" || {
- echo 'ERRO=VERIFICACAO_COPIA';exit 3
-}
-CHANGED=0
-trap - EXIT
-rm -rf "$STAGE"
-echo 'ATUALIZACAO_BETA_V28_2=INSTALADA'
-echo 'BANCO_E_PERSONAGENS=NAO_ALTERADOS'
-echo 'SESSAO_BAILEYS=NAO_ALTERADA'
-echo "BACKUP_CODIGO=$BACKUP"
-echo 'REINICIO_MANUAL=bash start.sh'
-echo 'WHATSAPP_REAL_V28_2_PENDENTE=SIM'
- "$BACKUP/regressao.tap" | tail -1 | awk '{print $3}')"
+COUNT="$(grep '^# pass [0-9][0-9]*$' "$BACKUP/regressao.tap" | tail -1 | awk '{print $3}')"
+TOTAL="$(grep '^# tests [0-9][0-9]*$' "$BACKUP/regressao.tap" | tail -1 | awk '{print $3}')"
 if ! [[ "${COUNT:-}" =~ ^[0-9]+$ && "${TOTAL:-}" =~ ^[0-9]+$ ]] || [ "$COUNT" -ne "$TOTAL" ] || [ "$COUNT" -lt 82 ];then
  echo "ERRO=TESTES_INSUFICIENTES_OU_DIVERGENTES_PASS_${COUNT:-NA}_TOTAL_${TOTAL:-NA}";exit 3
 fi
