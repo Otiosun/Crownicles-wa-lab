@@ -20,7 +20,7 @@ const {Presenter}=require('./bridge/presenter.cjs');
 const {CrowniclesCore}=require('./bridge/core.cjs');
 const {assertLabConfig}=require('./bridge/mqtt-isolation.cjs');
 const {normalizeJid}=require('./entrada.cjs');
-const {probeReadHandlers,probeMenuHandlers}=require('./feature-manifest.cjs');
+const {probeReadHandlers,probeMenuHandlers,probeAuthHandlers}=require('./feature-manifest.cjs');
 const {resolveIncomingSender}=require('./group-sender.cjs');
 const {groupIdentityDisposition}=require('./group-identity-policy.cjs');
 process.umask(0o077);
@@ -156,11 +156,14 @@ async function initCore(portMaria,cfg,req,admin){
  }
  const nativeRead=probeReadHandlers({dist,listener:gameInstance.packetListener});
  const nativeMenus=probeMenuHandlers({dist,listener:gameInstance.packetListener});
- const enabledPackets=new Set([...Object.keys(compiledPaths),...nativeRead.available,...nativeMenus.available]);
+ const nativeAuth=probeAuthHandlers({dist,listener:gameInstance.packetListener});
+ const enabledPackets=new Set([...Object.keys(compiledPaths),...nativeRead.available,...nativeMenus.available,...nativeAuth.available]);
  status('BETA_LEITURAS_NATIVAS',nativeRead.available.length);
  status('BETA_LEITURAS_PENDENTES',nativeRead.unavailable.length);
  status('BETA_MENUS_NATIVOS',nativeMenus.available.length);
  status('BETA_MENUS_PENDENTES',nativeMenus.unavailable.length);
+ status('BETA_AUTORIZACOES_NATIVAS',nativeAuth.available.length);
+ status('BETA_AUTORIZACOES_PENDENTES',nativeAuth.unavailable.length);
  const {MapCache}=require(path.join(dist,'core','maps','MapCache.js'));
  const {LogsMapLinks}=require(path.join(dist,'core','database','logs','models','LogsMapLinks.js'));
  const original=LogsMapLinks.findAll;LogsMapLinks.findAll=async()=>[];
