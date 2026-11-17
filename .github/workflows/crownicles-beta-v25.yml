@@ -1,0 +1,41 @@
+name: Crownicles Beta — regressao segura
+
+on:
+  push:
+    branches:
+      - feat/crownicles-beta-group-ux-v25
+    paths:
+      - 'integral-native-router/beta/entrada.cjs'
+      - 'integral-native-router/beta/entrada.test.cjs'
+      - 'integral-native-router/beta/owner-link.test.cjs'
+      - 'integral-native-router/beta/admin-link.cjs'
+      - 'integral-native-router/beta/runtime.cjs'
+      - '.github/workflows/crownicles-beta-v25.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  unit-beta:
+    name: Regressao beta sem Baileys, MariaDB ou dados reais
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    defaults:
+      run:
+        working-directory: integral-native-router/beta
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Checar versao e sintaxe
+        run: |
+          node --version
+          node --check entrada.cjs
+          node --check runtime.cjs
+          node --check admin-link.cjs
+          node --check entrada.test.cjs
+          node --check owner-link.test.cjs
+      - name: Testar comandos, persistencia e seguranca em SQLite descartavel
+        run: node --test entrada.test.cjs owner-link.test.cjs
