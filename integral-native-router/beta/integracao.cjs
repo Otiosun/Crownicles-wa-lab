@@ -4,24 +4,30 @@
 const {BetaEntrance,makeCoreRegistration} = require('./entrada.cjs');
 const {Gateway} = require('./bridge/gateway.cjs');
 const {Store} = require('./bridge/store.cjs');
+const {ResponseContextIndex}=require('./response-context.cjs');
+const {createContextDispatch}=require('./context-dispatch.cjs');
 const path = require('node:path');
 
 function createBetaRuntime({dataDir,ownerJids,core,presenter,send,Player,InventoryInfo,InventorySlot,ItemCategory}) {
  if(!path.isAbsolute(dataDir))throw Error('DIRETORIO_BETA_ABSOLUTO_OBRIGATORIO');
  const store=new Store(path.join(dataDir,'gateway'));
  const gateway=new Gateway({bindings:{}},store,presenter,core,send);
+ let beta;
+ const responseContexts=new ResponseContextIndex({groupEnabled:jid=>!!beta?.groupEnabled(jid)});
+ const dispatchWithContext=createContextDispatch({index:responseContexts,receive:(id,jid,text)=>gateway.receive(id,jid,text)});
  const createPlayer=makeCoreRegistration({Player,InventoryInfo,InventorySlot,ItemCategory});
- const beta=new BetaEntrance({
+ beta=new BetaEntrance({
   dir:path.join(dataDir,'access'),ownerJids,createPlayer,send,
-  dispatchGame:({id,playerJid,playerUUID,text})=>{
+  dispatchGame:({id,playerJid,playerUUID,text,sourceChat})=>{
    if(!gateway.config.bindings[playerJid])gateway.config.bindings[playerJid]=playerUUID;
    if(gateway.config.bindings[playerJid]!==playerUUID)throw Error('JID_UUID_DIVERGENTE');
-   return gateway.receive(id,playerJid,text);
+   // Sidecar records request -> player and source; native outbound remains private.
+   return dispatchWithContext({id,playerJid,playerUUID,text,sourceChat});
   }
  });
  for(const p of beta.db.prepare("SELECT jid,uuid FROM players WHERE state='active'").all())
   gateway.config.bindings[p.jid]=p.uuid;
  const close=()=>{beta.close();store.close();};
- return {beta,gateway,store,handle:msg=>beta.handle(msg),close};
+ return {beta,gateway,store,responseContexts,handle:msg=>beta.handle(msg),close};
 }
 module.exports={createBetaRuntime};
