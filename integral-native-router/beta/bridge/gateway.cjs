@@ -7,6 +7,15 @@ const {resolveCommand:resolveLote08}=require('./lote08.cjs');
 const {resolveCommand:resolveLote09,verifyEquipIntent,refreshEquipMenu}=require('./lote09.cjs');
 const {resolveCommand:resolveLote10,makeMenu:makeNativeAuthMenu,authorizedCommand:authorizedNativeCommand}=require('./lote10.cjs');
 const {resolveCommand:resolveLote11,makeNicknameMenu,authorizedNickname}=require('./lote11.cjs');
+// The original Core may have one live reaction collector per player.
+// Keep an existing decision snapshot instead of opening a second menu over it.
+// Read-only lookups are intentionally excluded.
+const MENU_OPENERS_V29=new Set([
+ 'CommandFightPacketReq','CommandSellPacketReq','CommandPetFeedPacketReq',
+ 'CommandDrinkPacketReq','CommandDailyBonusPacketReq','CommandClassesPacketReq',
+ 'CommandJoinBoatPacketReq','CommandEquipPacketReq','CommandGardenPacketReq',
+ 'CommandDefensePacketReq','CommandPetExpeditionPacketReq'
+]);
 class Gateway{
  constructor(config,store,presenter,core,sender){this.config=config;this.store=store;this.presenter=presenter;this.core=core;this.sender=sender;this.working=false;this.flushing=false;this.enableEquipActions=process.env.CROWNICLES_WA_EQUIP_ACTIONS==='enabled';this.presenter.allowEquipActions=this.enableEquipActions;this.pendingEquip=new Map();this.pendingNative=new Map();this.closed=false;this.onReady=()=>this.work();this.onResponse=r=>this.onCore(r);this.core.on('ready',this.onReady);this.core.on('response',this.onResponse);}
  close(){if(this.closed)return;this.closed=true;this.core.off?.('ready',this.onReady);this.core.off?.('response',this.onResponse);}
@@ -67,6 +76,14 @@ class Gateway{
   try{action=this.route(row)}catch(e){this.store.queue(row.wa,'A decisão não pôde ser preparada com segurança. Consulte /menu.');this.store.mark(row.id,'done');continue}
   if(action.ignore){this.store.mark(row.id,'done');continue}
   if(action.local){this.store.queue(row.wa,action.local);this.store.mark(row.id,'done');continue}
+  // V29: never replace the pending collector/menu with a new opener.
+  if(MENU_OPENERS_V29.has(action.name)){
+   const active=this.store.getMenu(row.wa);
+   if(active&&Number.isFinite(active.endTime)&&active.endTime>Date.now()){
+    this.store.queue(row.wa,'Há uma decisão pendente. Envie /menu para consultá-la ou escolha a opção de cancelar.');
+    this.store.mark(row.id,'done');continue;
+   }
+  }
   // Only Core handlers verified by the isolated beta may receive new native requests.
   if(action.name && typeof this.config.canSendPacket==='function' && !this.config.canSendPacket(action.name)){
    this.store.queue(row.wa,'Este recurso do Crownicles ainda não foi habilitado nesta beta. Consulte /ajuda.');
