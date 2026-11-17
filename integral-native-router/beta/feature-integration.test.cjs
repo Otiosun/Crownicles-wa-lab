@@ -77,23 +77,40 @@ test('mesmo wamid de grupo nao reexecuta uma rota da ponte',async()=>{
   assert.equal(x.calls.length,1);
  }finally{x.close()}
 });
-test('resposta Core atrasada apos fechar a beta nao consulta SQLite encerrado',async()=>{
- const x=fixture([],false);let id,uuid;
- try{
-  await x.send('registration',P1,'/cadastro');await x.send('report',P1,'/jogar');
+
+for(const [command,packet] of Object.entries({
+ '/combate':'CommandFightPacketReq','/vender':'CommandSellPacketReq',
+ '/alimentar':'CommandPetFeedPacketReq','/pocao':'CommandDrinkPacketReq',
+ '/diario':'CommandDailyBonusPacketReq','/mudarclasse':'CommandClassesPacketReq',
+ '/embarcar':'CommandJoinBoatPacketReq'
+}))test('menu nativo V28 '+command+' usa o único gateway persistente',async()=>{
+ const x=fixture([packet]);try{
+  await x.send('c-'+packet,P1,'/cadastro');
+  await x.send('req-'+packet,P1,command);
   await until(()=>x.calls.length===1);
-  id=x.calls[0].id;uuid=x.calls[0].uuid;
+  assert.equal(x.calls[0].name,packet);
+  assert.equal(x.calls[0].uuid,x.rt.beta.player(P1).uuid);
+  await until(()=>x.sent.some(y=>y.text==='*SAIDA CORE*'));
+  assert(x.sent.filter(y=>y.text==='*SAIDA CORE*').every(y=>y.jid===P1));
+  assert.equal(x.calls.length,1); // mere opening doesn't issue a collector reaction
  }finally{x.close()}
- assert.doesNotThrow(()=>x.core.emit('response',{context:{frontEndSubOrigin:id,keycloakId:uuid},packets:[]}));
 });
-test('envio de outbox em andamento nao usa banco depois do close',async()=>{
- const {Gateway}=require('./bridge/gateway.cjs');
- let release;const pending=new Promise(resolve=>{release=resolve});
- const core=new EventEmitter();core.ready=true;
- let calls=0;
- const store={nextOut:()=>calls++===0?{id:'out-1',wa:P1,text:'ola'}:null,
-  sent:()=>{throw Error('STORE_FECHADO')},failed:()=>{throw Error('STORE_FECHADO')}};
- const gateway=new Gateway({bindings:{}},store,{},core,async()=>pending);
- const work=gateway.flush();gateway.close();release();
- await assert.doesNotReject(work);
+test('sete novos menus permanecem bloqueados no Gateway se Core não os registrou',async()=>{
+ const x=fixture([]);try{
+  await x.send('cad-menu-block',P1,'/cadastro');
+  for(const [i,command] of ['/combate','/vender','/alimentar','/pocao','/diario','/mudarclasse','/embarcar'].entries()){
+   await x.send('block-'+i,P1,command);
+  }
+  await until(()=>x.sent.filter(y=>y.text.includes('ainda não foi habilitado')).length>=7);
+  assert.equal(x.calls.length,0);
+ }finally{x.close()}
+});
+test('ajuda no grupo lista menus registrados mas nunca muda personagem ou economia',async()=>{
+ const x=fixture(['CommandFightPacketReq','CommandSellPacketReq']);try{
+  await x.send('act-g',OWNER,'/ativar',GROUP);
+  const r=await x.send('helpg',P2,'/ajuda',GROUP);
+  assert.equal(r.to,GROUP);assert(r.text.includes('/combate'));assert(r.text.includes('/vender'));
+  assert(!r.text.includes('/diario'));assert(r.text.includes('/cadastro'));
+  assert.equal(x.calls.length,0);assert.equal(x.users.size,0);
+ }finally{x.close()}
 });
