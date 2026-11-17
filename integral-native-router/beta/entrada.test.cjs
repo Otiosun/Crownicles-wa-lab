@@ -54,3 +54,18 @@ test('codigo nunca permite emitir chave a terceiro ou ativar em privado',async()
   assert.equal(x.e.groupEnabled(grp),false);
  }finally{x.close()}
 });
+
+test('ajuda e comandos em grupo ativo respondem no grupo sem expor dados de jogador',async()=>{
+ const x=setup();try{
+  await x.e.handle(x.input('on',owner,'/ativar',grp));
+  for(const [i,cmd] of ['/ajuda','/comandos'].entries()){
+   const r=await x.e.handle(x.input('help-'+i,waA,cmd,grp));
+   assert.equal(r.handled,true);
+   assert.equal(r.to,grp);
+   assert.equal(x.sent.at(-1).jid,grp);
+  }
+  assert.equal(x.e.player(waA),null);
+  const privateResult=await x.e.handle(x.input('private-help',waA,'/ajuda'));
+  assert.equal(privateResult.to,waA);
+ }finally{x.close()}
+});
