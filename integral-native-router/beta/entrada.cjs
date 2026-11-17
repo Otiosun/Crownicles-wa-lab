@@ -140,7 +140,7 @@ class BetaEntrance {
       }
       const enable = cmd === '/ativar' ? 1 : 0;
       this.db.prepare('INSERT INTO groups(id,enabled,updated_at) VALUES(?,?,?) ON CONFLICT(id) DO UPDATE SET enabled=excluded.enabled,updated_at=excluded.updated_at').run(chat,enable,this.clock());
-      return answer(enable ? '✅ Beta ativada neste grupo. Use /cadastro para criar seu personagem.' : '🔕 Beta desativada neste grupo.');
+      return answer(enable ? '✅ O RPG está disponível neste grupo! Use /ajuda para começar.' : '🔕 O RPG foi pausado neste grupo.');
     }
     if (cmd === '/grupos') {
       if (isGroup) return answer('Consulte /grupos no privado.');
@@ -152,7 +152,7 @@ class BetaEntrance {
       this.busy.add(playerSender);
       try {
         let row = this.player(playerSender);
-        if (row?.state === 'active') return answer('✅ Seu personagem já está cadastrado. Envie /jogar.', isGroup ? playerSender : chat);
+        if (row?.state === 'active') return answer('✅ Seu aventureiro já está pronto. Use /jogar para continuar.', isGroup ? playerSender : chat);
         if (!row) {
           const uuid = crypto.randomUUID();
           this.db.prepare('INSERT INTO players(jid,uuid,state,created_at,updated_at) VALUES(?,?,?,?,?)').run(playerSender,uuid,'pending',this.clock(),this.clock());
@@ -161,7 +161,7 @@ class BetaEntrance {
         // createPlayer DEVE ser idempotente por UUID; o mesmo UUID será reutilizado após falha/reinício.
         await this.createPlayer(row.uuid, playerSender);
         this.db.prepare("UPDATE players SET state='active',updated_at=? WHERE jid=? AND uuid=?").run(this.clock(),playerSender,row.uuid);
-        return answer('✅ Cadastro concluído! Seu personagem foi criado no Crownicles.\nEnvie /jogar para iniciar a aventura.\n\n*Beta de testes:* progresso pode ser reiniciado.', isGroup ? playerSender : chat);
+        return answer('✅ Aventureiro criado!\nUse /jogar para dar o primeiro passo.\n\n*Aviso:* este mundo ainda está em testes.', isGroup ? playerSender : chat);
       } catch (e) {
         return answer('⚠️ O cadastro ainda não terminou. Use /cadastro novamente quando o motor estiver disponível. Não criaremos outro personagem.', isGroup ? playerSender : chat);
       } finally { this.busy.delete(playerSender); }
