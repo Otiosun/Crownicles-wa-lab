@@ -43,6 +43,24 @@ const NATIVE_AUTH_HANDLERS=Object.freeze({
  CommandGuildDailyPacketReq:'commands/guild/GuildDailyCommand.js',
  CommandPetNickPacketReq:'commands/pet/PetNickCommand.js'
 });
+// Original Core 6.2.0.b commands not yet fully exposed in live WhatsApp.
+// This table ONLY loads the official handlers. Risky request routing remains
+// blocked by the Gateway until the existing W3 semantics pass separate QA.
+const NATIVE_EXPANSION_HANDLERS=Object.freeze({
+ CommandFriendlyFightPacketReq:'commands/player/FriendlyFightCommand.js',
+ CommandUnlockPacketReq:'commands/player/UnlockCommand.js',
+ CommandGuildCreatePacketReq:'commands/guild/GuildCreateCommand.js',
+ CommandGuildDescriptionPacketReq:'commands/guild/GuildDescriptionCommand.js',
+ CommandGuildElderPacketReq:'commands/guild/GuildElderCommand.js',
+ CommandGuildElderRemovePacketReq:'commands/guild/GuildElderRemoveCommand.js',
+ CommandGuildInvitePacketReq:'commands/guild/GuildInviteCommand.js',
+ CommandGuildKickPacketReq:'commands/guild/GuildKickCommand.js',
+ CommandGuildLeavePacketReq:'commands/guild/GuildLeaveCommand.js',
+ CommandPetCaressPacketReq:'commands/pet/PetCaressCommand.js',
+ CommandPetFreePacketReq:'commands/pet/PetFreeCommand.js',
+ CommandPetSellPacketReq:'commands/pet/PetSellCommand.js',
+ CommandPetTransferPacketReq:'commands/pet/PetTransferCommand.js'
+});
 const HELP_GROUPS=Object.freeze([
  {title:'Sua aventura',entries:[['/jogar · /aventura','CommandReportPacketReq'],['/menu','local'],['/cadastro','local'],['/perfil','CommandProfilePacketReq'],['/inventario','CommandInventoryPacketReq'],['/missoes','CommandMissionsPacketReq']]},
  {title:'Personagem e mundo',entries:[['/pet','CommandPetPacketReq'],['/classes','CommandClassesInfoPacketReq'],['/mapa','CommandMapPacketReq'],['/historico','CommandFightHistoryPacketReq'],['/raridades','CommandRarityPacketReq'],['/ranking','CommandTopPacketReq'],['/versao','CommandUpdatePacketReq']]},
@@ -81,6 +99,9 @@ function probeMenuHandlers(options={}){
 function probeAuthHandlers(options={}){
  return probeHandlerTable(NATIVE_AUTH_HANDLERS,options);
 }
+function probeExpansionHandlers(options={}){
+ return probeHandlerTable(NATIVE_EXPANSION_HANDLERS,options);
+}
 function probeHandlerTable(table,{dist,listener,load=require,exists=fs.existsSync}={}){
  if(typeof dist!=='string'||!path.isAbsolute(dist)||!listener||typeof listener.getListener!=='function'||typeof load!=='function'||typeof exists!=='function')throw TypeError('CORE_PROBE_INVALIDO');
  const available=[],unavailable=[];
@@ -113,4 +134,4 @@ function renderHelp(available){
  'Seu progresso e as respostas da aventura chegam no privado. Outros sistemas são liberados após validação no Core.');
  return lines.join('\n');
 }
-module.exports={NATIVE_READ_HANDLERS,NATIVE_MENU_HANDLERS,NATIVE_AUTH_HANDLERS,HELP_GROUPS,probeReadHandlers,probeMenuHandlers,probeAuthHandlers,renderHelp};
+module.exports={NATIVE_READ_HANDLERS,NATIVE_MENU_HANDLERS,NATIVE_AUTH_HANDLERS,NATIVE_EXPANSION_HANDLERS,HELP_GROUPS,probeReadHandlers,probeMenuHandlers,probeAuthHandlers,probeExpansionHandlers,renderHelp};
