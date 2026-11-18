@@ -8,6 +8,7 @@ on:
       - feat/crownicles-beta-menus-v28
       - feat/crownicles-beta-collector-safety-v29
       - feat/crownicles-beta-original-auth-v30
+      - feat/crownicles-beta-final-consolidation
     paths:
       - 'integral-native-router/beta/entrada.cjs'
       - 'integral-native-router/beta/entrada.test.cjs'
@@ -37,6 +38,7 @@ on:
       - feat/crownicles-beta-consolidation-v27
       - feat/crownicles-beta-menus-v28
       - feat/crownicles-beta-collector-safety-v29
+      - feat/crownicles-beta-original-auth-v30
     paths:
       - 'integral-native-router/beta/**'
       - '.github/workflows/crownicles-beta-v25.yml'
@@ -84,4 +86,15 @@ jobs:
           node --check patches/patch-v30.cjs
           for file in bridge/*.cjs; do node --check "$file"; done
       - name: Testar comandos, persistencia e seguranca em SQLite descartavel
-        run: node --test --test-reporter=tap *.test.cjs
+        shell: bash
+        run: |
+          set -o pipefail
+          node --test --test-reporter=tap *.test.cjs 2>&1 | tee "$RUNNER_TEMP/crownicles-beta-tests.tap"
+      - name: Guardar relatorio completo dos testes
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: crownicles-beta-test-report
+          path: ${{ runner.temp }}/crownicles-beta-tests.tap
+          if-no-files-found: warn
+          retention-days: 7
