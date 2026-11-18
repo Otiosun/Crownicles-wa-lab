@@ -167,6 +167,8 @@ async function initCore(portMaria,cfg,req,admin){
  const nativeAuth=probeAuthHandlers({dist,listener:gameInstance.packetListener});
  const nativeExpansion=probeExpansionHandlers({dist,listener:gameInstance.packetListener});
  const enabledPackets=new Set([...Object.keys(compiledPaths),...nativeRead.available,...nativeMenus.available,...nativeAuth.available,...nativeExpansion.available]);
+ // Pet expedition resolution is owned by CoreHandlers, not a separate command module.
+ if(typeof gameInstance.packetListener.getListener('CommandPetExpeditionResolvePacketReq')==='function')enabledPackets.add('CommandPetExpeditionResolvePacketReq');
  status('BETA_LEITURAS_NATIVAS',nativeRead.available.length);
  status('BETA_LEITURAS_PENDENTES',nativeRead.unavailable.length);
  status('BETA_MENUS_NATIVOS',nativeMenus.available.length);
