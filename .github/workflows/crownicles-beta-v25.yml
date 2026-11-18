@@ -49,6 +49,8 @@ on:
       - 'integral-native-router/beta/collector-coverage.cjs'
       - 'integral-native-router/beta/collector-coverage.test.cjs'
       - 'integral-native-router/beta/pet-expedition-presenter.test.cjs'
+      - 'integral-native-router/beta/reviewed-world-collectors.test.cjs'
+      - 'integral-native-router/beta/reviewed-world-presenter.test.cjs'
       - 'integral-native-router/beta/bridge/**'
       - 'integral-native-router/beta/admin-link.cjs'
       - 'integral-native-router/beta/runtime.cjs'
@@ -118,6 +120,9 @@ jobs:
           node --check collector-coverage.cjs
           node --check collector-coverage.test.cjs
           node --check pet-expedition-presenter.test.cjs
+          node --check bridge/reviewed-world-collectors.cjs
+          node --check reviewed-world-collectors.test.cjs
+          node --check reviewed-world-presenter.test.cjs
           node --check native-live-safety.test.cjs
           node --check multiuser-routing.test.cjs
           node --check bridge/two-party-collector.cjs
