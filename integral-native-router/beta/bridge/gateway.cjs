@@ -2,6 +2,7 @@
 const crypto=require('node:crypto');
 const nativeUniversal=require('./native-universal.cjs');
 const twoParty=require('./two-party-collector.cjs');
+const social=require('./social-intents.cjs');
 const {resolveCommand:resolveLote06}=require('./lote06.cjs');
 const {resolveCommand:resolveLote07}=require('./lote07.cjs');
 const {resolveCommand:resolveLote08}=require('./lote08.cjs');
@@ -22,6 +23,21 @@ class Gateway{
  close(){if(this.closed)return;this.closed=true;this.core.off?.('ready',this.onReady);this.core.off?.('response',this.onResponse);}
  receive(id,wa,text){if(this.closed||!Object.hasOwn(this.config.bindings,wa))return false;const inserted=this.store.receive(id,wa,text);if(inserted)this.work();return inserted}
  route(row){const line=row.text.trim().toLowerCase();const id=this.config.bindings[row.wa];const novo=require('./lote02.cjs').resolveCommand(line,id);if(novo)return novo;const next=resolveLote06(line)||resolveLote07(line)||resolveLote08(line)||resolveLote09(line)||resolveLote10(line)||resolveLote11(row.text.trim());if(next?.petNickname){const active=this.store.getMenu(row.wa);if(active&&Date.now()<active.endTime)return {local:'Há uma decisão pendente. Envie /menu antes de renomear seu companheiro.'};const menu=makeNicknameMenu(next.petNickname);if(!menu)return {local:'Nome inválido. Nenhuma alteração foi enviada.'};const candidate=authorizedNickname(menu,menu.options?.[0],id);if(!candidate||(typeof this.config.canSendPacket==='function'&&!this.config.canSendPacket(candidate.name)))return {local:'O motor ainda não habilitou a alteração de apelido. Nenhuma mudança foi enviada.'};this.store.saveMenu(row.wa,menu);return {local:this.presenter.formatMenu(menu)}}if(next?.localAuthorization){const active=this.store.getMenu(row.wa);if(active&&Date.now()<active.endTime)return {local:'Há uma decisão pendente. Envie /menu antes de abrir outra autorização.'};const menu=makeNativeAuthMenu(next.localAuthorization);if(!menu)return {local:'A autorização não está disponível.'};const candidate=authorizedNativeCommand(menu,menu.options?.[0]);if(!candidate||(typeof this.config.canSendPacket==='function'&&!this.config.canSendPacket(candidate.name)))return {local:'O motor ainda não habilitou esta ação. Nenhuma solicitação foi enviada.'};this.store.saveMenu(row.wa,menu);return {local:this.presenter.formatMenu(menu)}}if(next){if(next.guardMenu){const m=this.store.getMenu(row.wa);if(m&&Date.now()<m.endTime)return {local:'Há uma decisão pendente. Envie /menu antes de abrir os serviços da cidade.'};}return next;}if(line==='/sistemas'||line==='/nativos')return {local:nativeUniversal.help(this.config.canSendPacket)};
+ const shared=social.parse(row.text.trim());
+ if(shared){
+  if(shared.error)return {local:shared.error};
+  if(shared.codeRequest){
+   const issued=this.store.issueRecipientCode(row.wa,id);
+   return {local:'*✦ SEU CÓDIGO DE PARTICIPAÇÃO*\nCompartilhe com quem poderá lhe enviar um convite de guilda ou uma oferta de pet. Código: *'+issued.code+'*\nVálido por 10 minutos, para um único pedido confirmado. Você ainda decidirá se aceita a proposta no privado.'};
+  }
+  const active=this.store.getMenu(row.wa);
+  if(active&&Date.now()<active.endTime)return {local:'Há uma decisão pendente. Consulte /menu antes de preparar outra proposta.'};
+  const found=this.store.findRecipientCode(shared.code);
+  if(!found||twoParty.recipientJid(this.config.bindings,found.player_id)!==found.wa)return {local:'Código inválido, expirado ou sem identidade verificada. Nenhum pedido foi enviado.'};
+  const menu=social.makeMenu(shared,found,id);
+  if(!menu||typeof this.config.canSendPacket!=='function'||this.config.canSendPacket(menu.socialRequest.name)!==true)return {local:'Este pedido ainda não está disponível no Core ou não foi validado. Nenhuma proposta foi enviada.'};
+  this.store.saveMenu(row.wa,menu);return {local:this.presenter.formatMenu(menu)};
+ }
  const universal=nativeUniversal.resolve(row.text.trim(),id,{canSendPacket:this.config.canSendPacket});
  if(universal?.universalIntent){
   const active=this.store.getMenu(row.wa);
@@ -44,9 +60,10 @@ class Gateway{
   const number=Number(confirm?confirm[1]:line),index=number-1,choice=m.options?.[index];
   if(!choice)return {local:'Opção inválida. Envie /menu para consultar as escolhas.'};
   if(choice.supported!==true)return {local:'⚠️ Essa decisão ainda não possui uma apresentação segura. Nada foi enviado ao motor.'};
-  if(['LocalNativeAuthorization','LocalPetNickname','LocalUniversalNativeAuthorization'].includes(m.type)&&choice.kind==='nativeCancel'&&!confirm){this.store.clearMenu(row.wa,m.id);return {local:'Autorização cancelada. Nada foi enviado ao motor.'};}
+  if(['LocalNativeAuthorization','LocalPetNickname','LocalUniversalNativeAuthorization','LocalSocialNativeAuthorization'].includes(m.type)&&choice.kind==='nativeCancel'&&!confirm){this.store.clearMenu(row.wa,m.id);return {local:'Autorização cancelada. Nada foi enviado ao motor.'};}
   if(m.type==='LocalNativeAuthorization'&&choice.kind!=='nativeAuth')return {local:'Opção não autorizada. Consulte /menu.'};
   if(m.type==='LocalUniversalNativeAuthorization'&&!['universalNative','nativeCancel'].includes(choice.kind))return {local:'Opção não autorizada. Consulte /menu.'};
+  if(m.type==='LocalSocialNativeAuthorization'&&!['socialNative','nativeCancel'].includes(choice.kind))return {local:'Opção não autorizada. Consulte /menu.'};
   if(choice.requiresConfirmation===true&&!confirm){
    const preview=this.store.createPreview(row.wa,m,index);
    return {local:`*✦ REVISÃO DA DECISÃO*\n${choice.label}\n\n*Nada foi executado.*\nPara autorizar apenas esta decisão, envie exatamente:\n*/confirmar ${number} ${preview.token}*\n\nEste código vale até ${new Date(preview.expiresAt).toLocaleTimeString('pt-BR')} e não pode ser reutilizado.`};
@@ -58,6 +75,11 @@ class Gateway{
     const native=nativeUniversal.authorized(m,choice,id,{canSendPacket:this.config.canSendPacket});
     if(!native)return {local:'A autorização nativa expirou ou foi invalidada. Nenhuma ação foi enviada.'};
     return {...native,confirmPreview:{menu:m,index,token:confirm[2]},nativePending:{request:native.name}};
+   }
+   if(choice.kind==='socialNative'){
+    const native=social.authorized(m,choice,id);
+    if(!native||typeof this.config.canSendPacket!=='function'||this.config.canSendPacket(native.name)!==true)return {local:'Pedido social expirado ou indisponível. Nenhum pedido foi enviado.'};
+    return {...native,confirmPreview:{menu:m,index,token:confirm[2]},socialConsent:native.consent};
    }
    if(choice.kind==='nativeAuth'){const native=authorizedNativeCommand(m,choice);if(!native)return {local:'Autorização não reconhecida. Nenhuma ação foi enviada ao motor.'};return {...native,confirmPreview:{menu:m,index,token:confirm[2]}};}
    if(choice.kind==='petNickname'){const native=authorizedNickname(m,choice,id);if(!native)return {local:'O apelido não corresponde à autorização. Nenhum pedido foi enviado.'};return {...native,confirmPreview:{menu:m,index,token:confirm[2]}};}
@@ -92,7 +114,11 @@ class Gateway{
   }
   const rid=crypto.randomUUID();const pid=this.config.bindings[row.wa];
   try{
-   if(action.confirmPreview){const {menu,index,token}=action.confirmPreview;this.store.startConfirmedRequest(row.id,row.wa,pid,rid,menu,index,token)}
+   if(action.confirmPreview){
+    const {menu,index,token}=action.confirmPreview;
+    if(action.socialConsent&&twoParty.recipientJid(this.config.bindings,action.socialConsent.playerId)!==action.socialConsent.wa)throw Error('DESTINATARIO_MUDOU');
+    this.store.startConfirmedRequest(row.id,row.wa,pid,rid,menu,index,token,action.socialConsent||null);
+   }
    else{this.store.startRequest(row.id,row.wa,pid,rid);if(action.consumeMenu)this.store.clearMenu(row.wa,action.consumeMenu)}
   }catch(e){this.store.queue(row.wa,'A confirmação expirou ou foi substituída. Consulte /menu e solicite nova prévia.');this.store.mark(row.id,'done');continue}
   if(action.equipPending)this.pendingEquip.set(rid,{menu:action.equipPending.menu,wa:row.wa,playerId:pid});
