@@ -23,6 +23,7 @@ const {normalizeJid}=require('./entrada.cjs');
 const {probeReadHandlers,probeMenuHandlers,probeAuthHandlers}=require('./feature-manifest.cjs');
 const {resolveIncomingSender}=require('./group-sender.cjs');
 const {groupIdentityDisposition}=require('./group-identity-policy.cjs');
+const {acquireBetaLock}=require('./startup-lock.cjs');
 process.umask(0o077);
 const HOME=process.env.HOME;
 if(!HOME||!path.isAbsolute(HOME))throw Error('HOME_INVALIDO');
@@ -77,10 +78,9 @@ function ownerSettings(){
  return cfg;
 }
 function lock(){
- try{lockFd=fs.openSync(lockPath,'wx',0o600);fs.writeSync(lockFd,String(process.pid));return}catch(e){if(e.code!=='EEXIST')throw e}
- const pid=Number(fs.readFileSync(lockPath,'utf8'));
- if(Number.isInteger(pid)&&pid>1){try{process.kill(pid,0);throw Error('BETA_JA_ESTA_RODANDO_PID_'+pid)}catch(e){if(e.code!=='ESRCH')throw e}}
- fs.unlinkSync(lockPath);lockFd=fs.openSync(lockPath,'wx',0o600);fs.writeSync(lockFd,String(process.pid));
+ const result=acquireBetaLock({lockPath,backupDir:path.join(stateDir,'backups')});
+ lockFd=result.fd;
+ if(result.recovered)status('BETA_LOCK_ANTIGO_PRESERVADO',result.reason);
 }
 function releaseLock(){if(lockFd!==null){try{fs.closeSync(lockFd)}catch{};try{if(fs.readFileSync(lockPath,'utf8')===String(process.pid))fs.unlinkSync(lockPath)}catch{}}}
 async function port(){const s=createServer();return new Promise((resolve,reject)=>{s.once('error',reject);s.listen(0,'127.0.0.1',()=>{const p=s.address().port;s.close(e=>e?reject(e):resolve(p))})})}
@@ -107,13 +107,21 @@ async function startMaria(Maria){
  const log=fs.openSync(mariaLog,'a',0o600);
  mariaProc=spawn('mariadbd',['--no-defaults','--datadir='+dataDir,'--socket='+socket,'--bind-address=127.0.0.1','--port='+p,'--pid-file='+mariaPid,'--log-error='+mariaLog,'--skip-log-bin','--skip-name-resolve','--innodb-buffer-pool-size=48M','--max-connections=35'],{cwd:mariaDir,stdio:['ignore',log,log]});
  fs.closeSync(log);startedChildren.push(mariaProc);mariaProc.once('error',err=>status('MARIA_PROCESSO_ERRO',err.code));
- for(let i=0;i<85;i++){
-  if(mariaProc.exitCode!==null)throw Error('MARIA_FALHOU_LOG_'+mariaLog);
-  try{const c=await Maria.createConnection({socketPath:socket,user:os.userInfo().username,connectTimeout:800});const [r]=await c.query('SELECT @@socket sock,@@port port,@@datadir datadir');
+ const started=Date.now(),startupBudgetMs=120000;
+ let warned=false,lastConnectError='AGUARDANDO';
+ while(Date.now()-started<startupBudgetMs){
+  if(mariaProc.exitCode!==null||mariaProc.signalCode!==null)throw Error('MARIA_FALHOU_LOG_'+mariaLog);
+  try{
+   const c=await Maria.createConnection({socketPath:socket,user:os.userInfo().username,connectTimeout:1500});
+   const [r]=await c.query('SELECT @@socket sock,@@port port,@@datadir datadir');
    if(r.sock!==socket||path.resolve(r.datadir)!==path.resolve(dataDir)){await c.end();throw Error('MARIA_ISOLAMENTO_FALHOU')}
    status('MARIA_NOVA','SIM');status('MARIA_PORT',r.port);return {conn:c,port:Number(r.port)}
-  }catch(e){if(e.message==='MARIA_ISOLAMENTO_FALHOU')throw e}await sleep(220)
- }throw Error('MARIA_TIMEOUT_LOG_'+mariaLog)
+  }catch(e){if(e.message==='MARIA_ISOLAMENTO_FALHOU')throw e;lastConnectError=String(e.code||e.message||'CONEXAO_PENDENTE').slice(0,80)}
+  if(!warned&&Date.now()-started>20000){status('MARIA_RECUPERACAO_LENTA','AGUARDANDO');warned=true}
+  await sleep(400);
+ }
+ status('MARIA_ULTIMA_FALHA_CONEXAO',lastConnectError);
+ throw Error('MARIA_TIMEOUT_LOG_'+mariaLog)
 }
 async function initCore(portMaria,cfg,req,admin){
  const prefix='crownicles_beta';
