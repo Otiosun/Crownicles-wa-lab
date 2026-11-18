@@ -12,6 +12,9 @@ const {renderPacket:renderLote11,collectorOption:optionLote11,collectorStory:sto
 const {cityOption,shopOption,encounterOption,additionalOption,notification}=require('./lote04.cjs');
 const {compileCollector,isKnownKind}=require('./universal-collector-v3.cjs');
 const {renderResponse:renderNativeResponse}=require('./native-universal.cjs');
+const world=require('./reviewed-world-collectors.cjs');
+const WORLD_COMBAT=new Set([world.K.fight,world.K.pve,world.K.action,world.K.pet]);
+function worldBlocked(p){return {id:p.id,endTime:p.endTime,type:p.data?.type,title:'⚠️ ESCOLHA NÃO VALIDADA',story:'Os dados desta interação não correspondem ao contrato revisado. Nenhuma escolha será enviada ao Core.',options:(Array.isArray(p.reactions)?p.reactions:[]).slice(0,220).map(()=>({label:'Indisponível',supported:false,requiresConfirmation:false}))};}
 // Audited original binary collectors: all choices still require native Core and nonce.
 const REVIEWED_LIVE_COLLECTORS=new Set(['ReactionCollectorGuildCreateData','ReactionCollectorGuildDescriptionData','ReactionCollectorGuildLeaveData','ReactionCollectorPetFreeData','ReactionCollectorPetFreeShelterConfirmData','ReactionCollectorPetTransferData','ReactionCollectorPetExpeditionChoiceData','ReactionCollectorPetExpeditionData','ReactionCollectorPetExpeditionFinishedData']);
 const fx={none:'Normal',occupied:'Ocupado',sleeping:'Dormindo',drunk:'Embriagado',freezing:'Congelado',feetHurt:'Pés feridos',hurt:'Machucado',sick:'Doente',jailed:'Preso',injured:'Ferido',starving:'Faminto',confounded:'Confuso',scared:'Assustado',lost:'Perdido',dead:'Morto',notStarted:'Não iniciado'};
@@ -22,7 +25,10 @@ class Presenter{
  constructor(langDir){this.universalLab=process.env.CROWNICLES_WA_UNIVERSAL_COLLECTORS==='lab'&&process.env.CROWNICLES_WA_LAB_ISOLATED==='SIM_ISOLADO'&&!String(process.env.WA_BAILEYS_SEND_MODE||'').trim();this.allowEquipActions=process.env.CROWNICLES_WA_EQUIP_ACTIONS==='enabled';this.langDir=langDir;this.events=this.load('events.json');this.models=editorialModels(this.load('models.json'))}
  load(name){try{return JSON.parse(fs.readFileSync(path.join(this.langDir,name),'utf8'))}catch{return {}}}
  name(k,id,def='Desconhecido'){const v=this.models[k]?.[String(id)];const raw=clean(typeof v==='string'?v:v?.name)||def;return k==='classes'?classLabel(id,raw):raw}
- menu(p){const kind=p.data?.type;const d=p.data?.data||{};
+ menu(p,playerId){const kind=p.data?.type;const d=p.data?.data||{};
+ // These audited types own their routes, including malformed packets. No legacy/LAB fallback.
+ if(WORLD_COMBAT.has(kind)){const compiled=world.combat(p,this.models,playerId);return compiled?{id:p.id,endTime:p.endTime,type:kind,title:compiled.title,story:compiled.story,options:compiled.options,...(compiled.restrictedToPlayerId?{restrictedToPlayerId:compiled.restrictedToPlayerId}:{})}:worldBlocked(p);}
+ if(kind===world.K.city){const options=world.cityOptions(p,this.models,cityOption);if(!options)return worldBlocked(p);return {id:p.id,endTime:p.endTime,type:kind,title:d.gardenOnly?'✦ HORTA':'✦ SERVIÇOS DA CIDADE',story:d.gardenOnly?gardenStory(d):'Escolha um serviço disponível. Preços e condições são os informados pelo Core; ações com efeito exigem confirmação.',options};}
  if(this.universalLab||REVIEWED_LIVE_COLLECTORS.has(kind)){const compiled=compileCollector(p);if(compiled)return {id:p.id,endTime:p.endTime,type:compiled.kind,title:compiled.title,story:compiled.story,options:compiled.options};if(isKnownKind(kind))return {id:p.id,endTime:p.endTime,type:kind,title:'⚠️ DADOS INCONSISTENTES',story:'O menu recebido não passou na validação do contrato original. Nenhuma opção será enviada ao Core.',options:(Array.isArray(p.reactions)?p.reactions:[]).slice(0,100).map(()=>({label:'Indisponível: menu inválido',supported:false,requiresConfirmation:false}))};}
  let title='📜 ESCOLHA';let story='Uma decisão exige sua atenção.';
  const label=r=>{const v=r.data||{};if(kind==='ReactionCollectorBigEventData')return clean(this.events[String(d.eventId)]?.possibilities?.[v.name]?.text)|| (v.name==='end'?'Continuar':null);
@@ -91,7 +97,7 @@ class Presenter{
  case 'CommandProfilePacketRes':out.push(this.formatProfile(p));break;
  case 'CommandInventoryPacketRes':out.push(this.formatInventory(p));break;
  case 'CommandProfilePlayerNotFound':out.push('Seu personagem ainda não iniciou a jornada. Envie /jogar para começar sua aventura.');break;
- case 'ReactionCollectorCreationPacket':{if(!p.id||!Number.isFinite(p.endTime)||!Array.isArray(p.reactions)){out.push('O menu chegou incompleto; nenhuma decisão será enviada.');break}const m=this.menu(p);store.saveMenu(wa,m);out.push(this.formatMenu(m));break}
+ case 'ReactionCollectorCreationPacket':{if(!p.id||!Number.isFinite(p.endTime)||!Array.isArray(p.reactions)){out.push('O menu chegou incompleto; nenhuma decisão será enviada.');break}if(p.data?.type===world.K.action&&p.data?.data?.fighterKeycloakId!==playerId){out.push('O turno recebido não pertence ao personagem desta conversa. Nenhuma escolha foi aberta.');break}const m=this.menu(p,playerId);store.saveMenu(wa,m);out.push(this.formatMenu(m));break}
  case 'ReactionCollectorStopPacket':store.clearMenu(wa,p.id);break;
  case 'ReactionCollectorEnded':store.clearMenu(wa,p.id);out.push('⌛ A escolha expirou.');break;
  case 'CommandReportBigEventResultRes':out.push(this.formatOutcome(p));break;
@@ -117,6 +123,7 @@ class Presenter{
  case 'RequirementGuildRolePacket':out.push('*✦ PERMISSÃO DA GUILDA*\nSua função atual na guilda não permite essa ação. Nenhuma alteração foi realizada.');break;
  case 'RequirementWherePacket':out.push('*✦ LOCAL INADEQUADO*\nEsta ação não está disponível na sua região atual. Nenhuma alteração foi realizada.');break;
  case 'RequirementRightPacket':out.push('*✦ ACESSO RESTRITO*\nVocê não possui permissão para usar esta função.');break;
+ case 'SmallEventFightPetPacket':{const msg=world.petResult(p);out.push(msg||'O resultado do encontro está incompleto. Consulte /perfil antes de repetir a ação.');break}
  case 'AIFightActionChoosePacket':break; // Cronômetro interno do combate, não é mensagem de ação para o jogador.
  case 'SmallEventRecipeShopRefusedPacket':out.push('Você recusou a oferta.');break;
  case 'SmallEventRecipeShopAcceptedPacket':out.push('✅ Receita comprada no motor.');break;
