@@ -8,6 +8,8 @@
  */
 const previous=require('./universal-collector-v2.cjs');
 const transfer=require('./pet-transfer-collector.cjs');
+const expedition=require('./pet-expedition-collector.cjs');
+const EXPEDITION_KINDS=new Set(Object.values(expedition.K));
 const {safeDescription}=require('./native-universal.cjs');
 const UUID=/^[a-f0-9]{8}-(?:[a-f0-9]{4}-){3}[a-f0-9]{12}$/i;
 const ACCEPT='ReactionCollectorAcceptReaction';
@@ -31,6 +33,7 @@ const rule=Object.freeze({
 const declared=new Set(Object.keys(rule));
 function compileCollector(packet){
  if(packet?.data?.type===transfer.K)return transfer.compileCollector(packet);
+ if(EXPEDITION_KINDS.has(packet?.data?.type))return expedition.compileCollector(packet);
  if(!obj(packet)||!obj(packet.data)||!obj(packet.data.data)||!Array.isArray(packet.reactions))return previous.compileCollector(packet);
  const kind=packet.data.type,def=rule[kind];
  if(!def)return previous.compileCollector(packet);
@@ -39,5 +42,5 @@ function compileCollector(packet){
  if(!def.check(d)||rx.length!==2||rx.filter(x=>x.type===ACCEPT).length!==1||rx.filter(x=>x.type===REFUSE).length!==1||rx.some(x=>!obj(x)||!zero(x.data)))return null;
  return {kind,title:def.title,story:def.story(d)+(def.blockedUntilIdentity?' Identidade do destinatário não é exibida no pacote original; ação bloqueada até existir vínculo de nome verificado.':''),options:rx.map(x=>x.type===REFUSE?{label:'Recusar sem aplicar a ação',supported:true,requiresConfirmation:false}:def.blockedUntilIdentity?{label:'Indisponível: identidade do destinatário não verificada',supported:false,requiresConfirmation:false}:{label:def.action(d),supported:true,requiresConfirmation:true})};
 }
-function isKnownKind(k){return previous.isKnownKind(k)||declared.has(k)}
-module.exports={compileCollector,isKnownKind,knownKinds:new Set([...previous.knownKinds,...declared]),binaryRules:rule};
+function isKnownKind(k){return previous.isKnownKind(k)||declared.has(k)||EXPEDITION_KINDS.has(k)}
+module.exports={compileCollector,isKnownKind,knownKinds:new Set([...previous.knownKinds,...declared,...EXPEDITION_KINDS]),binaryRules:rule};
