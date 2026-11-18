@@ -40,6 +40,9 @@ on:
       - 'integral-native-router/beta/bridge/two-party-collector.cjs'
       - 'integral-native-router/beta/two-party-collector.test.cjs'
       - 'integral-native-router/beta/two-party-gateway.test.cjs'
+      - 'integral-native-router/beta/bridge/social-intents.cjs'
+      - 'integral-native-router/beta/social-intents.test.cjs'
+      - 'integral-native-router/beta/social-gateway.test.cjs'
       - 'integral-native-router/beta/bridge/pet-transfer-collector.cjs'
       - 'integral-native-router/beta/bridge/**'
       - 'integral-native-router/beta/admin-link.cjs'
@@ -110,6 +113,9 @@ jobs:
           node --check bridge/two-party-collector.cjs
           node --check two-party-collector.test.cjs
           node --check two-party-gateway.test.cjs
+          node --check bridge/social-intents.cjs
+          node --check social-intents.test.cjs
+          node --check social-gateway.test.cjs
           node --check bridge/lote08.cjs
           node --check patches/patch-v30.cjs
           for file in bridge/*.cjs; do node --check "$file"; done
