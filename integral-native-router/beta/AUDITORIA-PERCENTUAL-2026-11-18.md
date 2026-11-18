@@ -74,3 +74,13 @@ A comparação de todas as 56 fontes TypeScript de interação revelou 55 classe
 Implementação adicional comprovada offline: validador dedicado do ciclo de expedições (seleção, recolhimento e recebimento), com coerência estrita de snapshots e índices nativos, sem recriar recompensas ou viagens. Em Node22 isolado, **18/18 testes de expedição + 6/6 testes do inventário = 24/24**, todos aprovados. Quatro testes de integração com Presenter foram escritos e versionados, ainda não executados na HEAD completa nem no Android real; GitHub CI continua sem executor homologado. Não inflar percentual por isso.
 
 **Placar mantido: beta WhatsApp ampla ~50% ±10pp; projeto com site ~40% ±10pp.** A próxima atualização percentual deve refletir fechamento de decisões de combate/cidade/economia e validação operacional, não somente aumento de rotas/commits.
+
+
+## Terceira auditoria — combate/cidade/jornada
+
+- Testes versionados: `reviewed-world-collectors.test.cjs` (39), `reviewed-world-presenter.test.cjs` (26), `collector-coverage.test.cjs` (7). Suites de Presenter executadas recuperando 19 módulos reais do GitHub no commit bb3f91a3b421b8a00d8e14502481f5d719f28e65 e simulando somente infraestrutura e Store; unitários/inventário novamente em 7ad68675e8915a6a69bd6d4ae1b5b6cb76f0975c. **72/72 PASS** no harness V8 isolado, não equivalem a Node/SQLite/Core/MQTT/Baileys completos. Workflow atualizado para os testes; CI integral ainda não homologado.
+
+- Inventário: 54 tipos concretos; 22 Presenter principal + 9 world-validated + 3 expedição + 2 privados = **36/54 (66,7%) com caminho específico normal**; 18 adapter-only e 1 classe base. Antes 31/54. Não confundir com 66,7% de conclusão funcional. Estimativas de produto mantidas ~50% beta ±10pp e ~40% com site ±10pp, até regressão completa e critérios reais de aceite.
+
+- Próximos gates: ItemChoice/lojas/eventos que dependem de inventário e efeitos, especialmente GobletsGame (dados de estratégia originais e recompensa item), Witch e Altar; não liberar parcial que deixe escolha de item inacessível. Revisar loteria, demais adapter-only, regressão de HEAD, CI, sandbox de Core/MariaDB/MQTT e depois validação WhatsApp com dois jogadores e rollback. Sem microlotes de instalação.
+Ver detalhes na matriz FECHAMENTO-MASSIVO-CANONICO.md.
