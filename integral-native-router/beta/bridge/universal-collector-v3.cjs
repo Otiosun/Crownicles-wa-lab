@@ -7,6 +7,7 @@
  * Enabled only with CROWNICLES_WA_UNIVERSAL_COLLECTORS=lab in isolated process.
  */
 const previous=require('./universal-collector-v2.cjs');
+const transfer=require('./pet-transfer-collector.cjs');
 const {safeDescription}=require('./native-universal.cjs');
 const UUID=/^[a-f0-9]{8}-(?:[a-f0-9]{4}-){3}[a-f0-9]{12}$/i;
 const ACCEPT='ReactionCollectorAcceptReaction';
@@ -29,6 +30,7 @@ const rule=Object.freeze({
 });
 const declared=new Set(Object.keys(rule));
 function compileCollector(packet){
+ if(packet?.data?.type===transfer.K)return transfer.compileCollector(packet);
  if(!obj(packet)||!obj(packet.data)||!obj(packet.data.data)||!Array.isArray(packet.reactions))return previous.compileCollector(packet);
  const kind=packet.data.type,def=rule[kind];
  if(!def)return previous.compileCollector(packet);
