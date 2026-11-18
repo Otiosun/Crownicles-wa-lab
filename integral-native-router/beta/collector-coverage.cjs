@@ -3,7 +3,7 @@
 const upstream='Crownicles/Crownicles@64d08c05f11949029317341735f6f73024f19f9b';
 const all='Altar AnyShopSmallEvent BadPetSmallEvent BigEvent BuyCategorySlot BuyHeal Cart ChangeClass ChooseDestination City DailyBonus DefensePersonality Drink EpicShopSmallEvent Equip Fight FightChooseAction FightPet Gardener GoToPVEIsland GobletsGame GuildCreate GuildDescription GuildElder GuildElderRemove GuildInvite GuildKick GuildLeave InteractOtherPlayersPoor ItemAccept ItemChoice JoinBoat Limoges Lottery PetExpedition PetExpeditionChoice PetExpeditionFinished PetFeedWithGuild PetFeedWithoutGuild PetFoodSmallEvent PetFree PetFreeShelterConfirm PetFreeSelection PetSell PetTransfer PveFight RecipeShopSmallEvent Sell Shop ShopSmallEvent SkipMissionShopItem TokenMerchant Unlock UseTokens Witch'.split(' ');
 const main='BigEvent ChooseDestination RecipeShopSmallEvent DefensePersonality Shop Sell PetFeedWithGuild PetFeedWithoutGuild BuyCategorySlot ItemAccept UseTokens ChangeClass JoinBoat DailyBonus Drink Equip GuildCreate GuildDescription GuildLeave PetFree PetFreeShelterConfirm PetTransfer'.split(' ');
-const world='City Fight FightChooseAction FightPet PveFight'.split(' ');
+const world='City Fight FightChooseAction FightPet PveFight BuyHeal Cart Gardener GoToPVEIsland'.split(' ');
 const expedition='PetExpedition PetExpeditionChoice PetExpeditionFinished'.split(' ');
 const social='GuildInvite PetSell'.split(' ');
 function audit(){
