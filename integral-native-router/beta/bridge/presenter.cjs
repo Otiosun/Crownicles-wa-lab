@@ -12,6 +12,8 @@ const {renderPacket:renderLote11,collectorOption:optionLote11,collectorStory:sto
 const {cityOption,shopOption,encounterOption,additionalOption,notification}=require('./lote04.cjs');
 const {compileCollector,isKnownKind}=require('./universal-collector-v3.cjs');
 const {renderResponse:renderNativeResponse}=require('./native-universal.cjs');
+// Audited original binary collectors: all choices still require native Core and nonce.
+const REVIEWED_LIVE_COLLECTORS=new Set(['ReactionCollectorGuildCreateData','ReactionCollectorGuildDescriptionData','ReactionCollectorGuildLeaveData']);
 const fx={none:'Normal',occupied:'Ocupado',sleeping:'Dormindo',drunk:'Embriagado',freezing:'Congelado',feetHurt:'Pés feridos',hurt:'Machucado',sick:'Doente',jailed:'Preso',injured:'Ferido',starving:'Faminto',confounded:'Confuso',scared:'Assustado',lost:'Perdido',dead:'Morto',notStarted:'Não iniciado'};
 const clean=x=>String(x||'').replace(/\{emote:[^}]+\}/g,'').replace(/\{command:report\}/g,'/aventura').replace(/DraftBot/gi,'o reino').replace(/\$t\([^)]*\)/g,'').replace(/\s+/g,' ').trim();
 const fmtCost=n=>Number.isFinite(n)?`${n.toLocaleString('pt-BR')} moedas`:'valor desconhecido';
@@ -21,7 +23,7 @@ class Presenter{
  load(name){try{return JSON.parse(fs.readFileSync(path.join(this.langDir,name),'utf8'))}catch{return {}}}
  name(k,id,def='Desconhecido'){const v=this.models[k]?.[String(id)];const raw=clean(typeof v==='string'?v:v?.name)||def;return k==='classes'?classLabel(id,raw):raw}
  menu(p){const kind=p.data?.type;const d=p.data?.data||{};
- if(this.universalLab){const compiled=compileCollector(p);if(compiled)return {id:p.id,endTime:p.endTime,type:compiled.kind,title:compiled.title,story:compiled.story,options:compiled.options};if(isKnownKind(kind))return {id:p.id,endTime:p.endTime,type:kind,title:'⚠️ DADOS INCONSISTENTES',story:'O menu recebido não passou na validação do contrato original. Nenhuma opção será enviada ao Core.',options:(Array.isArray(p.reactions)?p.reactions:[]).slice(0,100).map(()=>({label:'Indisponível: menu inválido',supported:false,requiresConfirmation:false}))};}
+ if(this.universalLab||REVIEWED_LIVE_COLLECTORS.has(kind)){const compiled=compileCollector(p);if(compiled)return {id:p.id,endTime:p.endTime,type:compiled.kind,title:compiled.title,story:compiled.story,options:compiled.options};if(isKnownKind(kind))return {id:p.id,endTime:p.endTime,type:kind,title:'⚠️ DADOS INCONSISTENTES',story:'O menu recebido não passou na validação do contrato original. Nenhuma opção será enviada ao Core.',options:(Array.isArray(p.reactions)?p.reactions:[]).slice(0,100).map(()=>({label:'Indisponível: menu inválido',supported:false,requiresConfirmation:false}))};}
  let title='📜 ESCOLHA';let story='Uma decisão exige sua atenção.';
  const label=r=>{const v=r.data||{};if(kind==='ReactionCollectorBigEventData')return clean(this.events[String(d.eventId)]?.possibilities?.[v.name]?.text)|| (v.name==='end'?'Continuar':null);
  if(kind==='ReactionCollectorChooseDestinationData'){if(r.type==='ReactionCollectorChooseDestinationReaction'&&Number.isInteger(v.mapId))return 'Ir para '+this.name('map_locations',v.mapId,`local #${v.mapId}`)+(Number.isFinite(v.tripDuration)?` (${v.tripDuration} min)`:'');if(r.type==='ReactionCollectorStayInCityReaction')return 'Permanecer na cidade';return null}
