@@ -66,3 +66,11 @@ Atualizar o placar por conclusão de entregáveis e testes reais, com evidência
 - Inventário: `integral-native-router/catalogo/CROWNICLES_ORIGINAL_FONTE_COMANDOS_COLETORES_v1.json`
 - Matriz: `integral-native-router/beta/FECHAMENTO-MASSIVO-CANONICO.md`
 - Regra de escopo: `ROADMAP-COBERTURA-INTEGRAL-CROWNICLES.md`.
+
+## Atualização da linha de base — segunda auditoria em 18/11
+
+A comparação de todas as 56 fontes TypeScript de interação revelou 55 classes ReactionCollector*Data, das quais 54 representam tipos concretos de menu. A classe ReactionCollectorAnyShopSmallEventData é uma base compartilhada entre eventos de compra, não um menu autônomo. Um inventário executável em beta/collector-coverage.cjs classifica 26 tipos no Presenter principal, três expedições especializadas, dois fluxos privados de dois jogadores e 23 tipos dependentes de roteamento de laboratório/fallback. Portanto, **31/54 (57%) possuem algum caminho normal específico**, mas isso é somente roteamento; não é porcentagem de fluxos completamente jogáveis. O módulo original de cidade possui aproximadamente 975 linhas e dezenas de reações internas: a contagem de 54 tipos não mede essa profundidade.
+
+Implementação adicional comprovada offline: validador dedicado do ciclo de expedições (seleção, recolhimento e recebimento), com coerência estrita de snapshots e índices nativos, sem recriar recompensas ou viagens. Em Node22 isolado, **18/18 testes de expedição + 6/6 testes do inventário = 24/24**, todos aprovados. Quatro testes de integração com Presenter foram escritos e versionados, ainda não executados na HEAD completa nem no Android real; GitHub CI continua sem executor homologado. Não inflar percentual por isso.
+
+**Placar mantido: beta WhatsApp ampla ~50% ±10pp; projeto com site ~40% ±10pp.** A próxima atualização percentual deve refletir fechamento de decisões de combate/cidade/economia e validação operacional, não somente aumento de rotas/commits.
