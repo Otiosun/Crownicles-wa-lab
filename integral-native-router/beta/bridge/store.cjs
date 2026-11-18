@@ -28,6 +28,7 @@ class Store{
  mark(id,status){this.db.prepare('UPDATE inbound SET status=? WHERE id=?').run(status,id)}
  startRequest(inboundId,wa,playerId,requestId){this.db.exec('BEGIN IMMEDIATE');try{this.db.prepare('INSERT INTO requests(id,inbound_id,wa,player_id,created) VALUES (?,?,?,?,?)').run(requestId,inboundId,wa,playerId,Date.now());this.db.prepare("UPDATE inbound SET status='awaiting',request_id=? WHERE id=?").run(requestId,inboundId);this.db.exec('COMMIT')}catch(e){this.db.exec('ROLLBACK');throw e}}
  getRequest(id){return this.db.prepare('SELECT * FROM requests WHERE id=?').get(id)}
+ hasPendingRequest(wa){return Boolean(this.db.prepare("SELECT 1 FROM inbound WHERE wa=? AND status='awaiting' LIMIT 1").get(wa))}
  acceptResponse(id,digest){return this.db.prepare('INSERT OR IGNORE INTO seen_responses(request_id,digest) VALUES (?,?)').run(id,digest).changes===1}
  completeRequest(id){const q=this.getRequest(id);if(!q)return;this.db.prepare('UPDATE requests SET done=1 WHERE id=?').run(id);this.mark(q.inbound_id,'done')}
  expireRequests(maxAgeMs){const expiry=Date.now()-maxAgeMs;const rows=this.db.prepare('SELECT * FROM requests WHERE done=0 AND created<?').all(expiry);for(const r of rows)this.completeRequest(r.id);return rows}
