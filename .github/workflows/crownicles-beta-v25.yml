@@ -46,6 +46,8 @@ on:
       - 'integral-native-router/beta/bridge/pet-transfer-collector.cjs'
       - 'integral-native-router/beta/bridge/pet-expedition-collector.cjs'
       - 'integral-native-router/beta/pet-expedition-collector.test.cjs'
+      - 'integral-native-router/beta/collector-coverage.cjs'
+      - 'integral-native-router/beta/collector-coverage.test.cjs'
       - 'integral-native-router/beta/bridge/**'
       - 'integral-native-router/beta/admin-link.cjs'
       - 'integral-native-router/beta/runtime.cjs'
@@ -112,6 +114,8 @@ jobs:
           node --check pet-transfer-gateway.test.cjs
           node --check bridge/pet-expedition-collector.cjs
           node --check pet-expedition-collector.test.cjs
+          node --check collector-coverage.cjs
+          node --check collector-coverage.test.cjs
           node --check native-live-safety.test.cjs
           node --check multiuser-routing.test.cjs
           node --check bridge/two-party-collector.cjs
