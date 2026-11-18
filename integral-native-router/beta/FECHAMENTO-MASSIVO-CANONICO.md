@@ -79,3 +79,34 @@ O grupo de ações nativas revisadas foi ampliado de **5 para 6**, acrescentando
 **Bloqueios ainda intencionais**: /transferirpet, /expulsarguilda, /libertarjogador, /amistoso (alvo sem vínculo seguro), novas operações de ancião, petSell e subfluxos não certificados de petFree. Reverter qualquer desbloqueio perigoso se os dados do Core não atenderem aos contratos. Não usar `CROWNICLES_WA_UNIVERSAL_COMMANDS=lab` no bot real para ultrapassar os bloqueios.
 
 **Estado de distribuição**: Todos os arquivos novos estão **somente** em `feat/crownicles-beta-final-consolidation` no GitHub; PR#6 é draft, V3.0 no Termux não modificada. GitHub run 44245500774 ainda `failure` sem passos retornados; não é regressão remota aprovada. Continuar um único pacote final verificável depois de testes completos, estabilidade MariaDB, revisão dos coletores restantes e homologação WhatsApp real.
+
+## Etapa 18/11 — Abrigo compartilhado, autorização de terceiros e isolamento LAB
+
+**Status**: código adicionado somente na branch de consolidação. Não instalado no Android, nem homologado com o Core real.
+
+### Sétima rota nativa revisada: /transferirpet
+
+- O Core original \`PetTransferCommand.ts\` cria \`ReactionCollectorPetTransferData\`, autorizando somente o \`player.keycloakId\` que abriu o menu. Quando há pet próprio, gera opção depositar (se possível) e trocas por cada pet do abrigo; sem pet próprio, gera retiradas. RefuseReaction cancela. O Core mantém locks de linha e revalida se o pet do abrigo foi transferido por outro membro.
+- A ponte agora reconhece os três tipos oficiais de reação em \`bridge/pet-transfer-collector.cjs\`: \`ReactionCollectorPetTransferDepositReaction\` (payload vazio), \`ReactionCollectorPetTransferWithdrawReaction\` e \`ReactionCollectorPetTransferSwitchReaction\` (cada uma com \`petEntityId\`). Cada destino deve estar na lista \`shelterPets\` recebida do mesmo pacote oficial. IDs desconhecidos, repetidos, dados de pet inválidos, combinações incoerentes e ausência de recusa bloqueiam o menu inteiro.
+- Mostra nome do pet, espécie, abrigo compartilhado e a consequência de depósito/retirada/troca. **Não inventa preços**, que não constam no coletor. A escolha preserva posição original do array, não reordena índices conforme o texto. Requer segunda prévia, nonce único e confirmação depois que o Core apresenta o coletor, além da primeira autorização para solicitar o menu.
+- \`/transferirpet\` aparece na ajuda somente se o handler original estiver registrado; \`REVIEWED_LIVE_KEYS\` contém sete chaves, mas **seis** correspondem a handlers principais da matriz de 44 — a sétima \`/resgatarexpedicao\` usa o \`CoreHandlers\` auxiliar.
+- A integração não habilita \`petSell\` (venda entre jogadores), \`guildInvite\` (convite) ou expulsão/libertação de outro jogador: seus contratos exigem respostas e/ou identidades de outra conta. O roteador atual não possui uma prova de entrega multijogador completa para esses efeitos, portanto o bloqueio é intencional.
+
+### Correção de privilégio
+
+\`bridge/native-universal.cjs\` agora privilegia SEMPRE o gate \`canSendPacket\` quando o Gateway possui a função (situação do bot real). Mesmo se flags antigas de laboratório estiverem indevidamente presentes, somente as sete chaves revisadas e listeners nativos retornando **estritamente boolean true** podem passar. Flags de laboratório funcionam exclusivamente em bancada desconectada, sem callback. Permissão é testada novamente na confirmação. O código não altera regras de economia ou disponibilidade do Core.
+
+### Provas locais verificadas (Node 22.16.0)
+
+- **17/17** testes de payload/identidade do coletor do abrigo, com depósito, retirada, troca, ordem original, duplicatas e contrato inválido.
+- **4/4** testes de ponta a ponta na ponte local \`Gateway + Store SQLite + Presenter\` com \`FakeCore\`, confirmando dupla etapa, segundo token, índices, bloqueio de replay e de outro jogador.
+- **8/8** testes de fronteira LAB/WhatsApp, listener ausente ou revogado, código de outro UUID e cancelamento.
+- Total dos três arquivos **29/29**, sem falhas/skip/todo, usando montagem isolada de fontes de distribuições anteriores e alterações correspondentes da branch. Essas contagens **não substituem regressão completa na HEAD GitHub**, nem confirmação Core/MariaDB/WhatsApp real. O ensaio ampliado com fontes antigas V2.1 misturadas à V3.0 deu 82/89; os sete não passam por dependências/código da beta antiga e não são atribuíveis com segurança à HEAD atual. Registrar esse limite, não declarar CI aprovado.
+- Os três arquivos \`pet-transfer-collector.test.cjs\`, \`pet-transfer-gateway.test.cjs\` e \`native-live-safety.test.cjs\` estão versionados no PR e listados na matriz do workflow. O GitHub Actions ainda requer runner disponível; execução remota não aprovada.
+
+### Próximos gates reais
+
+1. Reconstruir exato \`HEAD\` de todo o código beta para regressão completa (sem misturar \`entrada.cjs\` V2.1 com módulos V3.0).
+2. Tratar envio seguro e consentimento de **dois participantes** para venda de pets, convites de guilda, amistosos e outras ações de terceiros, com destino validado e respostas invertidas/replay.
+3. Verificar estabilidade cold-start MariaDB, reinício do bot e grupos quando Termux estiver livre.
+4. Gerar apenas um pacote consolidado de instalação com hashes, rollback e smoke tests, nunca liberar por microversões.
