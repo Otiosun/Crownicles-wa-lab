@@ -30,6 +30,7 @@ on:
       - 'integral-native-router/beta/startup-lock.cjs'
       - 'integral-native-router/beta/startup-lock.test.cjs'
       - 'integral-native-router/beta/native-expansion.test.cjs'
+      - 'integral-native-router/beta/reviewed-live.test.cjs'
       - 'integral-native-router/beta/bridge/**'
       - 'integral-native-router/beta/admin-link.cjs'
       - 'integral-native-router/beta/runtime.cjs'
@@ -88,6 +89,7 @@ jobs:
           node --check startup-lock.cjs
           node --check startup-lock.test.cjs
           node --check native-expansion.test.cjs
+          node --check reviewed-live.test.cjs
           node --check bridge/lote08.cjs
           node --check patches/patch-v30.cjs
           for file in bridge/*.cjs; do node --check "$file"; done
