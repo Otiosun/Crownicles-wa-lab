@@ -44,6 +44,8 @@ on:
       - 'integral-native-router/beta/social-intents.test.cjs'
       - 'integral-native-router/beta/social-gateway.test.cjs'
       - 'integral-native-router/beta/bridge/pet-transfer-collector.cjs'
+      - 'integral-native-router/beta/bridge/pet-expedition-collector.cjs'
+      - 'integral-native-router/beta/pet-expedition-collector.test.cjs'
       - 'integral-native-router/beta/bridge/**'
       - 'integral-native-router/beta/admin-link.cjs'
       - 'integral-native-router/beta/runtime.cjs'
@@ -108,6 +110,8 @@ jobs:
           node --check bridge/pet-transfer-collector.cjs
           node --check pet-transfer-collector.test.cjs
           node --check pet-transfer-gateway.test.cjs
+          node --check bridge/pet-expedition-collector.cjs
+          node --check pet-expedition-collector.test.cjs
           node --check native-live-safety.test.cjs
           node --check multiuser-routing.test.cjs
           node --check bridge/two-party-collector.cjs
