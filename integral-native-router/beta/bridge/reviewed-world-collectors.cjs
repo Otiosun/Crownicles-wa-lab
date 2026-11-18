@@ -7,7 +7,7 @@ module.exports=(function createWorld(){
  const own=(o,k)=>Object.prototype.hasOwnProperty.call(o,k),obj=o=>o!==null&&typeof o==='object'&&!Array.isArray(o),exact=(o,keys)=>obj(o)&&Object.keys(o).length===keys.length&&keys.every(k=>own(o,k));
  const n=x=>Number.isFinite(x)&&x>=0,integer=x=>Number.isSafeInteger(x)&&x>=0,pos=x=>integer(x)&&x>0,cat=x=>integer(x)&&x<=3,key=x=>typeof x==='string'&&/^[a-zA-Z0-9_-]{1,120}$/.test(x),uuid=x=>typeof x==='string'&&/^[a-f0-9]{8}-(?:[a-f0-9]{4}-){3}[a-f0-9]{12}$/i.test(x);
  const clean=x=>typeof x==='string'?x.replace(/[\x00-\x1f\x7f<>*_~`@]/g,' ').replace(/\b[a-f0-9]{8}-(?:[a-f0-9]{4}-){3}[a-f0-9]{12}\b/gi,'').replace(/\s+/g,' ').trim().slice(0,130):'';
- const local=(o,k)=>obj(o)&&own(o,k)?clean(typeof o[k]==='string'?o[k]:o[k]?.name):'';
+ const local=(o,k)=>obj(o)&&own(o,k)?clean(typeof o[k]==='string'?o[k]:(o[k]?.name||o[k]?.name_one)):'';
  const entry=(label,requiresConfirmation=false)=>({label,supported:true,requiresConfirmation}),blocked=()=>({label:'Indisponível: contrato não validado',supported:false,requiresConfirmation:false});
  const unique=(a,f)=>{if(!Array.isArray(a))return null;const m=a.filter(x=>obj(x)&&f(x));return m.length===1?m[0]:null};
  const shape=p=>obj(p)&&obj(p.data)&&obj(p.data.data)&&Array.isArray(p.reactions)&&p.reactions.length&&p.reactions.length<=220;
@@ -34,7 +34,7 @@ module.exports=(function createWorld(){
    const id=pet?x.data.actionId:x.data.id,hasMultiplier=own(x.data,'powerMultiplier');
    if(x.type!==RC+(pet?'FightPetReaction':'FightChooseActionReaction')||!exact(x.data,pet?['actionId']:hasMultiplier?['id','powerMultiplier']:['id'])||!key(id)||seen.has(id)||(!pet&&hasMultiplier&&!n(x.data.powerMultiplier)))return null;
    seen.add(id);
-   const label=pet?(own(petActions,id)?petActions[id]:''):playerActions.has(id)?local(models?.fight_actions,id):'';
+   const label=pet?(own(petActions,id)?petActions[id]:''):playerActions.has(id)?(local(models?.fight_actions,id)||(id==='none'?'Não agir':'')):'';
    options.push(label?entry(label+(!pet&&hasMultiplier?` · potência ×${x.data.powerMultiplier}`:''),pet):blocked());
   }
   const species=pet?(local(models?.pets,`${d.petId}_${d.isFemale?'female':'male'}`)||local(models?.pets,String(d.petId))||'Animal selvagem'):'';
@@ -102,10 +102,56 @@ module.exports=(function createWorld(){
    default:return false;
   }
  }
+
+ // PT-BR presentation labels derived from Lang/pt/commands.json report.city.inns
+ // at the pinned upstream SHA. These dictionaries never determine game effects.
+ const innNames=Object.freeze({lordInn:'Pousada do Senhor',bravesStop:'Parada dos Valentes',hotSwallow:'Gole Ardente',fireside:'À Beira do Fogo',bloodyTankard:'Caneca Sangrenta',royalPavilion:'Pavilhão Real'});
+ const mealNames=Object.freeze({breadAndCheese:'Pão e queijo',roastedFowl:'Ave assada',roastedBeef:'Carne assada',stew:'Ensopado',lordPie:'Torta do Senhor',potatoSoup:'Sopa de batata',friedEggs:'Ovos fritos',curryRice:'Arroz com curry',sushi:'Sushi',bravesPanOfFood:'Panela dos Valentes',fishAndChips:'Peixe com batata frita',coldVegetableStew:'Ensopado frio de legumes',roastedPork:'Porco assado',oysterPlatter:'Prato de ostras',tamale:'Tamale',friedShrimp:'Camarão frito',clamChowder:'Sopa de mariscos',grilledFish:'Peixe grelhado',lobsterRoll:'Sanduíche de lagosta',jellyfishCarpaccio:'Carpaccio de água-viva',bread:'Pão',pretzels:'Pretzels',simpleSalad:'Salada simples'});
+ const roomNames=Object.freeze({horribleRoom:'Quarto ruim',simpleRoom:'Quarto simples',comfortableRoom:'Quarto confortável',luxuryRoom:'Quarto de luxo',royalSuite:'Suíte real',imperialSuite:'Suíte imperial',commonRoom:'Dormitório coletivo'});
+ const named=(dict,id,fallback)=>own(dict,id)?dict[id]:fallback+' ('+clean(id)+')';
+ const unit=x=>x.toLocaleString('pt-BR');
+ const itemGroup=['weapons','armors','potions','objects'];
+ const itemLabel=(models,category,id)=>local(models?.[itemGroup[category]],String(id))||'Item #'+id;
+ function cityMeta(d,models){
+  const lines=[],place=integer(d.mapLocationId)?local(models?.map_locations,String(d.mapLocationId)):'';
+  if(place)lines.push(place);
+  const st=[];
+  if(money(d.energy?.current,d.energy?.max))st.push('Energia '+unit(d.energy.current)+'/'+unit(d.energy.max));
+  if(money(d.health?.current,d.health?.max))st.push('Vida '+unit(d.health.current)+'/'+unit(d.health.max));
+  if(st.length)lines.push(st.join(' · '));
+  return lines.join('\n');
+ }
+ function cityDecorate(r,c,models,opt){
+  const t=r.type,v=r.data;
+  let label=opt.label,section='Serviços';
+  if(t===R||t===RC+'ExitCityReaction')section='Jornada';
+  else if(t===RC+'InnMealReaction'||t===RC+'InnRoomReaction'){
+   section=named(innNames,v.innId,'Hospedaria');
+   if(t===RC+'InnMealReaction')label=named(mealNames,v.meal.mealId,'Refeição')+' · '+unit(v.meal.price)+' moedas · +'+unit(v.meal.energy)+' energia';
+   else label=named(roomNames,v.room.roomId,'Quarto')+' · '+unit(v.room.price)+' moedas · +'+unit(v.room.health)+' vida';
+  }else if(t===RC+'CityShopReaction')section='Comércio';
+  else if(t.includes('Garden')){section='Horta';if(t===RC+'GardenCompostReaction'){const name=local(models?.plants,String(v.plantId))||'Planta #'+v.plantId;label='Compostar '+unit(v.quantity)+'× '+name+' · consome plantas';}}
+  else if(t.includes('RoyalBlacksmith'))section='Forja real';
+  else if(t.includes('Blacksmith'))section='Ferraria';
+  else if(t.includes('Enchant'))section='Encantamentos';
+  else if(t.includes('ScrapDealer'))section='Reciclagem';
+  else if(t.includes('GuildDomain'))section='Domínio da guilda';
+  else if(t.includes('Apartment'))section='Apartamentos';
+  else if(t.includes('Home')||t===RC+'UpgradeItemReaction')section='Casa';
+  // Distinguish identical items in different inventory positions; no guessed slot numbering.
+  if(own(v,'slot')&&(slots.has(t)||forge.has(t)||t===RC+'ScrapDealerRecycleReaction'))label+=' · posição '+v.slot;
+  if(t===RC+'BlacksmithEnchantmentTransferReaction'){
+   const src=unique(c.blacksmith?.enchantmentTransfers,x=>x.slot===v.sourceSlot&&x.category===v.itemCategory);
+   const dest=unique(src?.targets,x=>x.slot===v.targetSlot);
+   if(src&&dest)label=itemLabel(models,v.itemCategory,src.details.id)+' (posição '+v.sourceSlot+') → '+itemLabel(models,v.itemCategory,dest.details.id)+' (posição '+v.targetSlot+') · '+unit(dest.cost)+' moedas';
+  }
+  return {...opt,label,section,requiresConfirmation:!nav.has(t)};
+ }
+
  function cityOptions(p,models,renderer){
   if(!shape(p)||p.data.type!==K.city||typeof renderer!=='function')return null;
   const c=p.data.data,sigs=p.reactions.map(sig),counts=new Map();for(const s of sigs)if(s!==null)counts.set(s,(counts.get(s)||0)+1);
-  return p.reactions.map((r,i)=>{try{if(sigs[i]===null||counts.get(sigs[i])!==1||!cityAllowed(r,c))return blocked();const opt=renderer(r,c,models);if(!opt||opt.supported!==true)return blocked();return {...opt,requiresConfirmation:!nav.has(r.type)};}catch{return blocked();}});
+  return p.reactions.map((r,i)=>{try{if(sigs[i]===null||counts.get(sigs[i])!==1||!cityAllowed(r,c))return blocked();const opt=renderer(r,c,models);if(!opt||opt.supported!==true)return blocked();return cityDecorate(r,c,models,opt);}catch{return blocked();}});
  }
- return {K,combat,petResult,cityAllowed,cityOptions,cityTypes,petActions};
+ return {K,combat,petResult,cityAllowed,cityOptions,cityTypes,petActions,cityMeta};
 })();
