@@ -40,7 +40,7 @@ const safeDescription = s=>typeof s==='string'&&s===s.trim()&&s.length>=2&&s.len
 const safeRank = s=>typeof s==='string'&&/^[1-9][0-9]{0,5}$/.test(s)&&Number(s)<=100000;
 // Live is never inferred from a declared alias: it requires a registered Core
 // listener for the exact request at both opening and confirmation.
-const REVIEWED_LIVE_KEYS=Object.freeze(['petCaress','expeditionResolve','guildCreate','guildDescription','guildLeave']);
+const REVIEWED_LIVE_KEYS=Object.freeze(['petCaress','expeditionResolve','guildCreate','guildDescription','guildLeave','petFree']);
 const REVIEWED_LIVE_SET=new Set(REVIEWED_LIVE_KEYS);
 function allowed(key,env,canSendPacket){
  if(labAllowed(env))return true;
