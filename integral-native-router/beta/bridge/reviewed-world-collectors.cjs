@@ -153,5 +153,55 @@ module.exports=(function createWorld(){
   const c=p.data.data,sigs=p.reactions.map(sig),counts=new Map();for(const s of sigs)if(s!==null)counts.set(s,(counts.get(s)||0)+1);
   return p.reactions.map((r,i)=>{try{if(sigs[i]===null||counts.get(sigs[i])!==1||!cityAllowed(r,c))return blocked();const opt=renderer(r,c,models);if(!opt||opt.supported!==true)return blocked();return cityDecorate(r,c,models,opt);}catch{return blocked();}});
  }
- return {K,combat,petResult,cityAllowed,cityOptions,cityTypes,petActions,cityMeta};
+
+ // Original binary journey offers: no local transaction or invented outcome.
+ const journeyKinds=new Set(['BuyHeal','Cart','Gardener','GoToPVEIsland'].map(k=>RC+k+'Data'));
+ const seedConditions=new Set('free paid paidAccepted moon night herbivorePet legendaryHerbivorePet mage firePet fireItem carnivorePet'.split(' '));
+ const plant=(models,id)=>local(models?.plants,String(id))||'Planta #'+id;
+ function journey(p,models){
+  if(!shape(p)||!journeyKinds.has(p.data.type)||p.reactions.length!==2||!p.reactions.every(validRx)||p.reactions.filter(x=>x.type===A).length!==1||p.reactions.filter(x=>x.type===R).length!==1||p.reactions.some(x=>!exact(x.data,[])))return null;
+  const kind=p.data.type,d=p.data.data;let title,story,yes,allowed=true;
+  if(kind===RC+'BuyHealData'){
+   if(!exact(d,['healPrice','playerMoney'])||!integer(d.healPrice)||!integer(d.playerMoney))return null;
+   title='✦ TRATAMENTO';story='Remover a alteração pelo serviço original do Core.\nSaldo: '+unit(d.playerMoney)+' moedas';yes='Pagar '+unit(d.healPrice)+' moedas pelo tratamento';allowed=d.healPrice<=d.playerMoney;
+  }else if(kind===RC+'CartData'){
+   const dest=d.displayedDestination;if(!exact(d,['displayedDestination','price'])||!integer(d.price)||!obj(dest)||typeof dest.isDisplayed!=='boolean'||Object.keys(dest).some(k=>!['isDisplayed','id','type'].includes(k))||(dest.id!==undefined&&!integer(dest.id))||(dest.type!==undefined&&!key(dest.type))||(dest.isDisplayed&&!integer(dest.id)))return null;
+   title='✦ CARONA';story=(dest.isDisplayed?'Destino anunciado: '+(local(models?.map_locations,String(dest.id))||'Local #'+dest.id):'Destino desconhecido')+'. A oferta pode não corresponder ao destino real.';yes='Aceitar carona · '+unit(d.price)+' moedas';
+  }else if(kind===RC+'GardenerData'){
+   if(!exact(d,own(d,'isFirstEncounter')?['seedId','cost','conditionKey','isFirstEncounter']:['seedId','cost','conditionKey'])||!pos(d.seedId)||d.seedId>10||!pos(d.cost)||!seedConditions.has(d.conditionKey)||(own(d,'isFirstEncounter')&&typeof d.isFirstEncounter!=='boolean'))return null;
+   title='✦ JARDINEIRO';story='O jardineiro oferece uma semente de '+plant(models,d.seedId)+'.';yes='Comprar semente · '+unit(d.cost)+' moedas';
+  }else{
+   if(!exact(d,['price','energy'])||!integer(d.price)||!exact(d.energy,['current','max'])||!n(d.energy.current)||!n(d.energy.max))return null;
+   title='✦ ILHA DE EXPEDIÇÃO';story='Embarcar para a ilha PvE. Energia: '+unit(d.energy.current)+'/'+unit(d.energy.max)+'. O Core verifica as condições e o saldo de gemas.';yes='Embarcar · '+unit(d.price)+' gemas';
+  }
+  return {kind,title,story,options:p.reactions.map(r=>r.type===R?entry('Recusar'):allowed?entry(yes,true):blocked())};
+ }
+ function journeyResult(name,p,models){
+  if(!obj(p))return null;
+  const generic='Resultado incompleto; consulte /perfil antes de repetir a ação.';
+  switch(name){
+   case 'CommandReportBuyHealAcceptPacketRes':return integer(p.healPrice)&&typeof p.isArrived==='boolean'?'Tratamento realizado · '+unit(p.healPrice)+' moedas.'+(p.isArrived?' O Core informou a chegada ao destino.':''):generic;
+   case 'CommandReportBuyHealRefusePacketRes':return 'Tratamento recusado.';
+   case 'CommandReportBuyHealNoAlterationPacketRes':return 'Não há alteração para tratar.';
+   case 'CommandReportBuyHealCannotHealOccupiedPacketRes':return 'O Core não permite tratar esta alteração enquanto o personagem está ocupado.';
+   case 'SmallEventCartPacket':{
+    const t=p.travelDone;if(!obj(t)||typeof t.isAccepted!=='boolean'||typeof t.hasEnoughMoney!=='boolean'||typeof p.isScam!=='boolean'||typeof p.isDisplayed!=='boolean'||!n(p.pointsWon))return generic;
+    if(!t.isAccepted)return 'Carona recusada.';
+    if(!t.hasEnoughMoney)return 'Carona não realizada: moedas insuficientes.';
+    return (p.isScam?'A carona era uma armadilha.':'Carona realizada.')+(p.pointsWon?' Pontos recebidos: '+unit(p.pointsWon)+'.':'')+' Consulte /perfil para conferir o destino.';
+   }
+   case 'SmallEventGoToPVEIslandAcceptPacket':return typeof p.alone==='boolean'&&n(p.pointsWon)?'Embarque confirmado pelo Core'+(p.alone?' (sozinho)':'')+'.'+(p.pointsWon?' Pontos recebidos: '+unit(p.pointsWon)+'.':''):generic;
+   case 'SmallEventGoToPVEIslandNotEnoughGemsPacket':return 'Embarque não realizado: gemas insuficientes.';
+   case 'SmallEventGoToPVEIslandRefusePacket':return 'Embarque recusado.';
+   case 'SmallEventGoToPVEIslandNoAnswerPacket':return 'A oportunidade de embarcar terminou sem resposta.';
+   case 'SmallEventGardenerPacket':
+    if(p.interactionName==='seed')return pos(p.plantId)&&p.plantId<=10&&integer(p.cost)&&seedConditions.has(p.conditionKey)?'Semente recebida: '+plant(models,p.plantId)+(p.cost?' · '+unit(p.cost)+' moedas.':'.'):generic;
+    if(p.interactionName==='advice'&&p.conditionKey==='refused')return 'Oferta do jardineiro recusada.';
+    if(p.interactionName==='advice'&&p.conditionKey==='needMoney')return 'O jardineiro não vendeu a semente: moedas insuficientes.';
+    return null; // Non-purchase advice, material and plant paths keep their existing rendering.
+   default:return null;
+  }
+ }
+
+ return {K,combat,petResult,cityAllowed,cityOptions,cityTypes,petActions,cityMeta,journey,journeyKinds,journeyResult};
 })();
