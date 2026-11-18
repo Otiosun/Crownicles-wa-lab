@@ -1,6 +1,7 @@
 'use strict';
 const crypto=require('node:crypto');
 const nativeUniversal=require('./native-universal.cjs');
+const twoParty=require('./two-party-collector.cjs');
 const {resolveCommand:resolveLote06}=require('./lote06.cjs');
 const {resolveCommand:resolveLote07}=require('./lote07.cjs');
 const {resolveCommand:resolveLote08}=require('./lote08.cjs');
@@ -34,12 +35,12 @@ class Gateway{
  if(line==='/perfil')return {name:'CommandProfilePacketReq',data:{askedPlayer:{keycloakId:id}}};
  if(line==='/inventario'||line==='/inv')return {name:'CommandInventoryPacketReq',data:{askedPlayer:{keycloakId:id}}};
  if(['/aventura','/relatorio','/jogar','/iniciar','/inicio','/início','/comecar','/começar'].includes(line)){const m=this.store.getMenu(row.wa);if(m&&Date.now()<m.endTime)return {local:'Há uma decisão pendente. Envie /menu para consultá-la.'};return {name:'CommandReportPacketReq',data:{}}}
- if(line==='/menu'){const m=this.store.getMenu(row.wa);return {local:m&&Date.now()<m.endTime?this.presenter.formatMenu(m):'Não há nenhuma decisão ativa.'}}
+ if(line==='/menu'){const m=this.store.getMenu(row.wa);return {local:m&&Date.now()<m.endTime&&(!m.restrictedToPlayerId||m.restrictedToPlayerId===id)?this.presenter.formatMenu(m):'Não há nenhuma decisão ativa.'}}
  if(line==='/ajuda'||line==='/comandos')return {local:'*✦ COMANDOS*\n/jogar · /aventura · /perfil · /inventario\n/missoes · /pet · /guilda · /classes\n/historico · /mapa\n/raridades · /bencao · /ranking\n/jardim · /defesa\n/vender · /alimentar · /despensa\n/expedicao · /pocao · /diario\n/equipamentos · /combate\n/versao · /renascer · /recompensaliga\n/diarioguilda\n/mudarclasse · /abrigo · /embarcar\n/renomearpet NOME · /cidade\n/menu · /ajuda · /comandos\n\nPara consultar decisões ativas, use /menu. Envie o número indicado para escolher. Para gastos e decisões irreversíveis, peça a prévia pelo número e siga o código de confirmação indicado.'};
  const confirm=line.match(/^\/confirmar\s+([1-9][0-9]{0,2})\s+([a-f0-9]{8})$/);
  if(confirm||/^[0-9]{1,3}$/.test(line)){
   const m=this.store.getMenu(row.wa);
-  if(!m||Date.now()>=m.endTime)return {local:'Não há uma escolha ativa. Consulte /aventura quando estiver disponível.'};
+  if(!m||Date.now()>=m.endTime||m.restrictedToPlayerId&&m.restrictedToPlayerId!==id)return {local:'Não há uma escolha ativa. Consulte /aventura quando estiver disponível.'};
   const number=Number(confirm?confirm[1]:line),index=number-1,choice=m.options?.[index];
   if(!choice)return {local:'Opção inválida. Envie /menu para consultar as escolhas.'};
   if(choice.supported!==true)return {local:'⚠️ Essa decisão ainda não possui uma apresentação segura. Nada foi enviado ao motor.'};
@@ -122,7 +123,24 @@ class Gateway{
  const digest=crypto.createHash('sha256').update(JSON.stringify(entries)).digest('hex');
  const fresh=this.store.transaction(()=>{
    if(!this.store.acceptResponse(sub,digest))return false;
-   let message=this.presenter.apply(safeEntries,req.wa,this.store,req.player_id);
+   // Two-party Core collectors are NEVER shown to the initiating player.
+   // Deliver only to a uniquely verified invitee/buyer in the private chat.
+   const otherEntries=[];const relayed=[];
+   for(const entry of safeEntries){
+    if(entry.name!=='ReactionCollectorCreationPacket'||!twoParty.supportedKinds.has(entry.packet?.data?.type)){otherEntries.push(entry);continue;}
+    const decision=twoParty.plan({packet:entry.packet,actorId:req.player_id,actorWa:req.wa,bindings:this.config.bindings});
+    if(!decision.handled){otherEntries.push(entry);continue}
+    if(!decision.ok||typeof this.store.hasPendingRequest!=='function'||this.store.hasPendingRequest(decision.to)){
+     relayed.push({blocked:true});continue;
+    }
+    const active=this.store.getMenu(decision.to);
+    if(active&&Number.isFinite(active.endTime)&&active.endTime>Date.now()){relayed.push({blocked:true});continue;}
+    this.store.saveMenu(decision.to,decision.menu);
+    this.store.queue(decision.to,this.presenter.formatMenu(decision.menu));
+    relayed.push({blocked:false,notice:decision.actorNotice});
+   }
+   let message=this.presenter.apply(otherEntries,req.wa,this.store,req.player_id);
+   for(const result of relayed){message=[message,result.blocked?'*✦ PROPOSTA INDISPONÍVEL*\nNão foi possível verificar o destinatário ou entregar a proposta com segurança. Aguarde a expiração do pedido no Core. Nenhuma decisão foi enviada por esta conversa.':result.notice].filter(Boolean).join('\n\n')}
    const equipped=this.pendingEquip.get(sub);
    if(equipped){
     const result=safeEntries.find(e=>e.name==='CommandEquipActionRes')?.packet || {success:false};
