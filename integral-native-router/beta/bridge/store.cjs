@@ -1,6 +1,7 @@
 'use strict';
 const fs=require('node:fs');const path=require('node:path');const crypto=require('node:crypto');
 const {DatabaseSync}=require('node:sqlite');
+const {recipientCodeHash}=require('./social-intents.cjs');
 class Store{
  constructor(dir){fs.mkdirSync(dir,{recursive:true,mode:0o700});this.db=new DatabaseSync(path.join(dir,'gateway.sqlite'));
  this.db.exec(`PRAGMA journal_mode=WAL; PRAGMA busy_timeout=5000;
@@ -12,6 +13,8 @@ class Store{
  CREATE TABLE IF NOT EXISTS menus (wa TEXT PRIMARY KEY,menu_json TEXT NOT NULL,updated INTEGER NOT NULL);
  CREATE TABLE IF NOT EXISTS confirmations (wa TEXT PRIMARY KEY,menu_id TEXT NOT NULL,option_index INTEGER NOT NULL,menu_hash TEXT NOT NULL,token TEXT NOT NULL,created INTEGER NOT NULL,expires_at INTEGER NOT NULL);
  CREATE TABLE IF NOT EXISTS outbox (id INTEGER PRIMARY KEY AUTOINCREMENT,wa TEXT NOT NULL,text TEXT NOT NULL,status TEXT NOT NULL DEFAULT 'pending',tries INTEGER NOT NULL DEFAULT 0,next_attempt INTEGER NOT NULL DEFAULT 0,created INTEGER NOT NULL);
+ CREATE TABLE IF NOT EXISTS social_codes (digest TEXT PRIMARY KEY,wa TEXT NOT NULL,player_id TEXT NOT NULL,expires_at INTEGER NOT NULL,used INTEGER NOT NULL DEFAULT 0);
+ CREATE INDEX IF NOT EXISTS social_codes_player ON social_codes(player_id);
  `);
  const o=this.db.prepare("SELECT value FROM settings WHERE key='origin'").get();
  this.origin=o?.value||('crownicles-wa-v1-'+crypto.randomUUID());
@@ -29,6 +32,20 @@ class Store{
  startRequest(inboundId,wa,playerId,requestId){this.db.exec('BEGIN IMMEDIATE');try{this.db.prepare('INSERT INTO requests(id,inbound_id,wa,player_id,created) VALUES (?,?,?,?,?)').run(requestId,inboundId,wa,playerId,Date.now());this.db.prepare("UPDATE inbound SET status='awaiting',request_id=? WHERE id=?").run(requestId,inboundId);this.db.exec('COMMIT')}catch(e){this.db.exec('ROLLBACK');throw e}}
  getRequest(id){return this.db.prepare('SELECT * FROM requests WHERE id=?').get(id)}
  hasPendingRequest(wa){return Boolean(this.db.prepare("SELECT 1 FROM inbound WHERE wa=? AND status='awaiting' LIMIT 1").get(wa))}
+ issueRecipientCode(wa,playerId){
+  if(!/^\d{8,25}@(s\.whatsapp\.net|lid)$/.test(wa)||!(/^[a-f0-9]{8}-(?:[a-f0-9]{4}-){3}[a-f0-9]{12}$/i).test(playerId))throw Error('SOCIAL_CODIGO_IDENTIDADE_INVALIDA');
+  const code=crypto.randomBytes(8).toString('hex').toUpperCase(),digest=recipientCodeHash(code),expiresAt=Date.now()+10*60*1000;
+  this.transaction(()=>{
+   this.db.prepare('DELETE FROM social_codes WHERE player_id=? OR wa=? OR expires_at<=?').run(playerId,wa,Date.now());
+   this.db.prepare('INSERT INTO social_codes(digest,wa,player_id,expires_at,used) VALUES (?,?,?,?,0)').run(digest,wa,playerId,expiresAt);
+  });
+  return {code,expiresAt};
+ }
+ findRecipientCode(code){
+  const digest=recipientCodeHash(String(code||'').toUpperCase());
+  if(!digest)return null;
+  return this.db.prepare('SELECT * FROM social_codes WHERE digest=? AND expires_at>? AND used=0').get(digest,Date.now())||null;
+ }
  acceptResponse(id,digest){return this.db.prepare('INSERT OR IGNORE INTO seen_responses(request_id,digest) VALUES (?,?)').run(id,digest).changes===1}
  completeRequest(id){const q=this.getRequest(id);if(!q)return;this.db.prepare('UPDATE requests SET done=1 WHERE id=?').run(id);this.mark(q.inbound_id,'done')}
  expireRequests(maxAgeMs){const expiry=Date.now()-maxAgeMs;const rows=this.db.prepare('SELECT * FROM requests WHERE done=0 AND created<?').all(expiry);for(const r of rows)this.completeRequest(r.id);return rows}
@@ -56,10 +73,15 @@ class Store{
   this.db.prepare('INSERT INTO confirmations(wa,menu_id,option_index,menu_hash,token,created,expires_at) VALUES(?,?,?,?,?,?,?) ON CONFLICT(wa) DO UPDATE SET menu_id=excluded.menu_id,option_index=excluded.option_index,menu_hash=excluded.menu_hash,token=excluded.token,created=excluded.created,expires_at=excluded.expires_at').run(wa,current.id,index,this.menuDigest(current),token,now,expiry);
   return {token,expiresAt:expiry};
  }
- startConfirmedRequest(inboundId,wa,playerId,requestId,menu,index,token){
+ startConfirmedRequest(inboundId,wa,playerId,requestId,menu,index,token,consent=null){
   // A confirmação é de uso único e sua emissão ao Core não pode ocorrer antes do commit.
   this.transaction(()=>{
    if(!this.previewMatches(wa,menu,index,token))throw Error('CONFIRMACAO_EXPIRADA');
+   if(consent){
+    if(!/^[0-9a-f]{64}$/.test(consent.digest||'')||typeof consent.wa!=='string'||typeof consent.playerId!=='string')throw Error('CONSENTIMENTO_INVALIDO');
+    const used=this.db.prepare('UPDATE social_codes SET used=1 WHERE digest=? AND wa=? AND player_id=? AND expires_at>? AND used=0').run(consent.digest,consent.wa,consent.playerId,Date.now());
+    if(used.changes!==1)throw Error('CODIGO_SOCIAL_EXPIRADO');
+   }
    this.db.prepare('INSERT INTO requests(id,inbound_id,wa,player_id,created) VALUES (?,?,?,?,?)').run(requestId,inboundId,wa,playerId,Date.now());
    this.db.prepare("UPDATE inbound SET status='awaiting',request_id=? WHERE id=? AND wa=?").run(requestId,inboundId,wa);
    this.db.prepare('DELETE FROM confirmations WHERE wa=?').run(wa);
