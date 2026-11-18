@@ -136,3 +136,27 @@ Provas locais Node 22.16.0 com Store SQLite real DESCARTÁVEL, Gateway/Presenter
 **Não liberar ainda os comandos para CRIAR novos convites e ofertas pelo usuário.** A camada recebimento/decisão está preparada, mas falta o iniciador escolher com segurança a identidade verificada do destinatário sem expor UUID ou telefone e auditar o ciclo completo Core real/concorrência. A venda sem comprador definido permanece explicitamente bloqueada; ela precisará de uma política separada de publicação e consentimento. Não habilitar por env LAB.
 
 Continuidade: implementar fluxo amigável de destinatário sob prova de vínculo e aceitação explícita, validar pelo Core original em sandbox, revisar notificações cruzadas, então integrar ao pacote consolidado final (sem micro-zip), preservando MariaDB, Baileys e o Termux ocupado.
+
+## 18/11 — códigos voluntários de participação para abrir pedidos entre jogadores
+
+**Continua offline, sem instalar no Termux.** A camada de roteamento privado de coletores (acima) passou a ter um caminho de iniciação reversível, com autenticação do destinatário sem publicar UUID nem número de telefone.
+
+### UX e contratos originais
+
+- O destinatário emite `/meucodigo` em conversa privada: `Store.issueRecipientCode` gera `crypto.randomBytes(8)` (16 caracteres hexadecimais), armazena **somente o SHA-256 com prefixo de domínio** no SQLite junto a JID privado, UUID, expiração em 10 minutos e indicador de uso. Gerar outro código revoga o anterior. O WhatsApp não recebe UUIDs, nem o grupo recebe o código automaticamente.
+- O remetente usa `/convidarguilda CODIGO` ou `/oferecerpet CODIGO VALOR`, apresentados por `bridge/social-intents.cjs`. O Core não é chamado nesse momento: o Gateway consulta o código, verifica o binding ÚNICO do destinatário e cria uma autorização local. O valor da oferta é apenas o número informado; o Core valida todas as suas próprias restrições de preço e economia.
+- A primeira escolha emite prévia com nonce local e não altera nada. A confirmação `/confirmar 1 TOKEN` só despacha `CommandGuildInvitePacketReq {invitedPlayerKeycloakId}` ou `CommandPetSellPacketReq {price,askedPlayer:{keycloakId}}` depois de validar disponibilidade do handler, identity match, digest do menu, validade e consumo do código **atomicamente na mesma transação SQLite** que consome a prévia. Só uma transação concorrente pode usar o código. Se o Core indisponível após o commit, não é feito reenvio automático.
+- Quando o Core retorna `ReactionCollectorGuildInviteData` ou `ReactionCollectorPetSellData`, `bridge/two-party-collector.cjs` só entrega o coletor ao convidado/comprador verificado. A decisão é deles; o remetente não ganha opção de aceitar em nome do outro. Aceitar requer outra prévia/nonce de um único uso. Recusar mantém índice oficial sem atribuir recompensa, dinheiro ou adesão falsos.
+- A ajuda passa a listar os comandos sociais segundo o registro real de handlers. Mesmo assim **não se trata de homologação end-to-end**, pois ainda não foi executado o transporte real MQTT/Baileys com os dois jogadores.
+- Venda aberta/sem comprador identificado continua bloqueada. O fluxo de códigos é um adaptador voluntário de identidade para WhatsApp, não uma nova economia ou guilda.
+
+### Testes
+
+- `social-intents.test.cjs`: 8 contratos de comandos, payload oficial, código, expiração, preço e UUID.
+- `social-gateway.test.cjs`: 9 testes com Gateway/SQLite/FakeCore: emissão de código, convite/pet sale após prévia, single-use em pedidos simultâneos, revogação de código, mudança de binding, código inválido, handler ausente e cancelamento sem envio.
+- Regressão focada completa da bancada (Node 22.16.0, módulo Bridge reconstruído): **78/78 PASS, 0 failed**, correspondentes aos 16+12 da camada privada, 8+9 da iniciação social e 33 de abrigo/privacidade/permissões anteriores. A suite foi executada em arquivo SQLite descartável, sem Core, MariaDB, MQTT, Baileys ou personagens reais. Todos os arquivos novos foram versionados na branch e incluídos no workflow, mas **não houve CI verde** e a regressão integral do HEAD ainda precisa ser repetida em ambiente exato.
+- Nenhum outro bot, banco, sessão de WhatsApp ou configuração do usuário foi modificado.
+
+### Próximos gates
+
+Auditar o ciclo completo com duas identidades/duas conversas nos handlers oficiais reais, incluindo expiração, notificações após aceitar, transações irreversíveis e reconexão, antes de marcar esses recursos como disponíveis no produto instalado. Manter PR#6 draft; preparar somente uma distribuição consolidada, não pacotes por comando.
