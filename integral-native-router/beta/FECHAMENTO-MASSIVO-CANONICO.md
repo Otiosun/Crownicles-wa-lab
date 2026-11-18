@@ -110,3 +110,13 @@ O grupo de ações nativas revisadas foi ampliado de **5 para 6**, acrescentando
 2. Tratar envio seguro e consentimento de **dois participantes** para venda de pets, convites de guilda, amistosos e outras ações de terceiros, com destino validado e respostas invertidas/replay.
 3. Verificar estabilidade cold-start MariaDB, reinício do bot e grupos quando Termux estiver livre.
 4. Gerar apenas um pacote consolidado de instalação com hashes, rollback e smoke tests, nunca liberar por microversões.
+
+## 18/11 — Testes de privacidade em respostas concorrentes
+
+A suíte `multiuser-routing.test.cjs` adiciona **quatro cenários E2E de adaptador** com `Gateway + Store (SQLite real descartável) + Presenter` e `FakeCore`: pedidos simultâneos de dois jogadores com respostas invertidas, chave `keycloakId` trocada, resposta duplicada/tardia e resposta sem `frontEndSubOrigin` rastreável. Cada resposta precisa manter a conversa do `wa` autorizado; um UUID errado não encerra o pedido de outro jogador e mensagens atrasadas não reabrem o menu. Os quatro casos passaram localmente.
+
+A regressão focada nova somou **33/33 PASS, 0 falhas**, combinando `pet-transfer-collector.test.cjs` (17), `pet-transfer-gateway.test.cjs` (4), `native-live-safety.test.cjs` (8) e `multiuser-routing.test.cjs` (4). O material foi executado em Node 22.16.0 usando uma montagem local V27/V30 com ajustes equivalentes à branch, não o `HEAD` integral autenticado. Não confundir esse conjunto de testes com a regressão global de dezenas de suites nem com uso WhatsApp, MQTT e MariaDB real.
+
+O CI do GitHub inclui os quatro arquivos de teste, mas continua sem runner; não existe prova remota verde. O teste multiusuário atual trata **correlação de respostas de solicitações independentes**, NÃO resolve ainda o desafio de notificar o segundo participante de uma venda, convite ou promoção de guilda. A ausência de direcionamento seguro das notificações entre dois jogadores continua bloqueando essas ações.
+
+**Acesso ao celular do usuário continua dispensado**. PR#6 permanece draft; instalar somente um pacote consolidado depois de testes com fontes exatas, smoke real e rollback documentado.
