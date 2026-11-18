@@ -19,7 +19,7 @@ const pet=x=>plain(x)&&positive(x.typeId)&&text(x.nickname)&&['m','f'].includes(
  &&Number.isFinite(x.loveLevel)&&x.loveLevel>=0
  &&Number.isFinite(x.force)&&x.force>=0
  &&Number.isFinite(x.feedDelay)&&x.feedDelay>=0;
-const describe=x=>\`\${label(x.nickname)||'Sem apelido'} (espécie \${x.typeId})\`;
+const describe=x=>`${label(x.nickname)||'Sem apelido'} (espécie ${x.typeId})`;
 function compileCollector(packet){
  if(!plain(packet)||!plain(packet.data)||packet.data.type!==K||!plain(packet.data.data)||!Array.isArray(packet.reactions))return null;
  const data=packet.data.data,rx=packet.reactions;
@@ -36,19 +36,19 @@ function compileCollector(packet){
   if(type===DEPOSIT){
    if(!hasOwn||!empty(details)||used.has(DEPOSIT))return null;
    used.add(DEPOSIT);actionCount++;
-   opts.push({label:\`Depositar \${describe(data.ownPet)} no abrigo compartilhado\`,supported:true,requiresConfirmation:true});continue;
+   opts.push({label:`Depositar ${describe(data.ownPet)} no abrigo compartilhado`,supported:true,requiresConfirmation:true});continue;
   }
   if(type===WITHDRAW||type===SWITCH){
    if((type===WITHDRAW&&hasOwn)||(type===SWITCH&&!hasOwn)||Object.keys(details).length!==1||!positive(details.petEntityId)||!byId.has(details.petEntityId)||used.has(type+':'+details.petEntityId))return null;
    used.add(type+':'+details.petEntityId);actionCount++;
    const target=describe(byId.get(details.petEntityId));
-   opts.push({label:type===WITHDRAW?\`Retirar \${target} do abrigo compartilhado\`:\`Trocar \${describe(data.ownPet)} por \${target} do abrigo compartilhado\`,supported:true,requiresConfirmation:true});continue;
+   opts.push({label:type===WITHDRAW?`Retirar ${target} do abrigo compartilhado`:`Trocar ${describe(data.ownPet)} por ${target} do abrigo compartilhado`,supported:true,requiresConfirmation:true});continue;
   }
   return null;
  }
  if(actionCount<1)return null;
  for(const id of byId.keys())if(!used.has((hasOwn?SWITCH:WITHDRAW)+':'+id))return null;
- const original=hasOwn?\`Seu companheiro: \${describe(data.ownPet)}.\`:'Você não está com um companheiro no momento.';
- return {kind:K,title:'✦ ABRIGO — TRANSFERÊNCIA DE COMPANHEIROS',story:\`\${original}\nO abrigo pertence à guilda. Depósitos podem disponibilizar seu companheiro a outros membros; retiradas e trocas alteram o companheiro que você possui. O pacote não informa custo. Confira cada escolha antes de confirmar. O Core revalidará o estado da guilda.\`,options:opts};
+ const original=hasOwn?`Seu companheiro: ${describe(data.ownPet)}.`:'Você não está com um companheiro no momento.';
+ return {kind:K,title:'✦ ABRIGO — TRANSFERÊNCIA DE COMPANHEIROS',story:`${original}\nO abrigo pertence à guilda. Depósitos podem disponibilizar seu companheiro a outros membros; retiradas e trocas alteram o companheiro que você possui. O pacote não informa custo. Confira cada escolha antes de confirmar. O Core revalidará o estado da guilda.`,options:opts};
 }
 module.exports={compileCollector,K,DEPOSIT,WITHDRAW,SWITCH,REFUSE};
