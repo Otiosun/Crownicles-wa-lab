@@ -43,9 +43,15 @@ const safeRank = s=>typeof s==='string'&&/^[1-9][0-9]{0,5}$/.test(s)&&Number(s)<
 const REVIEWED_LIVE_KEYS=Object.freeze(['petCaress','expeditionResolve','guildCreate','guildDescription','guildLeave','petFree','petTransfer']);
 const REVIEWED_LIVE_SET=new Set(REVIEWED_LIVE_KEYS);
 function allowed(key,env,canSendPacket){
- if(labAllowed(env))return true;
- if(!REVIEWED_LIVE_SET.has(key)||typeof canSendPacket!=='function')return false;
- try{return canSendPacket(NATIVE[key].request)===true}catch{return false}
+ // A real Gateway always passes a Core-listener authorization callback.
+ // Even if LAB environment variables leak into that process, experimental
+ // mutations must NEVER bypass the reviewed whitelist or listener checks.
+ if(typeof canSendPacket==='function'){
+  if(!REVIEWED_LIVE_SET.has(key))return false;
+  try{return canSendPacket(NATIVE[key].request)===true}catch{return false}
+ }
+ // Only stand-alone, disconnected W3 laboratory runners may use lab flags.
+ return labAllowed(env);
 }
 function payloadFrom(key,raw,playerId,now=Date.now()){
   const d=NATIVE[key];if(!d||!UUID.test(playerId))return null;
