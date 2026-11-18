@@ -6,16 +6,16 @@ Fonte oficial: Crownicles/Crownicles commit 64d08c05f11949029317341735f6f73024f1
 
 - 56 arquivos TypeScript em Lib/src/packets/interaction; 55 classes ReactionCollector*Data declaradas. PetFree.ts declara 3 tipos; Packet.ts, StopPacket.ts e ResetTimer.ts são infraestrutura sem classe Data adicional.
 - Um único ReactionCollectorCity.ts possui aproximadamente 975 linhas, com dezenas de tipos de reação, incluindo hospedaria, casa, ferraria, horta, lojas, serviços e apartamentos. Contar 1 coletor não significa terminar todas essas decisões.
-- 54 dos 55 tipos são mencionados nominalmente em algum módulo da ponte. O único não mencionado é ReactionCollectorAnyShopSmallEventData. Menção não garante execução nem UX correta.
+- 54 dos 55 tipos são mencionados nominalmente na ponte; a exceção ReactionCollectorAnyShopSmallEventData é uma classe-base para ofertas pequenas, não um menu independente. Menção não garante execução nem UX correta.
 - 26/55 têm tipo declarado no Presenter normal, incluindo seis específicos de guilda/pet.
 - 3/55 (PetExpedition, PetExpeditionChoice, PetExpeditionFinished) têm rota especializada agora validada e exposta no Presenter normal.
 - 2/55 (GuildInvite e PetSell) exigem Gateway de destinatário comprovado e consentimento do segundo jogador.
-- 24/55 são experimentais (somente adaptadores antigos) ou ainda não têm rota própria normal. Podem aparecer como fallback genérico ou bloqueio seguro.
-- Total de caminhos normais específicos, NÃO necessariamente jogáveis: 31/55 = 56%. A maturidade ponderada da beta geral continua 50% ±10 pontos; são duas métricas diferentes.
+- 23/54 fluxos concretos são experimentais (somente adaptadores antigos) ou ainda não têm rota própria normal; um tipo adicional é a classe-base abstrata de ofertas. Podem aparecer como fallback genérico ou bloqueio seguro.
+- Total de caminhos normais específicos, NÃO necessariamente jogáveis: 31/54 = 57%. (55 classes Data, mas 54 concretas.) A maturidade ponderada da beta geral continua 50% ±10 pontos; são duas métricas diferentes.
 
-## Vinte e quatro tipos com lacuna no caminho normal
+## Vinte e três tipos com lacuna no caminho normal
 
-Altar, AnyShopSmallEvent, BadPetSmallEvent, BuyHeal, Cart, EpicShopSmallEvent, FightPet, Gardener, GoToPVEIsland, GobletsGame, GuildElder, GuildElderRemove, GuildKick, InteractOtherPlayersPoor, ItemChoice, Limoges, Lottery, PetFoodSmallEvent, PetFreeSelection, ShopSmallEvent, SkipMissionShopItem, TokenMerchant, Unlock e Witch.
+Altar, BadPetSmallEvent, BuyHeal, Cart, EpicShopSmallEvent, FightPet, Gardener, GoToPVEIsland, GobletsGame, GuildElder, GuildElderRemove, GuildKick, InteractOtherPlayersPoor, ItemChoice, Limoges, Lottery, PetFoodSmallEvent, PetFreeSelection, ShopSmallEvent, SkipMissionShopItem, TokenMerchant, Unlock e Witch.
 
 A existência de adaptadores experimentais não autoriza liberar opções perigosas: preservar bloqueios até haver identidade, custo e efeitos confirmados.
 
@@ -34,7 +34,7 @@ A fonte original foi inspecionada nos módulos PetExpeditionChoice.ts, PetExpedi
 3. Finalizada: claim/recompensas exige confirmação, sem calcular dinheiro ou itens na ponte.
 4. Se o pacote não satisfaz o contrato, o Presenter deixa todas as opções indisponíveis. Nunca volta ao adaptador antigo mais permissivo nesse caso.
 
-Foram executados 18/18 testes de contrato de expedições + 5/5 do inventário estrutural = 23/23 aprovados em Node 22 isolado com dados sintéticos. Outros quatro testes envolvendo o Presenter completo foram versionados, mas NÃO rodaram no clone completo (runner GitHub CI indisponível). Nenhum teste desta etapa altera personagens reais. Não chamar de teste de WhatsApp ou Core/MariaDB real.
+Foram executados 18/18 testes de contrato de expedições + 6/6 do inventário estrutural = 24/24 aprovados em Node 22 isolado com dados sintéticos. Outros quatro testes envolvendo o Presenter completo foram versionados, mas NÃO rodaram no clone completo (runner GitHub CI indisponível). Nenhum teste desta etapa altera personagens reais. Não chamar de teste de WhatsApp ou Core/MariaDB real.
 
 ## Próximas prioridades
 
