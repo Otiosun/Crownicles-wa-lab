@@ -11,7 +11,7 @@ const social='GuildInvite PetSell'.split(' ');
 function audit(){
  const catalog=new Map();
  for(const name of all){if(catalog.has(name))throw Error('COLLECTOR_DUPLICATE_'+name);catalog.set(name,{name:'ReactionCollector'+name+'Data',source:'Lib/src/packets/interaction/ReactionCollector'+(name==='PetFreeShelterConfirm'||name==='PetFreeSelection'?'PetFree':name==='InteractOtherPlayersPoor'?'InteractOtherPlayers':name)+'.ts',route:'adapter-only'});}
- for(const [route,items] of [['main-presenter',main],['world-validated',world],['item-validated',items],['event-validated',smallEvents],['expedition-validated',expedition],['two-party-private',social],['abstract-base',['AnyShopSmallEvent']]])for(const k of items){if(!catalog.has(k))throw Error('COLLECTOR_NOT_UPSTREAM_'+k);if(catalog.get(k).route!=='adapter-only')throw Error('COLLECTOR_ROUTE_DUPLICATE_'+k);catalog.get(k).route=route;}
+ for(const [route,names] of [['main-presenter',main],['world-validated',world],['item-validated',items],['event-validated',smallEvents],['expedition-validated',expedition],['two-party-private',social],['abstract-base',['AnyShopSmallEvent']]])for(const k of names){if(!catalog.has(k))throw Error('COLLECTOR_NOT_UPSTREAM_'+k);if(catalog.get(k).route!=='adapter-only')throw Error('COLLECTOR_ROUTE_DUPLICATE_'+k);catalog.get(k).route=route;}
  const rows=[...catalog.values()].map(row=>({...row,status:'code path only; real Core+WhatsApp QA pending'}));
  const counts=Object.fromEntries(['main-presenter','world-validated','item-validated','event-validated','expedition-validated','two-party-private','adapter-only','abstract-base'].map(k=>[k,rows.filter(x=>x.route===k).length]));
  return {upstream,totalTypes:rows.length,counts,rows};
