@@ -44,7 +44,7 @@ test('no listener: no menu and no packet',()=>{const h=make(new Set());try{
 test('unsafe original requests remain disabled even if their listeners exist',()=>{
  const allowed=new Set([...packets,'CommandPetFreePacketReq','CommandPetTransferPacketReq','CommandUnlockPacketReq','CommandGuildKickPacketReq','CommandFriendlyFightPacketReq']);
  const h=make(allowed);try{
- for(const cmd of ['/transferirpet','/libertarjogador 17','/expulsarguilda 20','/amistoso 18']){
+ for(const cmd of ['/libertarjogador 17','/expulsarguilda 20','/amistoso 18']){
   a.match(h.gateway.route({wa:WA1,text:cmd}).local,/não foi homologado/);
  }
  a.equal(h.calls.length,0);
@@ -102,7 +102,8 @@ test('mission-only Core empty response never fabricates a reward',()=>{
 test('no lab override needed for audited commands but required for unreviewed',()=>{
  const env={CROWNICLES_WA_UNIVERSAL_COMMANDS:'off',CROWNICLES_WA_LAB_ISOLATED:'NOT'};
  a.equal(native.resolve('/criarguilda Aurora',P1,{env,canSendPacket:n=>n==='CommandGuildCreatePacketReq'}).universalIntent.key,'guildCreate');
- a.match(native.resolve('/transferirpet',P1,{env,canSendPacket:()=>true}).local,/não foi homologado/);
+ a.equal(native.resolve('/transferirpet',P1,{env,canSendPacket:()=>true}).universalIntent.key,'petTransfer');
+ a.match(native.resolve('/expulsarguilda 17',P1,{env,canSendPacket:()=>true}).local,/não foi homologado/);
 });
 
 test('Core confirms pet identity and exact price before irreversible release',()=>{
