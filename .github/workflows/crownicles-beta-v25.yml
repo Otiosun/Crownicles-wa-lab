@@ -55,6 +55,7 @@ on:
       - 'integral-native-router/beta/reviewed-item-presenter.test.cjs'
       - 'integral-native-router/beta/reviewed-small-events.test.cjs'
       - 'integral-native-router/beta/reviewed-small-events-presenter.test.cjs'
+      - 'integral-native-router/beta/pet-free-selection.test.cjs'
       - 'integral-native-router/beta/bridge/**'
       - 'integral-native-router/beta/admin-link.cjs'
       - 'integral-native-router/beta/runtime.cjs'
@@ -133,6 +134,7 @@ jobs:
           node --check bridge/reviewed-small-events.cjs
           node --check reviewed-small-events.test.cjs
           node --check reviewed-small-events-presenter.test.cjs
+          node --check pet-free-selection.test.cjs
           node --check native-live-safety.test.cjs
           node --check multiuser-routing.test.cjs
           node --check bridge/two-party-collector.cjs
