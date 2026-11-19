@@ -13,6 +13,7 @@ const {cityOption,shopOption,encounterOption,additionalOption,notification}=requ
 const {compileCollector,isKnownKind}=require('./universal-collector-v3.cjs');
 const {renderResponse:renderNativeResponse}=require('./native-universal.cjs');
 const world=require('./reviewed-world-collectors.cjs');
+const items=require('./reviewed-item-collectors.cjs');
 const WORLD_COMBAT=new Set([world.K.fight,world.K.pve,world.K.action,world.K.pet]);
 function worldBlocked(p){return {id:p.id,endTime:p.endTime,type:p.data?.type,title:'⚠️ ESCOLHA NÃO VALIDADA',story:'Os dados desta interação não correspondem ao contrato revisado. Nenhuma escolha será enviada ao Core.',options:(Array.isArray(p.reactions)?p.reactions:[]).slice(0,220).map(()=>({label:'Indisponível',supported:false,requiresConfirmation:false}))};}
 // Audited original binary collectors: all choices still require native Core and nonce.
@@ -27,6 +28,7 @@ class Presenter{
  name(k,id,def='Desconhecido'){const v=this.models[k]?.[String(id)];const raw=clean(typeof v==='string'?v:v?.name)||def;return k==='classes'?classLabel(id,raw):raw}
  menu(p,playerId){const kind=p.data?.type;const d=p.data?.data||{};
  // These audited types own their routes, including malformed packets. No legacy/LAB fallback.
+ if(items.kinds.has(kind)){const compiled=items.menu(p,this.models);return compiled?{id:p.id,endTime:p.endTime,type:kind,title:compiled.title,story:compiled.story,options:compiled.options}:worldBlocked(p);}
  if(WORLD_COMBAT.has(kind)){const compiled=world.combat(p,this.models,playerId);return compiled?{id:p.id,endTime:p.endTime,type:kind,title:compiled.title,story:compiled.story,options:compiled.options,...(compiled.restrictedToPlayerId?{restrictedToPlayerId:compiled.restrictedToPlayerId}:{})}:worldBlocked(p);}
  if(world.journeyKinds.has(kind)){const compiled=world.journey(p,this.models);return compiled?{id:p.id,endTime:p.endTime,type:kind,title:compiled.title,story:compiled.story,options:compiled.options}:worldBlocked(p);}
  if(kind===world.K.city){const options=world.cityOptions(p,this.models,cityOption);if(!options)return worldBlocked(p);return {id:p.id,endTime:p.endTime,type:kind,title:d.gardenOnly?'✦ HORTA':'✦ SERVIÇOS DA CIDADE',story:[world.cityMeta(d,this.models),d.gardenOnly?gardenStory(d):'Escolha um serviço disponível. Preços e condições são os informados pelo Core; ações com efeito exigem confirmação.'].filter(Boolean).join('\n'),options};}
@@ -128,7 +130,7 @@ class Presenter{
  case 'AIFightActionChoosePacket':break; // Cronômetro interno do combate, não é mensagem de ação para o jogador.
  case 'SmallEventRecipeShopRefusedPacket':out.push('Você recusou a oferta.');break;
  case 'SmallEventRecipeShopAcceptedPacket':out.push('✅ Receita comprada no motor.');break;
- default:{const result=world.journeyResult(n,p,this.models) || renderNativeResponse(n,p) || renderLote11(n,p,this.models) || renderLote10(n,p) || renderLote09(n,p,this.models,playerId) || renderLote08(n,p,this.models) || renderLote07(n,p,this.models) || renderLote06(n,p) || renderPacket(n,p,this.models) || notification(n,p,this.models);if(result)out.push(result);else unknown.push(n);break;}
+ default:{const result=items.result(n,p,this.models) || world.journeyResult(n,p,this.models) || renderNativeResponse(n,p) || renderLote11(n,p,this.models) || renderLote10(n,p) || renderLote09(n,p,this.models,playerId) || renderLote08(n,p,this.models) || renderLote07(n,p,this.models) || renderLote06(n,p) || renderPacket(n,p,this.models) || notification(n,p,this.models);if(result)out.push(result);else unknown.push(n);break;}
  }
  }
  if(unknown.length){process.stderr.write('CROWNICLES_RETORNO_PENDENTE tipo='+[...new Set(unknown)].join(',').slice(0,400)+'\n');out.push('Parte desta resposta do jogo ainda não possui apresentação completa no WhatsApp. Consulte /perfil antes de repetir uma ação com custos.');}
