@@ -2,6 +2,11 @@ name: Crownicles V31 — Core descartavel (manual)
 
 on:
   workflow_dispatch:
+  # Explicit qualification branch only; not a deployment or production workflow.
+  push:
+    branches: [feat/crownicles-beta-final-consolidation]
+    paths:
+      - '.github/workflows/crownicles-v31-core-lab.yml'
 
 permissions:
   contents: read
@@ -13,7 +18,7 @@ jobs:
     timeout-minutes: 25
     services:
       mariadb:
-        image: mariadb:11.4
+        image: mariadb:12.3
         env:
           MARIADB_ROOT_PASSWORD: v31_lab_only_root
           MARIADB_ROOT_HOST: "%"
@@ -60,6 +65,15 @@ jobs:
         run: |
           pnpm --dir upstream-v31-lab/Lib install --frozen-lockfile
           pnpm --dir upstream-v31-lab/Core install --frozen-lockfile
+      - name: Verificar MariaDB e conta descartavel
+        shell: bash
+        run: |
+          command -v mysqladmin
+          for i in {1..15}; do
+            if mysqladmin ping -h 127.0.0.1 -P 33306 -uroot -pv31_lab_only_root --silent; then break; fi
+            sleep 2
+          done
+          mysql -h 127.0.0.1 -P 33306 -uroot -pv31_lab_only_root -e "SELECT VERSION(); SELECT Host FROM mysql.user WHERE User = 'v31_lab';"
       - name: Suite beta Node e candidato TypeScript
         working-directory: integral-native-router/beta
         shell: bash
