@@ -144,4 +144,4 @@ function renderPacket(name,packet,models){
   default:return null;
  }
 }
-module.exports={missName,resolveCommand,renderPacket,missName};
+module.exports={resolveCommand,renderPacket,missName};
