@@ -1,7 +1,7 @@
 'use strict';
 const {test}=require('node:test'),a=require('node:assert/strict');
 const fs=require('node:fs'),path=require('node:path'),os=require('node:os');
-const {acquireBetaLock}=require('./startup-lock.cjs');
+const {acquireBetaLock,releaseBetaLock}=require('./startup-lock.cjs');
 const withDir=fn=>{const d=fs.mkdtempSync(path.join(os.tmpdir(),'crown-lock-'));try{fn(d)}finally{fs.rmSync(d,{force:true,recursive:true})}};
 test('fresh lock is exclusive and writes own PID',()=>withDir(d=>{
  const p=path.join(d,'run.lock'),s=acquireBetaLock({lockPath:p,backupDir:path.join(d,'backups'),pid:17001});
@@ -57,3 +57,31 @@ test('runtime uses safe lock guard and waits for MariaDB crash recovery without 
  a.doesNotMatch(s,/fs\.unlinkSync\(lockPath\)/);
  a.doesNotMatch(s,/rmSync\(dataDir/);
 });
+
+test('release only own inode and close fd',()=>withDir(d=>{
+ const p=path.join(d,'run.lock'),x=acquireBetaLock({lockPath:p,backupDir:path.join(d,'backups'),pid:17001});
+ a.equal(releaseBetaLock({lockPath:p,fd:x.fd,pid:17001}),true);a.equal(fs.existsSync(p),false);a.throws(()=>fs.fstatSync(x.fd),/EBADF/);
+}));
+test('same PID in a replacement file never authorizes unlink',()=>withDir(d=>{
+ const p=path.join(d,'run.lock'),x=acquireBetaLock({lockPath:p,backupDir:path.join(d,'backups'),pid:17001});
+ fs.renameSync(p,p+'.old');fs.writeFileSync(p,'17001');
+ a.equal(releaseBetaLock({lockPath:p,fd:x.fd,pid:17001}),false);a.equal(fs.readFileSync(p,'utf8'),'17001');a.equal(fs.readFileSync(p+'.old','utf8'),'17001');
+}));
+test('release rejects changed content and symlink replacement',()=>withDir(d=>{
+ const p=path.join(d,'run.lock'),backupDir=path.join(d,'backups');let x=acquireBetaLock({lockPath:p,backupDir,pid:17001});
+ fs.writeFileSync(p,'17002');a.equal(releaseBetaLock({lockPath:p,fd:x.fd,pid:17001}),false);a.equal(fs.readFileSync(p,'utf8'),'17002');fs.unlinkSync(p);
+ x=acquireBetaLock({lockPath:p,backupDir,pid:17001});fs.renameSync(p,p+'.old');fs.symlinkSync(p+'.old',p);
+ a.equal(releaseBetaLock({lockPath:p,fd:x.fd,pid:17001}),false);a.ok(fs.lstatSync(p).isSymbolicLink());
+}));
+test('competing stale recovery is blocked by exclusive guard',()=>withDir(d=>{
+ const p=path.join(d,'run.lock'),backupDir=path.join(d,'backups');fs.writeFileSync(p,'17001');
+ const x=acquireBetaLock({lockPath:p,backupDir,pid:17002,kill:()=>{
+  a.throws(()=>acquireBetaLock({lockPath:p,backupDir,pid:17003}),/BETA_RECUPERACAO_EM_ANDAMENTO_OU_INTERROMPIDA/);
+  throw Object.assign(Error('stale'),{code:'ESRCH'});
+ }});
+ a.equal(x.recovered,true);a.equal(fs.existsSync(p+'.recovery'),false);a.equal(fs.readFileSync(p,'utf8'),'17002');releaseBetaLock({lockPath:p,fd:x.fd,pid:17002});
+}));
+test('interrupted recovery guard is preserved, not stolen',()=>withDir(d=>{
+ const p=path.join(d,'run.lock'),backupDir=path.join(d,'backups');fs.writeFileSync(p,'17001');fs.writeFileSync(p+'.recovery','held');
+ a.throws(()=>acquireBetaLock({lockPath:p,backupDir,pid:17002}),/BETA_RECUPERACAO_EM_ANDAMENTO_OU_INTERROMPIDA/);a.equal(fs.readFileSync(p,'utf8'),'17001');a.equal(fs.readFileSync(p+'.recovery','utf8'),'held');
+}));
