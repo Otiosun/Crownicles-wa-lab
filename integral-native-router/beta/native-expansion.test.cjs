@@ -68,10 +68,14 @@ test('a present JS file is NOT proof of handler registration',()=>{
 });
 test('expansion not falsely advertised as playable by the WhatsApp help',()=>{
  const onlyExpansion=renderHelp(ALL);
- for(const command of ['/criarguilda','/liberarpet','/expulsarguilda','/amistoso']){
+ assert.equal(onlyExpansion.includes('/criarguilda'),true);
+ assert.equal(onlyExpansion.includes('/liberarpet'),true);
+ for(const command of ['/expulsarguilda','/amistoso','/promoveranciao','/libertarjogador']){
   assert.equal(onlyExpansion.includes(command),false);
  }
  assert.equal(onlyExpansion.includes('/combate'),false);
+ const withReact=renderHelp([...ALL,'ReactionCollectorReactPacket']);
+ for(const verb of ['/promoveranciao REF','/expulsarguilda REF','/libertarjogador REF'])assert.equal(withReact.includes(verb),true);
 });
 test('invalid probe environment rejects without changes',()=>{
  assert.throws(()=>probeExpansionHandlers({dist:'relative/path',listener:{getListener:()=>{}}}),/CORE_PROBE_INVALIDO/);
