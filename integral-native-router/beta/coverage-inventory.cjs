@@ -3,6 +3,8 @@
 // Crownicles/Crownicles@64d08c05f11949029317341735f6f73024f19f9b
 const {NATIVE_READ_HANDLERS,NATIVE_MENU_HANDLERS,NATIVE_AUTH_HANDLERS,NATIVE_EXPANSION_HANDLERS}=require('./feature-manifest.cjs');
 const {NATIVE,REVIEWED_LIVE_KEYS}=require('./bridge/native-universal.cjs');
+const {COMMANDS}=require('./bridge/social-intents.cjs');
+const {DEFS}=require('./bridge/reviewed-target-collectors.cjs');
 const CORE_BASE=Object.freeze({
  CommandReportPacketReq:'commands/player/ReportCommand.js',
  CommandProfilePacketReq:'commands/player/ProfileCommand.js',
@@ -20,10 +22,13 @@ function inventory(){
   seen.add(packet);
   if(!/^Command[A-Za-z]+(?:PacketReq|ActionReq)$/.test(packet)||!/^commands\/(?:player|pet|guild|mission)\/[A-Za-z]+\.js$/.test(source))throw Error('CORE_PATH_UNREVIEWED_'+packet);
   const native=Object.entries(NATIVE).find(([key,def])=>def.request===packet&&REVIEWED_LIVE_KEYS.includes(key));
+  const social=Object.entries(COMMANDS).find(([,d])=>d.name===packet);
+  const target=Object.values(DEFS).find(d=>d.request===packet);
+  const reviewRoute=native?'universal':social?'two-party-private':target?'verified-target':null;
   rows.push(Object.freeze({
    family,packet,source,
-   reviewedOffline:Boolean(native),
-   reviewedAliases:native?native[1].aliases:[],
+   reviewedOffline:Boolean(reviewRoute),reviewRoute,
+   reviewedAliases:native?native[1].aliases:social?[social[0]+(social[1].price?' CODIGO VALOR':' CODIGO')]:target?[target.verb+' REF']:[],
    runtimeRegistration:'requires actual Core packetListener verification',
    whatsappEndToEnd:'not demonstrated by this inventory'
   }));
