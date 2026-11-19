@@ -1,0 +1,417 @@
+{
+  "format": 1,
+  "baseCommit": "f5bbe8e0e9f7f03cef3dd1922324f50f356605d3",
+  "targetCommit": "4f036c0237cb4da1d12c51bf898d10fa2f88bc20",
+  "upstreamPin": "64d08c05f11949029317341735f6f73024f19f9b",
+  "status": "laboratory-only",
+  "files": [
+    {
+      "path": "admin-link.cjs",
+      "old": "804c676c2ebf32252c319b3e356d295f59a7ee62",
+      "sha": "804c676c2ebf32252c319b3e356d295f59a7ee62"
+    },
+    {
+      "path": "bridge/config.cjs",
+      "old": "72ecbd369b4f2565c11f4f9acf130b190ee4fad0",
+      "sha": "72ecbd369b4f2565c11f4f9acf130b190ee4fad0"
+    },
+    {
+      "path": "bridge/core.cjs",
+      "old": "30926825a04f04de90501861e4eaa79f1ddf40ae",
+      "sha": "30926825a04f04de90501861e4eaa79f1ddf40ae"
+    },
+    {
+      "path": "bridge/gateway.cjs",
+      "old": "7bda38c531a6a0cb9556a40de2c30f3385df4588",
+      "sha": "1ad4847532f439fa1813fa43e44cbf534e3f99cb"
+    },
+    {
+      "path": "bridge/lote02.cjs",
+      "old": "8cfa10977f1535fd9ceb195fb9f653d43e7c4aee",
+      "sha": "8cfa10977f1535fd9ceb195fb9f653d43e7c4aee"
+    },
+    {
+      "path": "bridge/lote03.cjs",
+      "old": "c811579a007b03736cb92d93220a4186e0a9bc97",
+      "sha": "c811579a007b03736cb92d93220a4186e0a9bc97"
+    },
+    {
+      "path": "bridge/lote04.cjs",
+      "old": "b7ddcb86449a01de2f687abcda1ecb573108d896",
+      "sha": "c2a228de9a26969f04f8632ee7a7188dc425e8a8"
+    },
+    {
+      "path": "bridge/lote05.cjs",
+      "old": "2c41e49df3828e78d59bc53937d18ce84ce348bf",
+      "sha": "2c41e49df3828e78d59bc53937d18ce84ce348bf"
+    },
+    {
+      "path": "bridge/lote06.cjs",
+      "old": "4a4c28b8e4385e8a26d2b7ffef432eada590d3ad",
+      "sha": "4a4c28b8e4385e8a26d2b7ffef432eada590d3ad"
+    },
+    {
+      "path": "bridge/lote07.cjs",
+      "old": "02a72c6a18249785cc482e9440c55190443f0796",
+      "sha": "02a72c6a18249785cc482e9440c55190443f0796"
+    },
+    {
+      "path": "bridge/lote08.cjs",
+      "old": "47f5c12e5ff55ef0b590252a87574ccfaef090c1",
+      "sha": "47f5c12e5ff55ef0b590252a87574ccfaef090c1"
+    },
+    {
+      "path": "bridge/lote09.cjs",
+      "old": "046c89e9b5dd8519798d29349831de2ce1fea764",
+      "sha": "046c89e9b5dd8519798d29349831de2ce1fea764"
+    },
+    {
+      "path": "bridge/lote10.cjs",
+      "old": "eb89c508e5449388fa6f16d63fbc630fbbc29235",
+      "sha": "eb89c508e5449388fa6f16d63fbc630fbbc29235"
+    },
+    {
+      "path": "bridge/lote11.cjs",
+      "old": "a8ebf6041e8b2a2e83549be13e1d21c015aa8199",
+      "sha": "a8ebf6041e8b2a2e83549be13e1d21c015aa8199"
+    },
+    {
+      "path": "bridge/mqtt-isolation.cjs",
+      "old": "d1d230f3ac509634e65c4c2709575c814fa145e4",
+      "sha": "d1d230f3ac509634e65c4c2709575c814fa145e4"
+    },
+    {
+      "path": "bridge/native-universal.cjs",
+      "old": "d7ccce46659cbe88a679b1e2815c04d0654a456d",
+      "sha": "bab75ebb8a193b9b0db745bccb21c26e74442d90"
+    },
+    {
+      "path": "bridge/pet-expedition-collector.cjs",
+      "old": null,
+      "sha": "6a1e460d81bc07295e013e9d62b8130c64056b0d"
+    },
+    {
+      "path": "bridge/pet-transfer-collector.cjs",
+      "old": null,
+      "sha": "abda5ad1b1cfc81f66d7874b856bf84d9d363da8"
+    },
+    {
+      "path": "bridge/presenter.cjs",
+      "old": "f08f15fd848190012d2ee8ea35e76c1065d8da1f",
+      "sha": "1d078575fbcd45b09a248af724bd8303b2b24645"
+    },
+    {
+      "path": "bridge/reviewed-item-collectors.cjs",
+      "old": null,
+      "sha": "acd2effbc0d8c50a20abc1b2e8dfae7506825141"
+    },
+    {
+      "path": "bridge/reviewed-mission-skip.cjs",
+      "old": null,
+      "sha": "5ce72c30fbedec63a4934fadd1682f29ddffc69a"
+    },
+    {
+      "path": "bridge/reviewed-small-events.cjs",
+      "old": null,
+      "sha": "80915e6e61e2e1372253f3318c2e9a95e6f9ab6d"
+    },
+    {
+      "path": "bridge/reviewed-target-collectors.cjs",
+      "old": null,
+      "sha": "3fdcfcef87cea4bd46c5eae52feeeb8252a3a0eb"
+    },
+    {
+      "path": "bridge/reviewed-world-collectors.cjs",
+      "old": null,
+      "sha": "396772d3979b3615f5a90b99d44615048bca9e00"
+    },
+    {
+      "path": "bridge/server.cjs",
+      "old": "fa61085c3a6ae5e7f3c881ff7894d4be91709125",
+      "sha": "fa61085c3a6ae5e7f3c881ff7894d4be91709125"
+    },
+    {
+      "path": "bridge/social-intents.cjs",
+      "old": null,
+      "sha": "4f7f97f234e2ddb760c6043b6744dddc99efa52a"
+    },
+    {
+      "path": "bridge/store.cjs",
+      "old": "b45e4d82887a05dc9f4e4a86f978893d7665f71c",
+      "sha": "7a3a35457e108beb23953e134003c7798535fc07"
+    },
+    {
+      "path": "bridge/two-party-collector.cjs",
+      "old": null,
+      "sha": "e7118271368f77c794a6f6dd77930d82766515eb"
+    },
+    {
+      "path": "bridge/universal-collector-v1.cjs",
+      "old": "c5450a045a69e1c4788f83bc53bfb014297ef2fa",
+      "sha": "c5450a045a69e1c4788f83bc53bfb014297ef2fa"
+    },
+    {
+      "path": "bridge/universal-collector-v2.cjs",
+      "old": "86e1d4dd654f13d6510b9cb00b763394405af72f",
+      "sha": "86e1d4dd654f13d6510b9cb00b763394405af72f"
+    },
+    {
+      "path": "bridge/universal-collector-v3.cjs",
+      "old": "147cdd280a307b418b13168ca5091b9a83fa3793",
+      "sha": "c650014234424dd9ead8a02f52ab045254f1d180"
+    },
+    {
+      "path": "bridge/universal-collector.cjs",
+      "old": "ff809c2eed56f76171d7ce60e6a1f4056d7d05ca",
+      "sha": "ff809c2eed56f76171d7ce60e6a1f4056d7d05ca"
+    },
+    {
+      "path": "bridge/whatsapp.cjs",
+      "old": "309f6cff7cc15407ea9024ae50dd2fdfb9461cba",
+      "sha": "309f6cff7cc15407ea9024ae50dd2fdfb9461cba"
+    },
+    {
+      "path": "context-dispatch.cjs",
+      "old": "bf577cfb4fa2ede84709553f87dddbe4a25899e7",
+      "sha": "bf577cfb4fa2ede84709553f87dddbe4a25899e7"
+    },
+    {
+      "path": "entrada.cjs",
+      "old": "a7ec1d9fdbd17fc48d0b96ddf6f7699e58082e46",
+      "sha": "a7ec1d9fdbd17fc48d0b96ddf6f7699e58082e46"
+    },
+    {
+      "path": "feature-manifest.cjs",
+      "old": "6cca66543b84b87633a32c94e135706cdf6ead0f",
+      "sha": "244d2f703c48afc5699f3bab6bc6c880fae15ada"
+    },
+    {
+      "path": "group-identity-policy.cjs",
+      "old": "a9c5902a90d1e55c92c3957c97fc7d1a0eeafeda",
+      "sha": "a9c5902a90d1e55c92c3957c97fc7d1a0eeafeda"
+    },
+    {
+      "path": "group-sender.cjs",
+      "old": "2362bfb129634af990d5a9cced52ac0af7d3b70e",
+      "sha": "2362bfb129634af990d5a9cced52ac0af7d3b70e"
+    },
+    {
+      "path": "integracao.cjs",
+      "old": "2d76d19d386a9b2b98386f2913579711314572a3",
+      "sha": "26288567d88f20b9162fa14b5defdcc27536e741"
+    },
+    {
+      "path": "package.json",
+      "old": "01048f1153c93363271b129904efb50c6d4a47dc",
+      "sha": "01048f1153c93363271b129904efb50c6d4a47dc"
+    },
+    {
+      "path": "response-context.cjs",
+      "old": "539e0219a0322e8849caf20d66ec8901fc2ad9ac",
+      "sha": "539e0219a0322e8849caf20d66ec8901fc2ad9ac"
+    },
+    {
+      "path": "reuse-session.cjs",
+      "old": "0d853a0b95148f79648e499125e8aadea5ee15da",
+      "sha": "0d853a0b95148f79648e499125e8aadea5ee15da"
+    },
+    {
+      "path": "runtime.cjs",
+      "old": "1a1b96c8ee663345de781faa86e01366a505d4e7",
+      "sha": "60d3f71443d52de9c69c93140f70160be9c85e67"
+    },
+    {
+      "path": "setup.sh",
+      "old": "d9ba65de445726eaa80d78cdc56cfe1a8c165cfd",
+      "sha": "d9ba65de445726eaa80d78cdc56cfe1a8c165cfd"
+    },
+    {
+      "path": "start.sh",
+      "old": "17258279632f7f677b3f58dce966f540a7ff68ea",
+      "sha": "17258279632f7f677b3f58dce966f540a7ff68ea"
+    },
+    {
+      "path": "startup-lock.cjs",
+      "old": null,
+      "sha": "03499f3980678d97a40c403297ea1f834563469c"
+    }
+  ],
+  "validationFiles": [
+    {
+      "path": "binding-queue-safety.test.cjs",
+      "sha": "e96d091b8f19d75f6ec02685c87b92b0097b3e5c"
+    },
+    {
+      "path": "collector-coverage.cjs",
+      "sha": "156c494c8405d021e21441a50f0e8fbb11a07766"
+    },
+    {
+      "path": "collector-coverage.test.cjs",
+      "sha": "67a5d4784ff64257a603fc0e2005cfc8f3733c12"
+    },
+    {
+      "path": "collector-flow.test.cjs",
+      "sha": "2dcd86c2c07aa06bddd10c8c46aa54f8b633b789"
+    },
+    {
+      "path": "context-dispatch.test.cjs",
+      "sha": "bc5d35664d445946d505f729901efc43fdd03e73"
+    },
+    {
+      "path": "core-v31-safety-candidate.test.cjs",
+      "sha": "0feb242c42368e38f223ef64388b651b6ec4182e"
+    },
+    {
+      "path": "core-v31-safety-execution.test.cjs",
+      "sha": "35013eb8f3343e72c04a720a41844589cfe6a597"
+    },
+    {
+      "path": "coverage-inventory.cjs",
+      "sha": "00514dc6066419a30ad09986a4ec972bfe1d9103"
+    },
+    {
+      "path": "coverage-inventory.test.cjs",
+      "sha": "32b7bf2e3615b5241cfc6b77534c3a80ede2174e"
+    },
+    {
+      "path": "entrada.test.cjs",
+      "sha": "63ba233a2992f10b8a2de3eb95f7e4119e38adf9"
+    },
+    {
+      "path": "feature-integration.test.cjs",
+      "sha": "27f3c85f838a04ef325c54edca57192bc6cff386"
+    },
+    {
+      "path": "feature-manifest.test.cjs",
+      "sha": "a9d318b324003a0f428fa323c7aa61f0159eb61b"
+    },
+    {
+      "path": "group-identity-policy.test.cjs",
+      "sha": "71f5fc02813bde115191055cd7a99b495f2480be"
+    },
+    {
+      "path": "group-sender.test.cjs",
+      "sha": "fe9d0a5c3812dee88081db2bc831fcea82551f5f"
+    },
+    {
+      "path": "integracao.test.cjs",
+      "sha": "c4234ffc8809fd18895484cfa54a996108c70859"
+    },
+    {
+      "path": "multiuser-routing.test.cjs",
+      "sha": "43ccb01d8f0065884f98bbff3a096c9c3500f012"
+    },
+    {
+      "path": "native-auth-v30.test.cjs",
+      "sha": "f18b0b74cf8603c18d2adf30ee7b6ee6cb5cc23d"
+    },
+    {
+      "path": "native-expansion.test.cjs",
+      "sha": "4deca654fbd883708f6150fedd90a52fe3c2d551"
+    },
+    {
+      "path": "native-live-safety.test.cjs",
+      "sha": "c7409515b43d3ee599c3fc7d976f81e065804f04"
+    },
+    {
+      "path": "owner-link.test.cjs",
+      "sha": "8316b712eafad8fc6102e7aea3db270fd62729b2"
+    },
+    {
+      "path": "patches/core-v31-safety-candidate.cjs",
+      "sha": "0f2d7cad7034c2a760038586f3ba27a21fabef55"
+    },
+    {
+      "path": "pet-expedition-collector.test.cjs",
+      "sha": "6eed6b9f4c3f014714dc0ba789e11b6432322ec3"
+    },
+    {
+      "path": "pet-expedition-presenter.test.cjs",
+      "sha": "cf6c302a82c0cd0d3c1834699b57dd12e18b0b5f"
+    },
+    {
+      "path": "pet-free-selection.test.cjs",
+      "sha": "d1bc907c92a59259cf8074f2f1e32d4c38f07c40"
+    },
+    {
+      "path": "pet-transfer-collector.test.cjs",
+      "sha": "cd31d13097dcc359a5583eeff87f47dced80d4ed"
+    },
+    {
+      "path": "pet-transfer-gateway.test.cjs",
+      "sha": "31eaadf8b5237dfa164372f28eb19010699cc74e"
+    },
+    {
+      "path": "response-context.test.cjs",
+      "sha": "274bf2ee8c4a0b3d97247b278be1363ffea995e1"
+    },
+    {
+      "path": "reuse-session.test.cjs",
+      "sha": "70bef87b78d8c67980b0d469e4e6c4edf9f6e106"
+    },
+    {
+      "path": "reviewed-item-collectors.test.cjs",
+      "sha": "42506327ea7a653924099372698e3706a0315e23"
+    },
+    {
+      "path": "reviewed-item-presenter.test.cjs",
+      "sha": "7cfc53693543365e6fb31e4567ca1dcc15c4a0f4"
+    },
+    {
+      "path": "reviewed-live.test.cjs",
+      "sha": "0d68bb2986419781d67ef83d2303be3d3196d786"
+    },
+    {
+      "path": "reviewed-small-events-presenter.test.cjs",
+      "sha": "e18512e78b4a4de4718d4ae9bbe4fe67fb4c8987"
+    },
+    {
+      "path": "reviewed-small-events.test.cjs",
+      "sha": "f33b722dedb3cb981691391b383dfb59e1030c25"
+    },
+    {
+      "path": "reviewed-target-and-skip.test.cjs",
+      "sha": "c1d7b63732ec3265734af2fc466f2a716db656ce"
+    },
+    {
+      "path": "reviewed-target-gateway.test.cjs",
+      "sha": "79d5058907880ee0b9ef9d949f5f79ca6b099e4c"
+    },
+    {
+      "path": "reviewed-world-collectors.test.cjs",
+      "sha": "468fd972fdca7907949aa443a91babb60f48cc8b"
+    },
+    {
+      "path": "reviewed-world-presenter.test.cjs",
+      "sha": "525fa6c7848b5ad96a762e1e64b1a15e0f883283"
+    },
+    {
+      "path": "runtime.test.cjs",
+      "sha": "3bf4d93d1f811eaa7766fc8276f7969164483ed0"
+    },
+    {
+      "path": "social-gateway.test.cjs",
+      "sha": "28b479c2e9bc719bf6eee06ed600160d786bc706"
+    },
+    {
+      "path": "social-intents.test.cjs",
+      "sha": "c014950751cf05432dabe66e39bfcd9b3918a5c0"
+    },
+    {
+      "path": "startup-lock.test.cjs",
+      "sha": "1181f8fc36635a8257db58b90d4d0e3a7df655ee"
+    },
+    {
+      "path": "store-recovery.test.cjs",
+      "sha": "5d73e27e28c64cdb492c06cdd2f42451a439d934"
+    },
+    {
+      "path": "two-party-collector.test.cjs",
+      "sha": "70da303f97a6a5099d85fc15c43759ea592c4b6e"
+    },
+    {
+      "path": "two-party-gateway.test.cjs",
+      "sha": "cb9ffa1eed4ec2c77755a0e212858014fd34cf16"
+    }
+  ]
+}
