@@ -56,6 +56,10 @@ on:
       - 'integral-native-router/beta/reviewed-small-events.test.cjs'
       - 'integral-native-router/beta/reviewed-small-events-presenter.test.cjs'
       - 'integral-native-router/beta/pet-free-selection.test.cjs'
+      - 'integral-native-router/beta/reviewed-target-and-skip.test.cjs'
+      - 'integral-native-router/beta/reviewed-target-gateway.test.cjs'
+      - 'integral-native-router/beta/core-v31-safety-candidate.test.cjs'
+      - 'integral-native-router/beta/patches/core-v31-safety-candidate.cjs'
       - 'integral-native-router/beta/bridge/**'
       - 'integral-native-router/beta/admin-link.cjs'
       - 'integral-native-router/beta/runtime.cjs'
@@ -145,6 +149,10 @@ jobs:
           node --check social-gateway.test.cjs
           node --check bridge/lote08.cjs
           node --check patches/patch-v30.cjs
+          node --check reviewed-target-and-skip.test.cjs
+          node --check reviewed-target-gateway.test.cjs
+          node --check core-v31-safety-candidate.test.cjs
+          node --check patches/core-v31-safety-candidate.cjs
           for file in bridge/*.cjs; do node --check "$file"; done
       - name: Testar comandos, persistencia e seguranca em SQLite descartavel
         shell: bash
