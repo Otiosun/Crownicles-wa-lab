@@ -131,7 +131,9 @@ function renderHelp(available){
   const commands=section.entries.filter(([,packet])=>packet==='local'||enabled.has(packet)).map(([command])=>command);
   if(commands.length){lines.push('*'+section.title+'*',...commands,'');}
  }
- lines.push('*No grupo*','/ajuda · /comandos','/ativar · /desativar (responsável, no grupo)','/grupo · /regras','',
+ lines.push('*Identidade do personagem*','/minharef');
+ if(enabled.has('ReactionCollectorReactPacket'))for(const [verb,packet] of [['/promoveranciao REF','CommandGuildElderPacketReq'],['/expulsarguilda REF','CommandGuildKickPacketReq'],['/libertarjogador REF','CommandUnlockPacketReq']])if(enabled.has(packet))lines.push(verb);
+ lines.push('','*No grupo*','/ajuda · /comandos','/ativar · /desativar (responsável, no grupo)','/grupo · /regras','',
  'Abertura de menus não executa compras ou escolhas. Para decidir, use /menu e responda com o número indicado. Custos e efeitos exigem prévia e confirmação.',
  'Seu progresso e as respostas da aventura chegam no privado. Outros sistemas são liberados após validação no Core.');
  return lines.join('\n');
