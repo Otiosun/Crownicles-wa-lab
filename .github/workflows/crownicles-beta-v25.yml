@@ -59,6 +59,8 @@ on:
       - 'integral-native-router/beta/reviewed-target-and-skip.test.cjs'
       - 'integral-native-router/beta/reviewed-target-gateway.test.cjs'
       - 'integral-native-router/beta/core-v31-safety-candidate.test.cjs'
+      - 'integral-native-router/beta/core-v31-safety-execution.test.cjs'
+      - 'integral-native-router/beta/patches/stage-core-v31.cjs'
       - 'integral-native-router/beta/patches/core-v31-safety-candidate.cjs'
       - 'integral-native-router/beta/bridge/**'
       - 'integral-native-router/beta/admin-link.cjs'
@@ -152,6 +154,8 @@ jobs:
           node --check reviewed-target-and-skip.test.cjs
           node --check reviewed-target-gateway.test.cjs
           node --check core-v31-safety-candidate.test.cjs
+          node --check core-v31-safety-execution.test.cjs
+          node --check patches/stage-core-v31.cjs
           node --check patches/core-v31-safety-candidate.cjs
           for file in bridge/*.cjs; do node --check "$file"; done
       - name: Testar comandos, persistencia e seguranca em SQLite descartavel
