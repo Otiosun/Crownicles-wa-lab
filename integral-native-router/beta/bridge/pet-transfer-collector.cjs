@@ -51,4 +51,29 @@ function compileCollector(packet){
  const original=hasOwn?`Seu companheiro: ${describe(data.ownPet)}.`:'Você não está com um companheiro no momento.';
  return {kind:K,title:'✦ ABRIGO — TRANSFERÊNCIA DE COMPANHEIROS',story:`${original}\nO abrigo pertence à guilda. Depósitos podem disponibilizar seu companheiro a outros membros; retiradas e trocas alteram o companheiro que você possui. O pacote não informa custo. Confira cada escolha antes de confirmar. O Core revalidará o estado da guilda.`,options:opts};
 }
-module.exports={compileCollector,K,DEPOSIT,WITHDRAW,SWITCH,REFUSE};
+
+const FREE='ReactionCollectorPetFreeSelectionData',SELECT='ReactionCollectorPetFreeSelectReaction';
+const validFreePet=x=>plain(x)&&Object.keys(x).length===7&&['typeId','nickname','rarity','sex','loveLevel','force','feedDelay'].every(k=>Object.hasOwn(x,k))&&pet({...x,nickname:x.nickname===null?'':x.nickname});
+function freePetLabel(x,models){
+ const v=models?.pets?.[x.typeId+'_'+(x.sex==='f'?'female':'male')];
+ const raw=typeof v==='string'?v:v?.name_one||v?.name;
+ const species=typeof raw==='string'&&text(raw)?label(raw):'Espécie '+x.typeId;
+ const nick=label(x.nickname||'');return (nick?nick+' · ':'')+species+' · '+(x.sex==='f'?'fêmea':'macho')+' · raridade '+x.rarity+' · afinidade '+x.loveLevel;
+}
+function compileFreeSelection(packet,models={}){
+ if(!plain(packet)||packet.data?.type!==FREE||!plain(packet.data.data)||!Array.isArray(packet.reactions))return null;
+ const d=packet.data.data,r=packet.reactions;if(Object.keys(d).some(k=>!['ownPet','shelterPets'].includes(k))||!Array.isArray(d.shelterPets)||d.shelterPets.length<1||d.shelterPets.length>75||d.shelterPets.some(x=>!plain(x)||Object.keys(x).length!==2||!positive(x.petEntityId)||!validFreePet(x.pet))||(d.ownPet!==undefined&&!validFreePet(d.ownPet)))return null;
+ const byId=new Map(d.shelterPets.map(x=>[x.petEntityId,x.pet]));if(byId.size!==d.shelterPets.length||r.some(x=>!plain(x)||!plain(x.data)))return null;
+ const hasOwnChoice=r.length===d.shelterPets.length+2;
+ if((hasOwnChoice&&!d.ownPet)||(!hasOwnChoice&&r.length!==d.shelterPets.length+1)||r.at(-1)?.type!==REFUSE||!empty(r.at(-1).data))return null;
+ const selected=r.slice(0,-1);if(selected.some(x=>x.type!==SELECT||Object.keys(x.data).length!==1||!positive(x.data.petEntityId))||new Set(selected.map(x=>x.data.petEntityId)).size!==selected.length)return null;
+ // Native Core emits optional own-pet reaction first; its entity ID is absent from OwnedPet.
+ // Only that single non-shelter slot can be labeled own. All shelter targets must match order and IDs.
+ if(hasOwnChoice&&byId.has(selected[0].data.petEntityId))return null;
+ const offset=hasOwnChoice?1:0;
+ if(d.shelterPets.some((x,i)=>selected[i+offset].data.petEntityId!==x.petEntityId))return null;
+ const options=selected.map((x,i)=>({label:(hasOwnChoice&&i===0?'Seu companheiro: ':'Abrigo — posição '+(i-offset+1)+': ')+freePetLabel(hasOwnChoice&&i===0?d.ownPet:byId.get(x.data.petEntityId),models),supported:true,requiresConfirmation:false}));
+ options.push({label:'Cancelar, sem libertar nenhum companheiro',supported:true,requiresConfirmation:false});
+ return {title:'✦ LIBERTAÇÃO — SELECIONAR COMPANHEIRO',story:'Escolha qual companheiro deseja avaliar. O abrigo é compartilhado pela guilda. A seleção abre a confirmação original do Core, com custo, identidade e autorização revalidados. Libertar é irreversível. Nenhum pet será libertado apenas nesta seleção.'+(d.ownPet&&!hasOwnChoice?' Seu companheiro não está disponível para seleção.':''),options};
+}
+module.exports={compileCollector,K,DEPOSIT,WITHDRAW,SWITCH,REFUSE,FREE,compileFreeSelection};
