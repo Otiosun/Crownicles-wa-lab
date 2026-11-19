@@ -105,4 +105,5 @@ function result(n,p,proof=null){
  if(n==='SmallEventInteractOtherPlayersRefuseToGivePoorPacket')return '*✦ AJUDA AO VIAJANTE*\nVocê seguiu viagem sem doar.';
  return null;
 }
-module.exports={DEFS,kinds,REMOVE,POOR,SKIP,reference,resolveReference,parse,makeMenu,authorize,nativeMenu,authorizeReaction,roster,result,bindingProof};
+function help(canSendPacket){const lines=Object.values(DEFS).filter(d=>ready(canSendPacket,d.request)&&ready(canSendPacket,'ReactionCollectorReactPacket')).map(d=>d.verb+' REF');return ['*✦ IDENTIDADE DO RPG*','/minharef · consultar referência própria',...lines,'Identificadores não autorizam ações; o Core valida todas as solicitações.'].join('\n');}
+module.exports={help,DEFS,kinds,REMOVE,POOR,SKIP,reference,resolveReference,parse,makeMenu,authorize,nativeMenu,authorizeReaction,roster,result,bindingProof};
