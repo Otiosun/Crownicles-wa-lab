@@ -22,7 +22,7 @@ function recipientJid(bindings,playerId){
  // Relay only the exact collector authorized by the initiating conversation.
  // A valid-shaped social packet is not by itself proof of authorized intent.
 function matchesAuthorizedProposal({packet,proof,actorId,actorWa,bindings}={}){
- if(!obj(proof)||proof.actorId!==actorId||proof.actorWa!==actorWa||bindings?.[actorWa]!==actorId||!isId(proof.targetId)||proof.targetId===actorId||recipientJid(bindings,proof.targetId)!==proof.targetWa)return false;
+ if(!obj(proof)||proof.revoked===true||proof.actorId!==actorId||proof.actorWa!==actorWa||bindings?.[actorWa]!==actorId||!isId(proof.targetId)||proof.targetId===actorId||recipientJid(bindings,proof.targetId)!==proof.targetWa)return false;
  const kind=packet?.data?.type,d=packet?.data?.data;
  if(!obj(d))return false;
  if(proof.name==='CommandGuildInvitePacketReq')return kind==='ReactionCollectorGuildInviteData'&&d.invitedPlayerKeycloakId===proof.targetId;

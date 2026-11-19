@@ -2,6 +2,7 @@
 const fs=require('node:fs');const path=require('node:path');const crypto=require('node:crypto');
 const {DatabaseSync}=require('node:sqlite');
 const {recipientCodeHash}=require('./social-intents.cjs');
+const isMenuChoice=text=>typeof text==='string'&&/^(?:[0-9]{1,3}$|\/confirmar(?:\s|$))/i.test(text.trim());
 class Store{
  constructor(dir){fs.mkdirSync(dir,{recursive:true,mode:0o700});this.db=new DatabaseSync(path.join(dir,'gateway.sqlite'));
  this.db.exec(`PRAGMA journal_mode=WAL; PRAGMA busy_timeout=5000;
@@ -17,6 +18,9 @@ class Store{
  CREATE INDEX IF NOT EXISTS social_codes_player ON social_codes(player_id);
  CREATE TABLE IF NOT EXISTS binding_snapshot (wa TEXT PRIMARY KEY,player_id TEXT);
  `);
+ // Existing installations obtain this additive migration; no player/Core DB is touched.
+ if(!this.db.prepare("PRAGMA table_info(inbound)").all().some(c=>c.name==='choice_menu_hash'))
+  this.db.exec('ALTER TABLE inbound ADD COLUMN choice_menu_hash TEXT');
  const o=this.db.prepare("SELECT value FROM settings WHERE key='origin'").get();
  this.origin=o?.value||('crownicles-wa-v1-'+crypto.randomUUID());
  if(!o)this.db.prepare("INSERT INTO settings(key,value) VALUES ('origin',?)").run(this.origin);
@@ -39,7 +43,7 @@ class Store{
    // Numeric replies and confirmation codes refer to an unknown old menu.
    // Independent explicitly queued commands remain recoverable.
    const queued=this.db.prepare("SELECT id,text FROM inbound WHERE wa=? AND status='pending'").all(wa);
-   for(const r of queued)if(/^(?:[0-9]{1,3}$|\/confirmar(?:\s|$))/i.test(r.text.trim()))this.mark(r.id,'done');
+   for(const r of queued)if(isMenuChoice(r.text))this.mark(r.id,'done');
    this.queue(wa,'*✦ SESSÃO RETOMADA*\nUma solicitação anterior ficou sem resultado verificável após o reinício. Ela não será repetida automaticamente. As escolhas e confirmações antigas foram descartadas. Consulte /perfil e /menu antes de tentar novamente.');
   }
  });}
@@ -67,7 +71,19 @@ class Store{
  }
  quarantineOut(id){this.db.prepare("UPDATE outbox SET status='quarantined' WHERE id=? AND status='pending'").run(id)}
  close(){this.db.close()}
- receive(id,wa,text){return this.db.prepare('INSERT OR IGNORE INTO inbound(id,wa,text,status,created) VALUES (?,?,?,\'pending\',?)').run(id,wa,text,Date.now()).changes===1}
+ receive(id,wa,text){
+  // A queued numeric reply belongs to the menu observed when it arrived,
+  // never to whatever menu the Core may open later in this conversation.
+  const m=isMenuChoice(text)?this.getMenu(wa):null;
+  const hash=m&&Number.isFinite(m.endTime)&&m.endTime>Date.now()?this.menuDigest(m):null;
+  return this.db.prepare("INSERT OR IGNORE INTO inbound(id,wa,text,status,created,choice_menu_hash) VALUES (?,?,?,'pending',?,?)").run(id,wa,text,Date.now(),hash).changes===1
+ }
+ choiceMatches(row){
+  if(!isMenuChoice(row.text))return true;
+  const active=this.getMenu(row.wa);
+  if(!active||!Number.isFinite(active.endTime)||active.endTime<=Date.now())return true; // route explains missing/expired menu
+  return typeof row.choice_menu_hash==='string'&&row.choice_menu_hash===this.menuDigest(active);
+ }
  next(){return this.db.prepare(`SELECT * FROM inbound i WHERE i.status='pending' AND NOT EXISTS (SELECT 1 FROM inbound a WHERE a.wa=i.wa AND a.status='awaiting') ORDER BY i.created,i.rowid LIMIT 1`).get()}
  mark(id,status){this.db.prepare('UPDATE inbound SET status=? WHERE id=?').run(status,id)}
  startRequest(inboundId,wa,playerId,requestId){this.db.exec('BEGIN IMMEDIATE');try{this.db.prepare('INSERT INTO requests(id,inbound_id,wa,player_id,created) VALUES (?,?,?,?,?)').run(requestId,inboundId,wa,playerId,Date.now());this.db.prepare("UPDATE inbound SET status='awaiting',request_id=? WHERE id=?").run(requestId,inboundId);this.db.exec('COMMIT')}catch(e){this.db.exec('ROLLBACK');throw e}}

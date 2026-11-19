@@ -32,7 +32,7 @@ class Gateway{
   const state=this.store.reconcileBinding(wa,pid);
   if(state.changed){
    for(const id of state.invalidated)this.forgetRequest(id);
-   for(const [id,p] of this.pendingSocial)if(p.targetWa===wa)this.pendingSocial.delete(id);
+   for(const [id,p] of this.pendingSocial)if(p.targetWa===wa)this.pendingSocial.set(id,{...p,revoked:true});
   }
   return {ok:pid!==null,changed:state.changed,playerId:pid};
  }
@@ -132,6 +132,7 @@ class Gateway{
   const scopedBinding=this.ensureBinding(row.wa);
   if(!scopedBinding.ok||scopedBinding.changed){this.store.mark(row.id,'done');continue;}
   this.store.mark(row.id,'processing');let action;
+  if(!this.store.choiceMatches(row)){this.store.queue(row.wa,'Esta escolha pertence a um menu anterior. Envie /menu e escolha novamente. Nenhuma ação foi enviada.');this.store.mark(row.id,'done');continue;}
   try{action=this.route(row)}catch(e){this.store.queue(row.wa,'A decisão não pôde ser preparada com segurança. Consulte /menu.');this.store.mark(row.id,'done');continue}
   if(action.ignore){this.store.mark(row.id,'done');continue}
   if(action.local){this.store.queue(row.wa,action.local);this.store.mark(row.id,'done');continue}
