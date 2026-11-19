@@ -15,6 +15,7 @@ class Store{
  CREATE TABLE IF NOT EXISTS outbox (id INTEGER PRIMARY KEY AUTOINCREMENT,wa TEXT NOT NULL,text TEXT NOT NULL,status TEXT NOT NULL DEFAULT 'pending',tries INTEGER NOT NULL DEFAULT 0,next_attempt INTEGER NOT NULL DEFAULT 0,created INTEGER NOT NULL);
  CREATE TABLE IF NOT EXISTS social_codes (digest TEXT PRIMARY KEY,wa TEXT NOT NULL,player_id TEXT NOT NULL,expires_at INTEGER NOT NULL,used INTEGER NOT NULL DEFAULT 0);
  CREATE INDEX IF NOT EXISTS social_codes_player ON social_codes(player_id);
+ CREATE TABLE IF NOT EXISTS binding_snapshot (wa TEXT PRIMARY KEY,player_id TEXT);
  `);
  const o=this.db.prepare("SELECT value FROM settings WHERE key='origin'").get();
  this.origin=o?.value||('crownicles-wa-v1-'+crypto.randomUUID());
@@ -34,6 +35,7 @@ class Store{
   this.db.prepare("UPDATE inbound SET status='pending' WHERE status='processing'").run();
   for(const {wa} of affected){
    this.clearMenu(wa);
+   this.db.prepare("UPDATE outbox SET status='quarantined' WHERE wa=? AND status='pending'").run(wa);
    // Numeric replies and confirmation codes refer to an unknown old menu.
    // Independent explicitly queued commands remain recoverable.
    const queued=this.db.prepare("SELECT id,text FROM inbound WHERE wa=? AND status='pending'").all(wa);
@@ -41,6 +43,29 @@ class Store{
    this.queue(wa,'*✦ SESSÃO RETOMADA*\nUma solicitação anterior ficou sem resultado verificável após o reinício. Ela não será repetida automaticamente. As escolhas e confirmações antigas foram descartadas. Consulte /perfil e /menu antes de tentar novamente.');
   }
  });}
+ // A bound address is the ownership boundary for its queued commands, menus,
+ // confirmations, social codes and undelivered replies. Never adopt old data
+ // from a legacy database without a persisted identity snapshot.
+ bindingSnapshot(wa){return this.db.prepare('SELECT player_id FROM binding_snapshot WHERE wa=?').get(wa)}
+ knownBindingAddresses(){return this.db.prepare("SELECT wa FROM binding_snapshot UNION SELECT wa FROM inbound WHERE status IN ('pending','processing','awaiting') UNION SELECT wa FROM requests WHERE done=0 UNION SELECT wa FROM menus UNION SELECT wa FROM outbox WHERE status='pending' UNION SELECT wa FROM social_codes WHERE used=0").all().map(r=>r.wa)}
+ reconcileBinding(wa,playerId){
+  if(typeof wa!=='string'||!wa||!(playerId===null||/^[a-f0-9]{8}-(?:[a-f0-9]{4}-){3}[a-f0-9]{12}$/i.test(playerId)))throw Error('VINCULO_INVALIDO');
+  const current=this.bindingSnapshot(wa);
+  if(current&&current.player_id===playerId)return {changed:false,invalidated:[]};
+  return this.transaction(()=>{
+   const prior=this.bindingSnapshot(wa);
+   if(prior&&prior.player_id===playerId)return {changed:false,invalidated:[]};
+   const invalidated=this.db.prepare('SELECT id FROM requests WHERE wa=? AND done=0').all(wa).map(r=>r.id);
+   this.db.prepare("UPDATE inbound SET status='done' WHERE wa=? AND status IN ('pending','processing','awaiting')").run(wa);
+   this.db.prepare('UPDATE requests SET done=1 WHERE wa=? AND done=0').run(wa);
+   this.db.prepare("UPDATE outbox SET status='quarantined' WHERE wa=? AND status='pending'").run(wa);
+   this.clearMenu(wa);
+   this.db.prepare('DELETE FROM social_codes WHERE wa=? OR player_id=?').run(wa,prior?.player_id??null);
+   this.db.prepare('INSERT INTO binding_snapshot(wa,player_id) VALUES(?,?) ON CONFLICT(wa) DO UPDATE SET player_id=excluded.player_id').run(wa,playerId);
+   return {changed:true,invalidated};
+  });
+ }
+ quarantineOut(id){this.db.prepare("UPDATE outbox SET status='quarantined' WHERE id=? AND status='pending'").run(id)}
  close(){this.db.close()}
  receive(id,wa,text){return this.db.prepare('INSERT OR IGNORE INTO inbound(id,wa,text,status,created) VALUES (?,?,?,\'pending\',?)').run(id,wa,text,Date.now()).changes===1}
  next(){return this.db.prepare(`SELECT * FROM inbound i WHERE i.status='pending' AND NOT EXISTS (SELECT 1 FROM inbound a WHERE a.wa=i.wa AND a.status='awaiting') ORDER BY i.created,i.rowid LIMIT 1`).get()}
@@ -106,10 +131,10 @@ class Store{
  }
  queue(wa,text){for(const body of splitText(text)){this.db.prepare('INSERT INTO outbox(wa,text,created) VALUES (?,?,?)').run(wa,body,Date.now())}}
  nextOut(){return this.db.prepare("SELECT * FROM outbox WHERE status='pending' AND next_attempt<=? ORDER BY id LIMIT 1").get(Date.now())}
- sent(id){this.db.prepare("UPDATE outbox SET status='sent' WHERE id=?").run(id)}
- failed(id,retry){if(!retry){this.db.prepare("UPDATE outbox SET status='failed',tries=tries+1 WHERE id=?").run(id);return}
+ sent(id){this.db.prepare("UPDATE outbox SET status='sent' WHERE id=? AND status='pending'").run(id)}
+ failed(id,retry){if(!retry){this.db.prepare("UPDATE outbox SET status='failed',tries=tries+1 WHERE id=? AND status='pending'").run(id);return}
  const row=this.db.prepare('SELECT tries FROM outbox WHERE id=?').get(id);const tries=(row?.tries||0)+1;if(tries>=5){this.failed(id,false);return}
- this.db.prepare("UPDATE outbox SET tries=?,next_attempt=? WHERE id=?").run(tries,Date.now()+Math.min(300000,10000*2**tries),id)}
+ this.db.prepare("UPDATE outbox SET tries=?,next_attempt=? WHERE id=? AND status='pending'").run(tries,Date.now()+Math.min(300000,10000*2**tries),id)}
  stats(){return {pendingInbound:this.db.prepare("SELECT COUNT(*) n FROM inbound WHERE status IN ('pending','awaiting')").get().n,pendingOutbound:this.db.prepare("SELECT COUNT(*) n FROM outbox WHERE status='pending'").get().n}}
  }
 function splitText(s){let t=String(s||'');const out=[];while(t.length>3500){let i=t.lastIndexOf('\n',3500);if(i<1700)i=t.lastIndexOf(' ',3500);if(i<1700)i=3500;out.push(t.slice(0,i).trim());t=t.slice(i).trim()}if(t.trim())out.push(t.trim());return out}

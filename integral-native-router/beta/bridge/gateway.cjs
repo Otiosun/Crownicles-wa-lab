@@ -21,9 +21,23 @@ const MENU_OPENERS_V29=new Set([
  'CommandDefensePacketReq','CommandPetExpeditionPacketReq'
 ]);
 class Gateway{
- constructor(config,store,presenter,core,sender){this.config=config;this.store=store;this.presenter=presenter;this.core=core;this.sender=sender;this.working=false;this.flushing=false;this.enableEquipActions=process.env.CROWNICLES_WA_EQUIP_ACTIONS==='enabled';this.presenter.allowEquipActions=this.enableEquipActions;this.pendingEquip=new Map();this.pendingNative=new Map();this.pendingTarget=new Map();this.pendingSkip=new Map();this.closed=false;this.onReady=()=>this.work();this.onResponse=r=>this.onCore(r);this.core.on('ready',this.onReady);this.core.on('response',this.onResponse);}
+ constructor(config,store,presenter,core,sender){this.config=config;this.store=store;this.presenter=presenter;this.core=core;this.sender=sender;this.working=false;this.flushing=false;this.enableEquipActions=process.env.CROWNICLES_WA_EQUIP_ACTIONS==='enabled';this.presenter.allowEquipActions=this.enableEquipActions;this.pendingEquip=new Map();this.pendingNative=new Map();this.pendingTarget=new Map();this.pendingSkip=new Map();this.pendingSocial=new Map();this.closed=false;for(const wa of Object.keys(this.config.bindings))this.ensureBinding(wa);this.onReady=()=>this.work();this.onResponse=r=>this.onCore(r);this.core.on('ready',this.onReady);this.core.on('response',this.onResponse);}
  close(){if(this.closed)return;this.closed=true;this.core.off?.('ready',this.onReady);this.core.off?.('response',this.onResponse);}
- receive(id,wa,text){if(this.closed||!Object.hasOwn(this.config.bindings,wa))return false;const inserted=this.store.receive(id,wa,text);if(inserted)this.work();return inserted}
+ // The runtime's verified bindings are authoritative, not a WhatsApp address
+ // alone. Reconcile before using any persisted state or sending private data.
+ forgetRequest(id){this.pendingEquip.delete(id);this.pendingNative.delete(id);this.pendingTarget.delete(id);this.pendingSkip.delete(id);this.pendingSocial.delete(id)}
+ ensureBinding(wa){
+  const raw=Object.hasOwn(this.config.bindings,wa)?this.config.bindings[wa]:null;
+  const pid=typeof wa==='string'&&/^[0-9]{8,25}@(s\.whatsapp\.net|lid)$/.test(wa)&&typeof raw==='string'&&/^[a-f0-9]{8}-(?:[a-f0-9]{4}-){3}[a-f0-9]{12}$/i.test(raw)?raw:null;
+  const state=this.store.reconcileBinding(wa,pid);
+  if(state.changed){
+   for(const id of state.invalidated)this.forgetRequest(id);
+   for(const [id,p] of this.pendingSocial)if(p.targetWa===wa)this.pendingSocial.delete(id);
+  }
+  return {ok:pid!==null,changed:state.changed,playerId:pid};
+ }
+ synchronizeBindings(){for(const wa of new Set([...this.store.knownBindingAddresses(),...Object.keys(this.config.bindings)]))this.ensureBinding(wa)}
+ receive(id,wa,text){if(this.closed||typeof wa!=='string'||!Object.hasOwn(this.config.bindings,wa)||!this.ensureBinding(wa).ok)return false;const inserted=this.store.receive(id,wa,text);if(inserted)this.work();return inserted}
  targetContext(){return {origin:this.store.origin,bindings:this.config.bindings,canSendPacket:this.config.canSendPacket};}
  route(row){const line=row.text.trim().toLowerCase();const id=this.config.bindings[row.wa];const novo=require('./lote02.cjs').resolveCommand(line,id);if(novo)return novo;const next=resolveLote06(line)||resolveLote07(line)||resolveLote08(line)||resolveLote09(line)||resolveLote10(line)||resolveLote11(row.text.trim());if(next?.petNickname){const active=this.store.getMenu(row.wa);if(active&&Date.now()<active.endTime)return {local:'Há uma decisão pendente. Envie /menu antes de renomear seu companheiro.'};const menu=makeNicknameMenu(next.petNickname);if(!menu)return {local:'Nome inválido. Nenhuma alteração foi enviada.'};const candidate=authorizedNickname(menu,menu.options?.[0],id);if(!candidate||(typeof this.config.canSendPacket==='function'&&!this.config.canSendPacket(candidate.name)))return {local:'O motor ainda não habilitou a alteração de apelido. Nenhuma mudança foi enviada.'};this.store.saveMenu(row.wa,menu);return {local:this.presenter.formatMenu(menu)}}if(next?.localAuthorization){const active=this.store.getMenu(row.wa);if(active&&Date.now()<active.endTime)return {local:'Há uma decisão pendente. Envie /menu antes de abrir outra autorização.'};const menu=makeNativeAuthMenu(next.localAuthorization);if(!menu)return {local:'A autorização não está disponível.'};const candidate=authorizedNativeCommand(menu,menu.options?.[0]);if(!candidate||(typeof this.config.canSendPacket==='function'&&!this.config.canSendPacket(candidate.name)))return {local:'O motor ainda não habilitou esta ação. Nenhuma solicitação foi enviada.'};this.store.saveMenu(row.wa,menu);return {local:this.presenter.formatMenu(menu)}}if(next){if(next.guardMenu){const m=this.store.getMenu(row.wa);if(m&&Date.now()<m.endTime)return {local:'Há uma decisão pendente. Envie /menu antes de abrir os serviços da cidade.'};}return next;}if(line==='/sistemas'||line==='/nativos')return {local:nativeUniversal.help(this.config.canSendPacket)+'\n\n'+targets.help(this.config.canSendPacket)};
  const identified=targets.parse(row.text.trim(),id,row.wa,this.targetContext());
@@ -114,7 +128,9 @@ class Gateway{
  if(/^\/(?:ranking|top)(?:\s|$)/.test(line))return {local:'*✦ RANKING*\nUso: /ranking pontos geral 1\nModos: pontos geral ou semanal; gloria semanal; guildas geral. Página: 1 a 99.'};
  if(line.startsWith('/confirmar'))return {local:'Confirmação inválida ou sem código. Envie primeiro o número da escolha e use /confirmar N CÓDIGO exatamente como na prévia.'};
  if(line.startsWith('/'))return {local:'Esse comando ainda não está disponível pelo WhatsApp. Consulte /comandos.'};return {ignore:true};}
- work(){if(this.closed||this.working||!this.core.ready)return;this.working=true;try{let row;while((row=this.store.next())){
+ work(){if(this.closed||this.working||!this.core.ready)return;this.working=true;try{let row;while(!this.closed&&this.core.ready&&(row=this.store.next())){
+  const scopedBinding=this.ensureBinding(row.wa);
+  if(!scopedBinding.ok||scopedBinding.changed){this.store.mark(row.id,'done');continue;}
   this.store.mark(row.id,'processing');let action;
   try{action=this.route(row)}catch(e){this.store.queue(row.wa,'A decisão não pôde ser preparada com segurança. Consulte /menu.');this.store.mark(row.id,'done');continue}
   if(action.ignore){this.store.mark(row.id,'done');continue}
@@ -136,7 +152,7 @@ class Gateway{
   try{
    if(action.confirmPreview){
     const {menu,index,token}=action.confirmPreview;
-    if(action.socialConsent&&twoParty.recipientJid(this.config.bindings,action.socialConsent.playerId)!==action.socialConsent.wa)throw Error('DESTINATARIO_MUDOU');
+    if(action.socialConsent&&(!this.ensureBinding(action.socialConsent.wa).ok||twoParty.recipientJid(this.config.bindings,action.socialConsent.playerId)!==action.socialConsent.wa))throw Error('DESTINATARIO_MUDOU');
     this.store.startConfirmedRequest(row.id,row.wa,pid,rid,menu,index,token,action.socialConsent||null);
    }
    else{this.store.startRequest(row.id,row.wa,pid,rid);if(action.consumeMenu)this.store.clearMenu(row.wa,action.consumeMenu)}
@@ -145,7 +161,8 @@ class Gateway{
   if(action.nativePending)this.pendingNative.set(rid,action.nativePending.request);
   if(action.targetPending)this.pendingTarget.set(rid,action.targetPending);
   if(action.skipPending)this.pendingSkip.set(rid,action.skipPending);
-  try{this.core.send(action.name,action.data,pid,rid)}catch(e){this.pendingEquip.delete(rid);this.pendingNative.delete(rid);this.pendingTarget.delete(rid);this.pendingSkip.delete(rid);this.store.completeRequest(rid);this.store.queue(row.wa,'O motor está indisponível. Consulte /perfil antes de tentar novamente.')}
+  if(action.socialConsent)this.pendingSocial.set(rid,{name:action.name,actorId:pid,actorWa:row.wa,targetId:action.socialConsent.playerId,targetWa:action.socialConsent.wa,price:action.data.price});
+  try{this.core.send(action.name,action.data,pid,rid)}catch(e){this.forgetRequest(rid);this.store.completeRequest(rid);this.store.queue(row.wa,'O motor está indisponível. Consulte /perfil antes de tentar novamente.')}
  }
  }finally{this.working=false;this.flush()}}
  onCore(response){if(this.closed)return;const sub=response.context?.frontEndSubOrigin;const req=sub&&this.store.getRequest(sub);
@@ -153,7 +170,10 @@ class Gateway{
  // never reopen a menu or issue an extra message after an operation ends.
  if(!req||req.done||response.context?.keycloakId!==req.player_id)return;
  // Reject a late response after the verified conversation binding changed.
- if(this.config.bindings[req.wa]!==req.player_id){this.pendingEquip.delete(sub);this.pendingNative.delete(sub);this.pendingTarget.delete(sub);this.pendingSkip.delete(sub);this.store.completeRequest(sub);this.work();return;}
+ const scopedBinding=this.ensureBinding(req.wa);
+ if(!scopedBinding.ok||scopedBinding.changed||scopedBinding.playerId!==req.player_id){this.forgetRequest(sub);this.store.completeRequest(sub);this.work();return;}
+ const intendedSocial=this.pendingSocial.get(sub);
+ if(intendedSocial)this.ensureBinding(intendedSocial.targetWa);
  const entries=Array.isArray(response.packets)?response.packets:[];
  if(!entries.length){
   // Official PetCaress command can return no packets even when mission logic ran.
@@ -169,7 +189,7 @@ class Gateway{
  // Uma notificação de outro jogador nunca pode ser exibida nesta conversa.
  const scoped=new Set(['MissionsCompletedPacket','MissionsExpiredPacket','PlayerLevelUpPacket','KingChallengeTierReachedPacket']);
  const safeEntries=entries.filter(e=>!scoped.has(e.name)||e.packet?.keycloakId===req.player_id);
- if(!safeEntries.length){this.pendingEquip.delete(sub);this.pendingNative.delete(sub);this.pendingTarget.delete(sub);this.pendingSkip.delete(sub);this.store.completeRequest(sub);this.work();return;}
+ if(!safeEntries.length){this.forgetRequest(sub);this.store.completeRequest(sub);this.work();return;}
  const digest=crypto.createHash('sha256').update(JSON.stringify(entries)).digest('hex');
  const fresh=this.store.transaction(()=>{
    if(!this.store.acceptResponse(sub,digest))return false;
@@ -181,8 +201,16 @@ class Gateway{
    // Two-party Core collectors are NEVER shown to the initiating player.
    // Deliver only to a uniquely verified invitee/buyer in the private chat.
    const otherEntries=[];const relayed=[];
+   const socialProof=this.pendingSocial.get(sub),socialCreationCount=safeEntries.filter(e=>e.name==='ReactionCollectorCreationPacket').length;
    for(const entry of safeEntries){
-    if(entry.name!=='ReactionCollectorCreationPacket'||!twoParty.supportedKinds.has(entry.packet?.data?.type)){otherEntries.push(entry);continue;}
+    if(entry.name!=='ReactionCollectorCreationPacket'){otherEntries.push(entry);continue;}
+    if(!twoParty.supportedKinds.has(entry.packet?.data?.type)){
+     if(intendedSocial){relayed.push({blocked:true});continue;}
+     otherEntries.push(entry);continue;
+    }
+    if(socialCreationCount!==1||!twoParty.matchesAuthorizedProposal({packet:entry.packet,proof:socialProof,actorId:req.player_id,actorWa:req.wa,bindings:this.config.bindings})){
+     relayed.push({blocked:true});continue;
+    }
     const decision=twoParty.plan({packet:entry.packet,actorId:req.player_id,actorWa:req.wa,bindings:this.config.bindings});
     if(!decision.handled){otherEntries.push(entry);continue}
     if(!decision.ok||typeof this.store.hasPendingRequest!=='function'||this.store.hasPendingRequest(decision.to)){
@@ -212,10 +240,10 @@ class Gateway{
    if(!req.done)this.store.completeRequest(sub);
    return true;
  });
- if(fresh){this.pendingEquip.delete(sub);this.pendingNative.delete(sub);this.pendingTarget.delete(sub);this.pendingSkip.delete(sub);this.work();this.flush()}}
- async flush(){if(this.closed||this.flushing)return;this.flushing=true;try{let row;while((row=this.store.nextOut())){try{await this.sender(row.wa,row.text);if(this.closed)return;this.store.sent(row.id)}catch(e){if(this.closed)return;this.store.failed(row.id,e.retryable!==false);process.stderr.write('Falha de envio do canal: '+e.message+'\n');break}}}finally{this.flushing=false}}
- maintenance(){if(this.closed)return;const timed=this.store.expireRequests(45000);for(const r of timed){
-  this.pendingNative.delete(r.id);this.pendingTarget.delete(r.id);this.pendingSkip.delete(r.id);const pending=this.pendingEquip.get(r.id);if(pending){this.pendingEquip.delete(r.id);const safeMenu=refreshEquipMenu(pending.menu,{success:false},this.presenter.models);if(safeMenu)this.store.saveMenu(r.wa,safeMenu);}
+ if(fresh){this.forgetRequest(sub);this.work();this.flush()}}
+ async flush(){if(this.closed||this.flushing)return;this.flushing=true;try{let row;while(!this.closed&&(row=this.store.nextOut())){const binding=this.ensureBinding(row.wa);if(!binding.ok||binding.changed){this.store.quarantineOut(row.id);continue;}try{await this.sender(row.wa,row.text);if(this.closed)return;this.store.sent(row.id)}catch(e){if(this.closed)return;this.store.failed(row.id,e.retryable!==false);process.stderr.write('Falha de envio do canal: '+e.message+'\n');break}}}finally{this.flushing=false}}
+ maintenance(){if(this.closed)return;this.synchronizeBindings();const timed=this.store.expireRequests(45000);for(const r of timed){
+  const pending=this.pendingEquip.get(r.id);this.forgetRequest(r.id);if(!this.ensureBinding(r.wa).ok||this.config.bindings[r.wa]!==r.player_id)continue;if(pending){const safeMenu=refreshEquipMenu(pending.menu,{success:false},this.presenter.models);if(safeMenu)this.store.saveMenu(r.wa,safeMenu);}
   this.store.queue(r.wa,'⏳ O motor não respondeu a tempo. Consulte /perfil antes de tentar novamente.');
  }this.work();this.flush()}
 }

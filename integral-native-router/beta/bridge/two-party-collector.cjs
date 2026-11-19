@@ -19,6 +19,16 @@ function recipientJid(bindings,playerId){
  if(Object.values(bindings).filter(id=>id===playerId).length!==1||names.length!==1)return null;
  return names[0][0];
 }
+ // Relay only the exact collector authorized by the initiating conversation.
+ // A valid-shaped social packet is not by itself proof of authorized intent.
+function matchesAuthorizedProposal({packet,proof,actorId,actorWa,bindings}={}){
+ if(!obj(proof)||proof.actorId!==actorId||proof.actorWa!==actorWa||bindings?.[actorWa]!==actorId||!isId(proof.targetId)||proof.targetId===actorId||recipientJid(bindings,proof.targetId)!==proof.targetWa)return false;
+ const kind=packet?.data?.type,d=packet?.data?.data;
+ if(!obj(d))return false;
+ if(proof.name==='CommandGuildInvitePacketReq')return kind==='ReactionCollectorGuildInviteData'&&d.invitedPlayerKeycloakId===proof.targetId;
+ if(proof.name==='CommandPetSellPacketReq')return kind==='ReactionCollectorPetSellData'&&d.sellerKeycloakId===actorId&&d.buyerKeycloakId===proof.targetId&&Number.isSafeInteger(proof.price)&&d.price===proof.price;
+ return false;
+}
 function plan({packet,actorId,actorWa,bindings,now=Date.now()}={}){
  const kind=packet?.data?.type;
  if(!supportedKinds.has(kind))return {handled:false};
@@ -41,6 +51,6 @@ function plan({packet,actorId,actorWa,bindings,now=Date.now()}={}){
  if(!to||to===actorWa)return blocked('destinatario-nao-verificado');
  const menu={id:packet.id,endTime:packet.endTime,type:kind,title,story,restrictedToPlayerId:recipientId,
   options:rx.map(x=>x.type===ACCEPT?{label:kind==='ReactionCollectorGuildInviteData'?'Aceitar convite':'Aceitar compra',supported:true,requiresConfirmation:true}:{label:'Recusar a proposta',supported:true,requiresConfirmation:false})};
- return {handled:true,ok:true,to,recipientId,menu,actorNotice:'*✦ PROPOSTA ENCAMINHADA*\nO pedido foi entregue ao jogador destinatário no privado. A decisão depende da confirmação dele e das regras do Core.'};
+ return {handled:true,ok:true,to,recipientId,menu,actorNotice:'*✦ PROPOSTA ENCAMINHADA*\nA proposta foi enfileirada para o WhatsApp privado do destinatário. Aguarde a decisão dele; o Core ainda verificará os requisitos.'};
 }
-module.exports={plan,recipientJid,supportedKinds};
+module.exports={plan,recipientJid,supportedKinds,matchesAuthorizedProposal};
