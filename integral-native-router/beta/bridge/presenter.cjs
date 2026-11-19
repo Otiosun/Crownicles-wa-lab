@@ -1,6 +1,6 @@
 'use strict';
 const fs=require('node:fs');const path=require('node:path');
-const {renderPacket}=require('./lote02.cjs');
+const {renderPacket,missName}=require('./lote02.cjs');
 const {renderMissionCompleted,renderTimeAdvance}=require('./lote03.cjs');
 const {classLabel,tokenBalance}=require('./lote05.cjs');
 const {renderPacket:renderLote06,defenseOption,editorialModels}=require('./lote06.cjs');
@@ -15,6 +15,8 @@ const {renderResponse:renderNativeResponse}=require('./native-universal.cjs');
 const world=require('./reviewed-world-collectors.cjs');
 const items=require('./reviewed-item-collectors.cjs');
 const events=require('./reviewed-small-events.cjs');
+const targets=require('./reviewed-target-collectors.cjs');
+const skip=require('./reviewed-mission-skip.cjs');
 const {FREE,compileFreeSelection}=require('./pet-transfer-collector.cjs');
 const WORLD_COMBAT=new Set([world.K.fight,world.K.pve,world.K.action,world.K.pet]);
 function worldBlocked(p){return {id:p.id,endTime:p.endTime,type:p.data?.type,title:'⚠️ ESCOLHA NÃO VALIDADA',story:'Os dados desta interação não correspondem ao contrato revisado. Nenhuma escolha será enviada ao Core.',options:(Array.isArray(p.reactions)?p.reactions:[]).slice(0,220).map(()=>({label:'Indisponível',supported:false,requiresConfirmation:false}))};}
@@ -28,8 +30,10 @@ class Presenter{
  constructor(langDir){this.universalLab=process.env.CROWNICLES_WA_UNIVERSAL_COLLECTORS==='lab'&&process.env.CROWNICLES_WA_LAB_ISOLATED==='SIM_ISOLADO'&&!String(process.env.WA_BAILEYS_SEND_MODE||'').trim();this.allowEquipActions=process.env.CROWNICLES_WA_EQUIP_ACTIONS==='enabled';this.langDir=langDir;this.events=this.load('events.json');this.models=editorialModels(this.load('models.json'))}
  load(name){try{return JSON.parse(fs.readFileSync(path.join(this.langDir,name),'utf8'))}catch{return {}}}
  name(k,id,def='Desconhecido'){const v=this.models[k]?.[String(id)];const raw=clean(typeof v==='string'?v:v?.name)||def;return k==='classes'?classLabel(id,raw):raw}
- menu(p,playerId){const kind=p.data?.type;const d=p.data?.data||{};
+ menu(p,playerId,context={}){const kind=p.data?.type;const d=p.data?.data||{};
  // These audited types own their routes, including malformed packets. No legacy/LAB fallback.
+ if(kind===skip.K){const compiled=skip.menu(p,playerId,this.models,missName,context.skipQuote);return compiled?{id:p.id,endTime:p.endTime,type:kind,...compiled}:worldBlocked(p);}
+ if(targets.kinds.has(kind)){const compiled=targets.nativeMenu(p,playerId,context.actorWa,context.targetContext,context.targetIntent);return compiled?{id:p.id,endTime:p.endTime,type:kind,...compiled}:worldBlocked(p);}
  if(kind===FREE){const compiled=compileFreeSelection(p,this.models);return compiled?{id:p.id,endTime:p.endTime,type:kind,title:compiled.title,story:compiled.story,options:compiled.options}:worldBlocked(p);}
  if(events.kinds.has(kind)){const compiled=events.menu(p,this.models);return compiled?{id:p.id,endTime:p.endTime,type:kind,title:compiled.title,story:compiled.story,options:compiled.options}:worldBlocked(p);}
  if(items.kinds.has(kind)){const compiled=items.menu(p,this.models);return compiled?{id:p.id,endTime:p.endTime,type:kind,title:compiled.title,story:compiled.story,options:compiled.options}:worldBlocked(p);}
@@ -67,7 +71,7 @@ class Presenter{
    else if(kind==='ReactionCollectorSellData')opt=sellOption(r,this.models);
    else if(['ReactionCollectorPetFeedWithGuildData','ReactionCollectorPetFeedWithoutGuildData'].includes(kind))opt=petFeedOption(kind,r,d);
    else if(kind==='ReactionCollectorDefensePersonalityData')opt=defenseOption(r);
-   else if(kind==='ReactionCollectorShopData')opt=shopOption(r,d);
+   else if(kind==='ReactionCollectorShopData')opt=skip.shopOption(r,d,shopOption(r,d),playerId);
    else if(['ReactionCollectorPveFightData','ReactionCollectorFightData','ReactionCollectorFightChooseActionData'].includes(kind))opt=encounterOption(kind,r,d,this.models);
    else if(['ReactionCollectorBuyCategorySlotData','ReactionCollectorDailyBonusData','ReactionCollectorItemAcceptData','ReactionCollectorDrinkData','ReactionCollectorUseTokensData','ReactionCollectorEquipData'].includes(kind))opt=additionalOption(kind,r,d,this.models);
    else {const rendered=label(r);opt={label:rendered||'',supported:Boolean(rendered),requiresConfirmation:kind==='ReactionCollectorRecipeShopSmallEventData'&&r.type==='ReactionCollectorAcceptReaction'}}
@@ -99,12 +103,12 @@ class Presenter{
  return out.join('\n');}
 
  formatOutcome(p){const v=this.events[String(p.eventId)]?.possibilities?.[p.possibilityId]?.outcomes?.[String(p.outcomeId)];const narr=clean(v)||'O evento foi concluído.';const parts=[`✨ RESULTADO DO EVENTO ${p.eventId}`,narr,`Pontos: ${p.score??'?'} • XP: ${p.experience??'?'}`,`Moedas: ${p.money??'?'} • Tokens: ${p.tokens??'?'}`];if(p.effect?.name)parts.push('Estado: '+(fx[p.effect.name]||p.effect.name));if(p.health)parts.push(`Vida: ${p.health>0?'+':''}${p.health}`);return parts.join('\n')}
- apply(packets,wa,store,playerId){const out=[];const unknown=[];for(const e of packets){const n=e.name,p=e.packet||{};
+ apply(packets,wa,store,playerId,context={}){const out=[];const unknown=[];for(const e of packets){const n=e.name,p=e.packet||{};
  switch(n){
  case 'CommandProfilePacketRes':out.push(this.formatProfile(p));break;
  case 'CommandInventoryPacketRes':out.push(this.formatInventory(p));break;
  case 'CommandProfilePlayerNotFound':out.push('Seu personagem ainda não iniciou a jornada. Envie /jogar para começar sua aventura.');break;
- case 'ReactionCollectorCreationPacket':{if(!p.id||!Number.isFinite(p.endTime)||!Array.isArray(p.reactions)){out.push('O menu chegou incompleto; nenhuma decisão será enviada.');break}if(p.data?.type===world.K.action&&p.data?.data?.fighterKeycloakId!==playerId){out.push('O turno recebido não pertence ao personagem desta conversa. Nenhuma escolha foi aberta.');break}const m=this.menu(p,playerId);store.saveMenu(wa,m);out.push(this.formatMenu(m));break}
+ case 'ReactionCollectorCreationPacket':{if(!p.id||!Number.isFinite(p.endTime)||!Array.isArray(p.reactions)){out.push('O menu chegou incompleto; nenhuma decisão será enviada.');break}if(p.data?.type===world.K.action&&p.data?.data?.fighterKeycloakId!==playerId){out.push('O turno recebido não pertence ao personagem desta conversa. Nenhuma escolha foi aberta.');break}const m=this.menu(p,playerId,{...context,actorWa:wa});store.saveMenu(wa,m);out.push(this.formatMenu(m));break}
  case 'ReactionCollectorStopPacket':store.clearMenu(wa,p.id);break;
  case 'ReactionCollectorEnded':store.clearMenu(wa,p.id);out.push('⌛ A escolha expirou.');break;
  case 'CommandReportBigEventResultRes':out.push(this.formatOutcome(p));break;
@@ -134,7 +138,7 @@ class Presenter{
  case 'AIFightActionChoosePacket':break; // Cronômetro interno do combate, não é mensagem de ação para o jogador.
  case 'SmallEventRecipeShopRefusedPacket':out.push('Você recusou a oferta.');break;
  case 'SmallEventRecipeShopAcceptedPacket':out.push('✅ Receita comprada no motor.');break;
- default:{const result=items.result(n,p,this.models) || events.result(n,p,this.models) || world.journeyResult(n,p,this.models) || renderNativeResponse(n,p) || renderLote11(n,p,this.models) || renderLote10(n,p) || renderLote09(n,p,this.models,playerId) || renderLote08(n,p,this.models) || renderLote07(n,p,this.models) || renderLote06(n,p) || renderPacket(n,p,this.models) || notification(n,p,this.models);if(result)out.push(result);else unknown.push(n);break;}
+ default:{const result=targets.result(n,p,context.targetResult) || skip.result(n,p,this.models,missName) || items.result(n,p,this.models) || events.result(n,p,this.models) || world.journeyResult(n,p,this.models) || renderNativeResponse(n,p) || renderLote11(n,p,this.models) || renderLote10(n,p) || renderLote09(n,p,this.models,playerId) || renderLote08(n,p,this.models) || renderLote07(n,p,this.models) || renderLote06(n,p) || renderPacket(n,p,this.models) || notification(n,p,this.models);if(result)out.push(result);else unknown.push(n);break;}
  }
  }
  if(unknown.length){process.stderr.write('CROWNICLES_RETORNO_PENDENTE tipo='+[...new Set(unknown)].join(',').slice(0,400)+'\n');out.push('Parte desta resposta do jogo ainda não possui apresentação completa no WhatsApp. Consulte /perfil antes de repetir uma ação com custos.');}
