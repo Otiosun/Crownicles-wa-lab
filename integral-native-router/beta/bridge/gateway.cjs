@@ -173,6 +173,11 @@ class Gateway{
  const digest=crypto.createHash('sha256').update(JSON.stringify(entries)).digest('hex');
  const fresh=this.store.transaction(()=>{
    if(!this.store.acceptResponse(sub,digest))return false;
+   const directProof=this.pendingTarget.get(sub);
+   if(directProof?.stage==='request'&&directProof.proof?.key==='friendly'){
+    const decision=targets.friendlyResponse(safeEntries,directProof.proof,req.player_id,req.wa,this.targetContext());
+    if(!decision.ok){this.store.queue(req.wa,decision.message);this.store.completeRequest(sub);return true;}
+   }
    // Two-party Core collectors are NEVER shown to the initiating player.
    // Deliver only to a uniquely verified invitee/buyer in the private chat.
    const otherEntries=[];const relayed=[];

@@ -13,9 +13,10 @@ const safeName=x=>typeof x==='string'&&x.trim()===x&&x.length>0&&x.length<=70&&!
 const DEFS=Object.freeze({
  promote:Object.freeze({verb:'/promoveranciao',request:'CommandGuildElderPacketReq',kind:RC+'GuildElderData',field:'promotedKeycloakId',title:'✦ PROMOVER A ANCIÃO',action:'Promover',detail:'O posto de ancião é único. A promoção pode substituir o ancião atual. O Core deve validar a chefia e a participação na mesma guilda.'}),
  kick:Object.freeze({verb:'/expulsarguilda',request:'CommandGuildKickPacketReq',kind:RC+'GuildKickData',field:'kickedKeycloakId',title:'✦ EXPULSAR DA GUILDA',action:'Expulsar',detail:'O Core verifica chefia, guilda e alvo. Expulsar remove o jogador da guilda.'}),
+ friendly:Object.freeze({verb:'/amistoso',request:'CommandFriendlyFightPacketReq',direct:true,title:'✦ COMBATE AMISTOSO',action:'Iniciar treino contra',detail:'Você enfrenta uma versão do personagem controlada pelo Core, não o jogador em tempo real. Conforme a regra original, o amistoso não concede recompensas, não altera glória e não consome energia ou poções de progressão.'}),
  unlock:Object.freeze({verb:'/libertarjogador',request:'CommandUnlockPacketReq',kind:RC+'UnlockData',field:'unlockedKeycloakId',title:'✦ LIBERTAR JOGADOR PRESO',action:'Libertar',detail:'Custo original: 3.000 moedas do personagem que solicita. O Core verifica a prisão e o saldo.'})
 });
-const byKind=Object.fromEntries(Object.entries(DEFS).map(([k,d])=>[d.kind,k]));
+const byKind=Object.fromEntries(Object.entries(DEFS).filter(([,d])=>!d.direct).map(([k,d])=>[d.kind,k]));
 const REMOVE=RC+'GuildElderRemoveData',POOR=RC+'InteractOtherPlayersPoorData',SKIP=RC+'SkipMissionShopItemData';
 const kinds=new Set([...Object.keys(byKind),REMOVE,POOR,SKIP]);
 const ready=(fn,n)=>{try{return typeof fn==='function'&&fn(n)===true}catch{return false}};
@@ -40,7 +41,7 @@ function parse(text,actorId,actorWa,ctx){
   const ref=verifiedActor(actorId,actorWa,ctx)&&reference(ctx.origin,actorId);
   return {local:!rest.length&&ref?'*✦ REFERÊNCIA DO PERSONAGEM*\n'+ref+'\nIdentificador do RPG para reconhecer seu personagem. Não é senha, código de participação nem autorização.':'Referência indisponível: confirme seu vínculo no privado.'};
  }
- const key=Object.keys(DEFS).find(k=>DEFS[k].verb===verb||(k==='promote'&&verb==='/promoverancião')||(k==='unlock'&&verb==='/soltarjogador'));
+ const key=Object.keys(DEFS).find(k=>DEFS[k].verb===verb||(k==='promote'&&verb==='/promoverancião')||(k==='unlock'&&verb==='/soltarjogador')||(k==='friendly'&&verb==='/combateamistoso'));
  if(!key)return null;
  const def=DEFS[key],ref=rest.length===1?rest[0].toUpperCase():'';
  // Keep old numeric rank commands disabled. Rank can change between lookup and dispatch.
@@ -52,7 +53,7 @@ function parse(text,actorId,actorWa,ctx){
 function makeMenu(proof,actorId,actorWa,ctx,now=Date.now()){
  if(!bindingProof(proof,actorId,actorWa,ctx))return null;
  const d=DEFS[proof.key];
- return {id:'wa-target-'+crypto.randomUUID(),endTime:now+90000,type:'LocalVerifiedTargetAuthorization',title:d.title,story:'Personagem: '+proof.ref+'\n'+d.detail+'\nPrimeira autorização: solicitar a verificação original do Core. Ainda não altera o jogo.',restrictedToPlayerId:actorId,targetProof:{...proof},options:[{kind:'targetRequest',label:'Solicitar '+d.action.toLowerCase()+' · '+proof.ref,supported:true,requiresConfirmation:true},{kind:'nativeCancel',label:'Cancelar sem enviar ao motor',supported:true,requiresConfirmation:false}]};
+ return {id:'wa-target-'+crypto.randomUUID(),endTime:now+90000,type:'LocalVerifiedTargetAuthorization',title:d.title,story:'Personagem: '+proof.ref+'\n'+d.detail+(d.direct?'\nA confirmação inicia o treino se o Core aceitar.':'\nPrimeira autorização: solicitar a verificação original do Core. Ainda não altera o jogo.'),restrictedToPlayerId:actorId,targetProof:{...proof},options:[{kind:'targetRequest',label:'Solicitar '+d.action.toLowerCase()+' · '+proof.ref,supported:true,requiresConfirmation:true},{kind:'nativeCancel',label:'Cancelar sem enviar ao motor',supported:true,requiresConfirmation:false}]};
 }
 function authorize(menu,choice,actorId,actorWa,ctx,now=Date.now()){
  if(menu?.type!=='LocalVerifiedTargetAuthorization'||!/^wa-target-[a-f0-9-]{36}$/i.test(menu.id)||!Number.isSafeInteger(menu.endTime)||now>=menu.endTime||menu.restrictedToPlayerId!==actorId||menu.options?.[0]!==choice||choice.kind!=='targetRequest'||choice.supported!==true||choice.requiresConfirmation!==true||!bindingProof(menu.targetProof,actorId,actorWa,ctx))return null;
@@ -96,6 +97,21 @@ function roster(p,actorId,actorWa,ctx){
  const rows=ms.map(m=>{const role=m.id===d.chiefId?'Chefe':m.id===d.elderId?'Ancião':'Membro',ref=reference(ctx.origin,m.keycloakId);return role+(m.keycloakId===actorId?' · Você':'')+(m.rank>0?' · rank '+m.rank:'')+' · '+(ref&&resolveReference(ref,ctx)===m.keycloakId?ref:'sem vínculo WA verificável');});
  return ['*✦ MEMBROS DA GUILDA*',...rows,'A referência identifica um personagem do RPG, nunca autoriza uma ação.'].join('\n');
 }
+// The friendly command directly starts an original AI fight: there is no
+// native Accept/Refuse collector. Match the exact original introduction before
+// allowing any initial action menu to be delivered to the requesting character.
+function friendlyResponse(entries,proof,actorId,actorWa,ctx){
+ if(proof?.key!=='friendly')return {ok:true};
+ const reject={ok:false,message:'*✦ TREINO NÃO VERIFICADO*\nO Core não confirmou o confronto solicitado. Nenhuma nova escolha foi autorizada. Aguarde a sessão terminar ou consulte /perfil antes de repetir.'};
+ if(!bindingProof(proof,actorId,actorWa,ctx)||!Array.isArray(entries))return reject;
+ const intros=entries.filter(e=>e.name==='CommandFightIntroduceFightersPacket'),creations=entries.filter(e=>e.name==='ReactionCollectorCreationPacket'),errors=entries.filter(e=>e.name==='CommandFriendlyFightErrorPacketRes');
+ if(!intros.length&&errors.length===1&&!creations.length){const msgs={opponentNotFound:'Adversário não encontrado.',selfFight:'Você não pode desafiar a si mesmo.',opponentLevelTooLow:'O nível do adversário é insuficiente.'};return {ok:false,message:'*✦ AMISTOSO*\n'+(own(msgs,errors[0].packet?.error)?msgs[errors[0].packet.error]:'O Core recusou este confronto.')};}
+ if(intros.length!==1||errors.length||creations.length>1)return reject;
+ const p=intros[0].packet;
+ if(!obj(p)||p.friendly!==true||!id(p.fightId)||p.fightInitiatorKeycloakId!==actorId||p.fightOpponentKeycloakId!==proof.targetId||p.fightOpponentMonsterId!==undefined)return reject;
+ if(creations.some(e=>e.packet?.data?.type!==RC+'FightChooseActionData'||e.packet?.data?.data?.fightId!==p.fightId||e.packet?.data?.data?.fighterKeycloakId!==actorId))return reject;
+ return {ok:true};
+}
 function result(n,p,proof=null){
  if(proof&&own(DEFS,proof.key)){const d=DEFS[proof.key];const expected=d.request.replace('PacketReq','AcceptPacketRes');if(n===expected&&p?.[d.field]!==proof.targetId)return '*✦ RESULTADO DIVERGENTE*\nO Core retornou outro personagem. Consulte /guilda ou /perfil e não repita a ação.';}
  const names={CommandGuildElderFoundPlayerPacketRes:'Personagem não encontrado.',CommandGuildElderSameGuildPacketRes:'O Core não validou a guilda do personagem.',CommandGuildElderHimselfPacketRes:'Você não pode promover a si mesmo.',CommandGuildElderAlreadyElderPacketRes:'O personagem já é ancião.',CommandGuildElderRefusePacketRes:'Promoção recusada.'};
@@ -106,4 +122,4 @@ function result(n,p,proof=null){
  return null;
 }
 function help(canSendPacket){const lines=Object.values(DEFS).filter(d=>ready(canSendPacket,d.request)&&ready(canSendPacket,'ReactionCollectorReactPacket')).map(d=>d.verb+' REF');return ['*✦ IDENTIDADE DO RPG*','/minharef · consultar referência própria',...lines,'Identificadores não autorizam ações; o Core valida todas as solicitações.'].join('\n');}
-module.exports={help,DEFS,kinds,REMOVE,POOR,SKIP,reference,resolveReference,parse,makeMenu,authorize,nativeMenu,authorizeReaction,roster,result,bindingProof};
+module.exports={help,DEFS,kinds,REMOVE,POOR,SKIP,reference,resolveReference,parse,makeMenu,authorize,nativeMenu,authorizeReaction,roster,result,bindingProof,friendlyResponse};

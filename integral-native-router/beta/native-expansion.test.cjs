@@ -75,7 +75,7 @@ test('expansion not falsely advertised as playable by the WhatsApp help',()=>{
  }
  assert.equal(onlyExpansion.includes('/combate'),false);
  const withReact=renderHelp([...ALL,'ReactionCollectorReactPacket']);
- for(const verb of ['/promoveranciao REF','/expulsarguilda REF','/libertarjogador REF'])assert.equal(withReact.includes(verb),true);
+ for(const verb of ['/amistoso REF','/promoveranciao REF','/expulsarguilda REF','/libertarjogador REF'])assert.equal(withReact.includes(verb),true);
 });
 test('invalid probe environment rejects without changes',()=>{
  assert.throws(()=>probeExpansionHandlers({dist:'relative/path',listener:{getListener:()=>{}}}),/CORE_PROBE_INVALIDO/);
