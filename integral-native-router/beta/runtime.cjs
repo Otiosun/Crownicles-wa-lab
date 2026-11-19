@@ -23,7 +23,7 @@ const {normalizeJid}=require('./entrada.cjs');
 const {probeReadHandlers,probeMenuHandlers,probeAuthHandlers,probeExpansionHandlers}=require('./feature-manifest.cjs');
 const {resolveIncomingSender}=require('./group-sender.cjs');
 const {groupIdentityDisposition}=require('./group-identity-policy.cjs');
-const {acquireBetaLock}=require('./startup-lock.cjs');
+const {acquireBetaLock,releaseBetaLock}=require('./startup-lock.cjs');
 process.umask(0o077);
 const HOME=process.env.HOME;
 if(!HOME||!path.isAbsolute(HOME))throw Error('HOME_INVALIDO');
@@ -82,7 +82,7 @@ function lock(){
  lockFd=result.fd;
  if(result.recovered)status('BETA_LOCK_ANTIGO_PRESERVADO',result.reason);
 }
-function releaseLock(){if(lockFd!==null){try{fs.closeSync(lockFd)}catch{};try{if(fs.readFileSync(lockPath,'utf8')===String(process.pid))fs.unlinkSync(lockPath)}catch{}}}
+function releaseLock(){if(lockFd!==null){const fd=lockFd;lockFd=null;if(!releaseBetaLock({lockPath,fd}))status('BETA_LOCK_NAO_REMOVIDO','VERIFICAR')}}
 async function port(){const s=createServer();return new Promise((resolve,reject)=>{s.once('error',reject);s.listen(0,'127.0.0.1',()=>{const p=s.address().port;s.close(e=>e?reject(e):resolve(p))})})}
 async function randomMqttPort(){for(let i=0;i<25;i++){let p=20000+crypto.randomInt(40999);try{await new Promise((resolve,reject)=>{const s=createServer();s.once('error',reject);s.listen(p,'127.0.0.1',()=>s.close(e=>e?reject(e):resolve()))});return p}catch(e){if(e.code!=='EADDRINUSE')throw e}}throw Error('SEM_PORTA_MQTT')}
 async function waitTcp(p,proc,limit=11000){const start=Date.now();while(Date.now()-start<limit){if(proc?.exitCode!==null)throw Error('PROCESSO_FECHADO_ANTES_DE_READY');const ok=await new Promise(resolve=>{let done=false;const s=netConnect({host:'127.0.0.1',port:p});const fin=v=>{if(done)return;done=true;s.destroy();resolve(v)};s.once('connect',()=>fin(true));s.once('error',()=>fin(false));s.setTimeout(300,()=>fin(false))});if(ok)return;await sleep(150)}throw Error('TIMEOUT_TCP_'+p)}
