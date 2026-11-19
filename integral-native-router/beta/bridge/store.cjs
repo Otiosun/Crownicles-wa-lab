@@ -19,12 +19,28 @@ class Store{
  const o=this.db.prepare("SELECT value FROM settings WHERE key='origin'").get();
  this.origin=o?.value||('crownicles-wa-v1-'+crypto.randomUUID());
  if(!o)this.db.prepare("INSERT INTO settings(key,value) VALUES ('origin',?)").run(this.origin);
- // Nonces de confirmação não sobrevivem a reinícios: o jogador precisa pedir nova prévia.
- this.db.prepare('DELETE FROM confirmations').run();
- // Processed commands are never auto-reissued after process restart; only not-yet-sent commands are recoverable.
- this.db.prepare("UPDATE inbound SET status='pending' WHERE status='processing'").run();
+ // Runtime acquires its single-instance lock before opening this database.
+ // The per-request authorization maps live in memory. After a restart an
+ // in-flight mutation is uncertain, even when its ledger entry survived.
+ // Never accept a late reply without that original authorization context.
+ this.recoverInterruptedRequests();
  }
  transaction(fn){this.db.exec('BEGIN IMMEDIATE');try{const v=fn();this.db.exec('COMMIT');return v}catch(e){this.db.exec('ROLLBACK');throw e}}
+ recoverInterruptedRequests(){this.transaction(()=>{
+  this.db.prepare('DELETE FROM confirmations').run();
+  const affected=this.db.prepare("SELECT wa FROM requests WHERE done=0 UNION SELECT wa FROM inbound WHERE status='awaiting'").all();
+  this.db.prepare("UPDATE inbound SET status='done' WHERE status='awaiting' OR id IN (SELECT inbound_id FROM requests WHERE done=0)").run();
+  this.db.prepare('UPDATE requests SET done=1 WHERE done=0').run();
+  this.db.prepare("UPDATE inbound SET status='pending' WHERE status='processing'").run();
+  for(const {wa} of affected){
+   this.clearMenu(wa);
+   // Numeric replies and confirmation codes refer to an unknown old menu.
+   // Independent explicitly queued commands remain recoverable.
+   const queued=this.db.prepare("SELECT id,text FROM inbound WHERE wa=? AND status='pending'").all(wa);
+   for(const r of queued)if(/^(?:[0-9]{1,3}$|\/confirmar(?:\s|$))/i.test(r.text.trim()))this.mark(r.id,'done');
+   this.queue(wa,'*✦ SESSÃO RETOMADA*\nUma solicitação anterior ficou sem resultado verificável após o reinício. Ela não será repetida automaticamente. As escolhas e confirmações antigas foram descartadas. Consulte /perfil e /menu antes de tentar novamente.');
+  }
+ });}
  close(){this.db.close()}
  receive(id,wa,text){return this.db.prepare('INSERT OR IGNORE INTO inbound(id,wa,text,status,created) VALUES (?,?,?,\'pending\',?)').run(id,wa,text,Date.now()).changes===1}
  next(){return this.db.prepare(`SELECT * FROM inbound i WHERE i.status='pending' AND NOT EXISTS (SELECT 1 FROM inbound a WHERE a.wa=i.wa AND a.status='awaiting') ORDER BY i.created,i.rowid LIMIT 1`).get()}
