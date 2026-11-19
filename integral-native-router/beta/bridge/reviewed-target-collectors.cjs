@@ -80,7 +80,10 @@ function nativeMenu(p,actorId,actorWa,ctx={},proof=null){
  return {title:def.title,story,restrictedToPlayerId:actorId,...(verified?{targetProof:{...proof}}:{}),options:rx.map(x=>x.type===NO?option('Recusar sem aplicar a ação'):verified?option(def.action+' '+proof.ref+(key==='unlock'?' · 3.000 moedas':''),true,true):option('Identidade não verificada',false))};
 }
 function authorizeReaction(menu,choice,actorId,actorWa,ctx){
+ if(menu?.type===REMOVE)return menu.restrictedToPlayerId===actorId&&choice?.label==='Cancelar remoção'&&choice.supported===true&&choice.requiresConfirmation===false;
+ if(menu?.type===POOR)return menu.restrictedToPlayerId===actorId&&choice?.supported===true&&((choice.label==='Oferecer 1 moeda ao viajante'&&choice.requiresConfirmation===true)||(choice.label==='Seguir viagem sem doar'&&choice.requiresConfirmation===false));
  if(!own(byKind,menu?.type))return true;
+ if(menu.restrictedToPlayerId!==actorId)return false;
  // Refuse is the only non-confirmed action. Never let legacy menus authorize target mutations.
  if(choice?.requiresConfirmation!==true)return choice?.supported===true&&choice.label==='Recusar sem aplicar a ação';
  const proof=menu.targetProof,d=DEFS[byKind[menu.type]];
@@ -93,7 +96,8 @@ function roster(p,actorId,actorWa,ctx){
  const rows=ms.map(m=>{const role=m.id===d.chiefId?'Chefe':m.id===d.elderId?'Ancião':'Membro',ref=reference(ctx.origin,m.keycloakId);return role+(m.keycloakId===actorId?' · Você':'')+(m.rank>0?' · rank '+m.rank:'')+' · '+(ref&&resolveReference(ref,ctx)===m.keycloakId?ref:'sem vínculo WA verificável');});
  return ['*✦ MEMBROS DA GUILDA*',...rows,'A referência identifica um personagem do RPG, nunca autoriza uma ação.'].join('\n');
 }
-function result(n,p){
+function result(n,p,proof=null){
+ if(proof&&own(DEFS,proof.key)){const d=DEFS[proof.key];const expected=d.request.replace('PacketReq','AcceptPacketRes');if(n===expected&&p?.[d.field]!==proof.targetId)return '*✦ RESULTADO DIVERGENTE*\nO Core retornou outro personagem. Consulte /guilda ou /perfil e não repita a ação.';}
  const names={CommandGuildElderFoundPlayerPacketRes:'Personagem não encontrado.',CommandGuildElderSameGuildPacketRes:'O Core não validou a guilda do personagem.',CommandGuildElderHimselfPacketRes:'Você não pode promover a si mesmo.',CommandGuildElderAlreadyElderPacketRes:'O personagem já é ancião.',CommandGuildElderRefusePacketRes:'Promoção recusada.'};
  if(own(names,n))return '*✦ GUILDA*\n'+names[n];
  if(n==='CommandGuildElderAcceptPacketRes')return id(p?.promotedKeycloakId)&&safeName(p.guildName)?'*✦ GUILDA*\nO Core confirmou uma promoção a ancião em '+p.guildName+'.':'*✦ GUILDA*\nResultado incompleto. Consulte /guilda.';
