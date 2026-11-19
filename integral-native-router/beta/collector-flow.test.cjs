@@ -108,7 +108,7 @@ test('cancel option retains original Core index and does not use a purchase nonc
 });
 
 const FAMILIES=[
- {cmd:'/combate', packet:'CommandFightPacketReq', kind:'ReactionCollectorFightData',data:{},reactions:[{type:'ReactionCollectorAcceptReaction',data:{}},{type:'ReactionCollectorRefuseReaction',data:{}}]},
+ {cmd:'/combate', packet:'CommandFightPacketReq', kind:'ReactionCollectorFightData',data:{playerStats:{classId:2,fightRanking:{glory:10},energy:{value:10,max:20},attack:5,defense:4,speed:3,breath:{base:2,max:4,regen:1}}},reactions:[{type:'ReactionCollectorAcceptReaction',data:{}},{type:'ReactionCollectorRefuseReaction',data:{}}]},
  {cmd:'/vender',packet:'CommandSellPacketReq',kind:'ReactionCollectorSellData',data:{},reactions:[{type:'ReactionCollectorSellItemReaction',data:{item:{category:0,id:1},slot:1,price:25}},{type:'ReactionCollectorRefuseReaction',data:{}}]},
  {cmd:'/alimentar',packet:'CommandPetFeedPacketReq',kind:'ReactionCollectorPetFeedWithoutGuildData',data:{price:40,food:'commonFood',pet:{nickname:'Lua'}},reactions:[{type:'ReactionCollectorAcceptReaction',data:{}},{type:'ReactionCollectorRefuseReaction',data:{}}]},
  {cmd:'/pocao',packet:'CommandDrinkPacketReq',kind:'ReactionCollectorDrinkData',data:{},reactions:[{type:'ReactionCollectorDrinkReaction',data:{potion:{id:5,itemCategory:2}}},{type:'ReactionCollectorRefuseReaction',data:{}}]},
