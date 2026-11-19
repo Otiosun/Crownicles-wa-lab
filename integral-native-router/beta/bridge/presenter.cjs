@@ -15,6 +15,7 @@ const {renderResponse:renderNativeResponse}=require('./native-universal.cjs');
 const world=require('./reviewed-world-collectors.cjs');
 const items=require('./reviewed-item-collectors.cjs');
 const events=require('./reviewed-small-events.cjs');
+const {FREE,compileFreeSelection}=require('./pet-transfer-collector.cjs');
 const WORLD_COMBAT=new Set([world.K.fight,world.K.pve,world.K.action,world.K.pet]);
 function worldBlocked(p){return {id:p.id,endTime:p.endTime,type:p.data?.type,title:'⚠️ ESCOLHA NÃO VALIDADA',story:'Os dados desta interação não correspondem ao contrato revisado. Nenhuma escolha será enviada ao Core.',options:(Array.isArray(p.reactions)?p.reactions:[]).slice(0,220).map(()=>({label:'Indisponível',supported:false,requiresConfirmation:false}))};}
 // Audited original binary collectors: all choices still require native Core and nonce.
@@ -29,6 +30,7 @@ class Presenter{
  name(k,id,def='Desconhecido'){const v=this.models[k]?.[String(id)];const raw=clean(typeof v==='string'?v:v?.name)||def;return k==='classes'?classLabel(id,raw):raw}
  menu(p,playerId){const kind=p.data?.type;const d=p.data?.data||{};
  // These audited types own their routes, including malformed packets. No legacy/LAB fallback.
+ if(kind===FREE){const compiled=compileFreeSelection(p,this.models);return compiled?{id:p.id,endTime:p.endTime,type:kind,title:compiled.title,story:compiled.story,options:compiled.options}:worldBlocked(p);}
  if(events.kinds.has(kind)){const compiled=events.menu(p,this.models);return compiled?{id:p.id,endTime:p.endTime,type:kind,title:compiled.title,story:compiled.story,options:compiled.options}:worldBlocked(p);}
  if(items.kinds.has(kind)){const compiled=items.menu(p,this.models);return compiled?{id:p.id,endTime:p.endTime,type:kind,title:compiled.title,story:compiled.story,options:compiled.options}:worldBlocked(p);}
  if(WORLD_COMBAT.has(kind)){const compiled=world.combat(p,this.models,playerId);return compiled?{id:p.id,endTime:p.endTime,type:kind,title:compiled.title,story:compiled.story,options:compiled.options,...(compiled.restrictedToPlayerId?{restrictedToPlayerId:compiled.restrictedToPlayerId}:{})}:worldBlocked(p);}
