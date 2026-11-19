@@ -1,0 +1,14 @@
+'use strict';
+const test=require('node:test'),a=require('node:assert/strict');
+const {FREE,compileFreeSelection}=require('./bridge/pet-transfer-collector.cjs');
+const pet=(nickname='Luna',typeId=2,sex='f')=>({typeId,nickname,sex,rarity:2,loveLevel:4,force:5,feedDelay:48});
+const r=(id)=>({type:'ReactionCollectorPetFreeSelectReaction',data:{petEntityId:id}}),ref={type:'ReactionCollectorRefuseReaction',data:{}};
+const p=(ownPet=pet(),ids=[33,12,13],shelterPets=[{petEntityId:12,pet:pet('Lua')},{petEntityId:13,pet:pet(null,3,'m')}])=>({id:'scope',endTime:2000000000000,data:{type:FREE,data:{ownPet,shelterPets}},reactions:[...ids.map(r),ref]});
+const model={pets:{'2_female':'Loba','3_male':'Gato'}};
+test('all own and shelter choices originally ordered and named',()=>{const m=compileFreeSelection(p(),model);a(m.options[0].label.includes('Seu companheiro: Luna · Loba')&&m.options[1].label.includes('posição 1: Lua')&&m.options[2].label.includes('posição 2: Gato')&&m.options.every(o=>o.supported&&!o.requiresConfirmation));a(m.story.includes('irreversível')&&m.story.includes('custo'))});
+test('own present but ineligible native slot not fabricated',()=>{const m=compileFreeSelection(p(pet(),[12,13]),model);a(m.options.length===3&&m.options[0].label.includes('Abrigo')&&m.story.includes('não está disponível'))});
+test('no own means no own reaction',()=>{const q=p();delete q.data.data.ownPet;a(compileFreeSelection(q,model)===null);q.reactions.shift();a(compileFreeSelection(q,model).options.length===3)});
+test('extra or forged shelter targets denied',()=>{for(const ids of [[33,12,99],[33,12],[33,13,12],[12,12,13],[33,12,13,55]])a(compileFreeSelection(p(pet(),ids),model)===null)});
+test('duplicate and malformed snapshots denied',()=>{for(const q of [p(pet(),[33,12,12],[{petEntityId:12,pet:pet()},{petEntityId:12,pet:pet()}]),p({...pet(),nickname:'@everyone'}),p({...pet(),typeId:-1}),p({...pet(),hiddenId:'external'})])a(compileFreeSelection(q,model)===null)});
+test('refusal must be last with empty payload',()=>{let q=p();q.reactions.reverse();a(compileFreeSelection(q,model)===null);q=p();q.reactions[3]={...ref,data:{petEntityId:12}};a(compileFreeSelection(q,model)===null)});
+test('same nickname remains disambiguated by shelter index and original metadata',()=>{const m=compileFreeSelection(p(pet(),[12,13],[{petEntityId:12,pet:pet('Lua')},{petEntityId:13,pet:pet('Lua')}]),model);a(m.options[0].label!==m.options[1].label);a(m.options.every(o=>!o.label.includes('12')&&!o.label.includes('13')))});

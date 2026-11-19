@@ -31,6 +31,8 @@ function createBetaRuntime({dataDir,ownerJids,core,presenter,send,Player,Invento
  });
  for(const p of beta.db.prepare("SELECT jid,uuid FROM players WHERE state='active'").all())
   gateway.config.bindings[p.jid]=p.uuid;
+ // Load the complete verified roster before reconciling persisted identities.
+ gateway.synchronizeBindings();
  const close=()=>{gateway.close();beta.close();store.close();};
  return {beta,gateway,store,responseContexts,handle:msg=>beta.handle(msg),close};
 }

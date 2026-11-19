@@ -1,0 +1,14 @@
+'use strict';
+const {test}=require('node:test'),a=require('node:assert/strict');
+const native=require('./bridge/native-universal.cjs');
+const pid='11111111-1111-4111-8111-111111111111',other='22222222-2222-4222-8222-222222222222';
+const lab={CROWNICLES_WA_UNIVERSAL_COMMANDS:'lab',CROWNICLES_WA_LAB_ISOLATED:'SIM_ISOLADO'};
+const normal={};
+test('LAB flags cannot bypass a connected gateway allowlist',()=>{a.equal(native.allowed('guildKick',lab,()=>true),false);a.equal(native.allowed('petTransfer',lab,()=>true),true)});
+test('never uses an unregistered Core listener',()=>{a.equal(native.allowed('petTransfer',normal,()=>false),false);a.equal(native.allowed('petTransfer',normal,()=>1),false);a.equal(native.allowed('petTransfer',normal,()=>{throw Error('offline')}),false)});
+test('only standalone test harness without live callback can use LAB overrides',()=>{a.equal(native.allowed('guildKick',lab,undefined),true);a.equal(native.allowed('guildKick',normal,undefined),false)});
+test('dangerous guild expulsion cannot open menu, even with leaked LAB flags',()=>{const s=native.resolve('/expulsarguilda 21',pid,{env:lab,canSendPacket:()=>true});a.match(s.local,/não foi homologado/);a.equal(s.universalIntent,undefined)});
+test('transfer requires verified listener to open local authorization',()=>{const blocked=native.resolve('/transferirpet',pid,{env:normal,canSendPacket:()=>false});a.match(blocked.local,/não foi homologado/);const yes=native.resolve('/transferirpet',pid,{env:normal,canSendPacket:n=>n==='CommandPetTransferPacketReq'});a.equal(yes.universalIntent.key,'petTransfer')});
+test('revoke listener while awaiting confirmation blocks actual Core action',()=>{const r=native.resolve('/transferirpet',pid,{env:normal,canSendPacket:()=>true});const menu=native.makeMenu(r.universalIntent,pid);a.equal(native.authorized(menu,menu.options[0],pid,{env:normal,canSendPacket:()=>false}),null);a.equal(native.authorized(menu,menu.options[0],pid,{env:normal,canSendPacket:()=>true}).name,'CommandPetTransferPacketReq')});
+test('wrong player UUID cannot hijack native transfer',()=>{const r=native.resolve('/transferirpet',pid,{env:normal,canSendPacket:()=>true});const menu=native.makeMenu(r.universalIntent,pid);a.equal(native.authorized(menu,menu.options[0],other,{env:normal,canSendPacket:()=>true}),null)});
+test('cancel option never produces a native transfer request',()=>{const r=native.resolve('/transferirpet',pid,{env:normal,canSendPacket:()=>true});const menu=native.makeMenu(r.universalIntent,pid);a.equal(native.authorized(menu,menu.options[1],pid,{env:normal,canSendPacket:()=>true}),null)});

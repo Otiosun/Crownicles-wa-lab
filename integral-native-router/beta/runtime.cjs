@@ -20,9 +20,10 @@ const {Presenter}=require('./bridge/presenter.cjs');
 const {CrowniclesCore}=require('./bridge/core.cjs');
 const {assertLabConfig}=require('./bridge/mqtt-isolation.cjs');
 const {normalizeJid}=require('./entrada.cjs');
-const {probeReadHandlers,probeMenuHandlers,probeAuthHandlers}=require('./feature-manifest.cjs');
+const {probeReadHandlers,probeMenuHandlers,probeAuthHandlers,probeExpansionHandlers}=require('./feature-manifest.cjs');
 const {resolveIncomingSender}=require('./group-sender.cjs');
 const {groupIdentityDisposition}=require('./group-identity-policy.cjs');
+const {acquireBetaLock,releaseBetaLock}=require('./startup-lock.cjs');
 process.umask(0o077);
 const HOME=process.env.HOME;
 if(!HOME||!path.isAbsolute(HOME))throw Error('HOME_INVALIDO');
@@ -77,12 +78,11 @@ function ownerSettings(){
  return cfg;
 }
 function lock(){
- try{lockFd=fs.openSync(lockPath,'wx',0o600);fs.writeSync(lockFd,String(process.pid));return}catch(e){if(e.code!=='EEXIST')throw e}
- const pid=Number(fs.readFileSync(lockPath,'utf8'));
- if(Number.isInteger(pid)&&pid>1){try{process.kill(pid,0);throw Error('BETA_JA_ESTA_RODANDO_PID_'+pid)}catch(e){if(e.code!=='ESRCH')throw e}}
- fs.unlinkSync(lockPath);lockFd=fs.openSync(lockPath,'wx',0o600);fs.writeSync(lockFd,String(process.pid));
+ const result=acquireBetaLock({lockPath,backupDir:path.join(stateDir,'backups')});
+ lockFd=result.fd;
+ if(result.recovered)status('BETA_LOCK_ANTIGO_PRESERVADO',result.reason);
 }
-function releaseLock(){if(lockFd!==null){try{fs.closeSync(lockFd)}catch{};try{if(fs.readFileSync(lockPath,'utf8')===String(process.pid))fs.unlinkSync(lockPath)}catch{}}}
+function releaseLock(){if(lockFd!==null){const fd=lockFd;lockFd=null;if(!releaseBetaLock({lockPath,fd}))status('BETA_LOCK_NAO_REMOVIDO','VERIFICAR')}}
 async function port(){const s=createServer();return new Promise((resolve,reject)=>{s.once('error',reject);s.listen(0,'127.0.0.1',()=>{const p=s.address().port;s.close(e=>e?reject(e):resolve(p))})})}
 async function randomMqttPort(){for(let i=0;i<25;i++){let p=20000+crypto.randomInt(40999);try{await new Promise((resolve,reject)=>{const s=createServer();s.once('error',reject);s.listen(p,'127.0.0.1',()=>s.close(e=>e?reject(e):resolve()))});return p}catch(e){if(e.code!=='EADDRINUSE')throw e}}throw Error('SEM_PORTA_MQTT')}
 async function waitTcp(p,proc,limit=11000){const start=Date.now();while(Date.now()-start<limit){if(proc?.exitCode!==null)throw Error('PROCESSO_FECHADO_ANTES_DE_READY');const ok=await new Promise(resolve=>{let done=false;const s=netConnect({host:'127.0.0.1',port:p});const fin=v=>{if(done)return;done=true;s.destroy();resolve(v)};s.once('connect',()=>fin(true));s.once('error',()=>fin(false));s.setTimeout(300,()=>fin(false))});if(ok)return;await sleep(150)}throw Error('TIMEOUT_TCP_'+p)}
@@ -107,13 +107,21 @@ async function startMaria(Maria){
  const log=fs.openSync(mariaLog,'a',0o600);
  mariaProc=spawn('mariadbd',['--no-defaults','--datadir='+dataDir,'--socket='+socket,'--bind-address=127.0.0.1','--port='+p,'--pid-file='+mariaPid,'--log-error='+mariaLog,'--skip-log-bin','--skip-name-resolve','--innodb-buffer-pool-size=48M','--max-connections=35'],{cwd:mariaDir,stdio:['ignore',log,log]});
  fs.closeSync(log);startedChildren.push(mariaProc);mariaProc.once('error',err=>status('MARIA_PROCESSO_ERRO',err.code));
- for(let i=0;i<85;i++){
-  if(mariaProc.exitCode!==null)throw Error('MARIA_FALHOU_LOG_'+mariaLog);
-  try{const c=await Maria.createConnection({socketPath:socket,user:os.userInfo().username,connectTimeout:800});const [r]=await c.query('SELECT @@socket sock,@@port port,@@datadir datadir');
+ const started=Date.now(),startupBudgetMs=120000;
+ let warned=false,lastConnectError='AGUARDANDO';
+ while(Date.now()-started<startupBudgetMs){
+  if(mariaProc.exitCode!==null||mariaProc.signalCode!==null)throw Error('MARIA_FALHOU_LOG_'+mariaLog);
+  try{
+   const c=await Maria.createConnection({socketPath:socket,user:os.userInfo().username,connectTimeout:1500});
+   const [r]=await c.query('SELECT @@socket sock,@@port port,@@datadir datadir');
    if(r.sock!==socket||path.resolve(r.datadir)!==path.resolve(dataDir)){await c.end();throw Error('MARIA_ISOLAMENTO_FALHOU')}
    status('MARIA_NOVA','SIM');status('MARIA_PORT',r.port);return {conn:c,port:Number(r.port)}
-  }catch(e){if(e.message==='MARIA_ISOLAMENTO_FALHOU')throw e}await sleep(220)
- }throw Error('MARIA_TIMEOUT_LOG_'+mariaLog)
+  }catch(e){if(e.message==='MARIA_ISOLAMENTO_FALHOU')throw e;lastConnectError=String(e.code||e.message||'CONEXAO_PENDENTE').slice(0,80)}
+  if(!warned&&Date.now()-started>20000){status('MARIA_RECUPERACAO_LENTA','AGUARDANDO');warned=true}
+  await sleep(400);
+ }
+ status('MARIA_ULTIMA_FALHA_CONEXAO',lastConnectError);
+ throw Error('MARIA_TIMEOUT_LOG_'+mariaLog)
 }
 async function initCore(portMaria,cfg,req,admin){
  const prefix='crownicles_beta';
@@ -157,13 +165,19 @@ async function initCore(portMaria,cfg,req,admin){
  const nativeRead=probeReadHandlers({dist,listener:gameInstance.packetListener});
  const nativeMenus=probeMenuHandlers({dist,listener:gameInstance.packetListener});
  const nativeAuth=probeAuthHandlers({dist,listener:gameInstance.packetListener});
- const enabledPackets=new Set([...Object.keys(compiledPaths),...nativeRead.available,...nativeMenus.available,...nativeAuth.available]);
+ const nativeExpansion=probeExpansionHandlers({dist,listener:gameInstance.packetListener});
+ const enabledPackets=new Set([...Object.keys(compiledPaths),...nativeRead.available,...nativeMenus.available,...nativeAuth.available,...nativeExpansion.available]);
+ // Pet expedition resolution is owned by CoreHandlers, not a separate command module.
+ if(typeof gameInstance.packetListener.getListener('CommandPetExpeditionResolvePacketReq')==='function')enabledPackets.add('CommandPetExpeditionResolvePacketReq');
  status('BETA_LEITURAS_NATIVAS',nativeRead.available.length);
  status('BETA_LEITURAS_PENDENTES',nativeRead.unavailable.length);
  status('BETA_MENUS_NATIVOS',nativeMenus.available.length);
  status('BETA_MENUS_PENDENTES',nativeMenus.unavailable.length);
  status('BETA_AUTORIZACOES_NATIVAS',nativeAuth.available.length);
  status('BETA_AUTORIZACOES_PENDENTES',nativeAuth.unavailable.length);
+ status('BETA_EXPANSAO_ORIGINAL_REGISTRADA',nativeExpansion.available.length);
+ status('BETA_EXPANSAO_ORIGINAL_PENDENTE',nativeExpansion.unavailable.length);
+ status('BETA_EXPANSAO_WHATSAPP_HOMOLOGADA','NAO');
  const {MapCache}=require(path.join(dist,'core','maps','MapCache.js'));
  const {LogsMapLinks}=require(path.join(dist,'core','database','logs','models','LogsMapLinks.js'));
  const original=LogsMapLinks.findAll;LogsMapLinks.findAll=async()=>[];

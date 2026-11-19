@@ -20,7 +20,7 @@ const addCost=(money,gems)=>[price(money)&&money>0?`${num(money)} moedas`:null,p
 const currencyName={money:'moedas',gem:'gemas',gems:'gemas'};
 const shopItems=['Poção do dia','Equipamento aleatório','Curar alteração','Restaurar energia e vida','Ampliar inventário','Insígnia Boca de Ouro','Ração comum','Ração herbívora','Ração carnívora','Ração especial','Moedas','Tesouro','Favor do Rei','Avançar missão','Afinidade do companheiro','XP de guilda','Restaurar energia','XP de guilda adicional','Insígnia de Mestre das Missões','Tokens','Ampliar espaço de plantas','Plantas semanais I','Plantas semanais II','Plantas semanais III','Análise de mercado','Madeira comum','Madeira incomum','Pacote de materiais','Talismã de colheita remota','Doação de tokens'];
 const shopItemNames={dailyPotion:shopItems[0],randomItem:shopItems[1],alterationHeal:shopItems[2],fullRegen:shopItems[3],slotExtension:shopItems[4],moneyMouthBadge:shopItems[5],token:shopItems[19]};
-const shops={royalMarket:'Mercado Real',generalShop:'Loja geral',stockExchange:'Bolsa de comércio',tanner:'Curtidor',herbalist:'Herborista',lumberjack:'Lenhador',veterinarian:'Veterinário',materialMerchant:'Mercador de materiais'};
+const shops={royalMarket:'Mercado Real',generalShop:'Loja geral',stockExchange:'Bolsa de comércio',tanner:'Curtidor',herbalist:'Herborista',lumberjack:'Lenhador',veterinarian:'Veterinário',materialMerchant:'Mercador de materiais',missionManager:'Mestre de missões'};
 function entry(label,confirm=false){return {label,supported:true,requiresConfirmation:confirm}}
 function blocked(){return {label:'',supported:false,requiresConfirmation:false}}
 function matchSlot(arr,reaction,opts={}){return Array.isArray(arr)?arr.find(x=>x.slot===reaction.slot&&x.category=== (reaction.itemCategory??reaction.category) && (opts.itemId===undefined||x.itemId===opts.itemId)):undefined}
@@ -39,7 +39,7 @@ function cityOption(reaction,city,models){
   return entry(`Descansar na hospedaria · ${num(room.price)} moedas · +${num(room.health)} vida`,true)}
  case 'ReactionCollectorCityShopReaction':{
   const shop=(c.shops||[]).find(x=>x.shopId===r.shopId&&!x.isEmpty);
-  return shop&&shops[r.shopId]?entry(`Visitar ${shops[r.shopId]}`):blocked()}
+  return shop&&Object.hasOwn(shops,r.shopId)?entry(`Visitar ${shops[r.shopId]}`):blocked()}
  case 'ReactionCollectorCityBuyHomeReaction':return price(home.manage?.newPrice)&&home.manage?.canBuy===true?entry(`Comprar casa · ${num(home.manage.newPrice)} moedas`,true):blocked();
  case 'ReactionCollectorCityUpgradeHomeReaction':return price(home.manage?.upgrade?.price)&&home.manage?.canUpgrade===true?entry(`Ampliar casa · ${num(home.manage.upgrade.price)} moedas`,true):blocked();
  case 'ReactionCollectorCityMoveHomeReaction':return price(home.manage?.movePrice)&&home.manage?.canMove===true?entry(`Mudar de casa · ${num(home.manage.movePrice)} moedas`,true):blocked();

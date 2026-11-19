@@ -1,0 +1,103 @@
+name: Crownicles V31 — Core descartavel (manual)
+
+on:
+  workflow_dispatch:
+  # Explicit qualification branch only; not a deployment or production workflow.
+  push:
+    branches: [feat/crownicles-beta-final-consolidation]
+    paths:
+      - '.github/workflows/crownicles-v31-core-lab.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  core-lab:
+    name: Original Core e MariaDB descartavel
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      mariadb:
+        image: mariadb:12.3
+        env:
+          MARIADB_ROOT_PASSWORD: v31_lab_only_root
+          MARIADB_ROOT_HOST: "%"
+          MARIADB_USER: v31_lab
+          MARIADB_PASSWORD: v31_lab_only_password
+          MARIADB_DATABASE: v31_lab_boot
+        ports:
+          - 33306:3306
+        options: >-
+          --health-cmd "healthcheck.sh --connect --innodb_initialized"
+          --health-interval 5s --health-timeout 5s --health-retries 20
+    env:
+      TEST_DB_HOST: 127.0.0.1
+      TEST_DB_PORT: '33306'
+      TEST_DB_ROOT_USER: root
+      TEST_DB_ROOT_PASSWORD: v31_lab_only_root
+      TEST_DB_USER: v31_lab
+      TEST_DB_PASSWORD: v31_lab_only_password
+      CROWNICLES_V31_DB_LAB: ISOLATED
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: Crownicles/Crownicles
+          ref: 64d08c05f11949029317341735f6f73024f19f9b
+          path: upstream-v31-lab
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.34.3
+          run_install: false
+      - name: Verificar pins e preparar somente checkout descartavel
+        shell: bash
+        run: |
+          printf '%s\n' CROWNICLES_V31_DISPOSABLE_LAB > upstream-v31-lab/.crownicles-v31-lab
+          CROWNICLES_V31_STAGE_CONFIRM=ISOLATED node integral-native-router/beta/patches/stage-core-v31.cjs "$GITHUB_WORKSPACE/upstream-v31-lab"
+          cp upstream-v31-lab/Core/config/config.default.toml upstream-v31-lab/Core/config/config.toml
+      - name: Instalar dependencias originais com lockfiles
+        run: |
+          pnpm --dir upstream-v31-lab/Lib install --frozen-lockfile
+          pnpm --dir upstream-v31-lab/Core install --frozen-lockfile
+      - name: Verificar MariaDB e conta descartavel
+        shell: bash
+        run: |
+          command -v mysqladmin
+          for i in {1..15}; do
+            if mysqladmin ping -h 127.0.0.1 -P 33306 -uroot -pv31_lab_only_root --silent; then break; fi
+            sleep 2
+          done
+          mysql -h 127.0.0.1 -P 33306 -uroot -pv31_lab_only_root -e "SELECT VERSION(); SELECT Host FROM mysql.user WHERE User = 'v31_lab';"
+      - name: Suite beta Node e candidato TypeScript
+        working-directory: integral-native-router/beta
+        shell: bash
+        run: |
+          set -o pipefail
+          # Pinned unmodified inputs are required by candidate tests.
+          mkdir -p "$RUNNER_TEMP/upstream-v31-pinned"
+          git -C "$GITHUB_WORKSPACE/upstream-v31-lab" archive HEAD | tar -xf - -C "$RUNNER_TEMP/upstream-v31-pinned"
+          CROWNICLES_UPSTREAM_SRC="$RUNNER_TEMP/upstream-v31-pinned" CROWNICLES_TYPESCRIPT_MODULE="$GITHUB_WORKSPACE/upstream-v31-lab/Core/node_modules/typescript" node --test --test-reporter=tap *.test.cjs 2>&1 | tee "$RUNNER_TEMP/bridge-v31.tap"
+      - name: Compilar e testar Core original corrigido
+        working-directory: upstream-v31-lab/Core
+        shell: bash
+        run: |
+          set -o pipefail
+          pnpm run tsc 2>&1 | tee "$RUNNER_TEMP/core-v31-build.log"
+          pnpm exec vitest run --config vitest.integration.config.mts __tests__-integration/handlers/crownicles-v31-safety.integration.test.ts 2>&1 | tee "$RUNNER_TEMP/core-v31-integration.log"
+      - name: Guardar evidencia mesmo em falha
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: crownicles-v31-lab-report
+          path: |
+            ${{ runner.temp }}/bridge-v31.tap
+            ${{ runner.temp }}/core-v31-build.log
+            ${{ runner.temp }}/core-v31-integration.log
+          if-no-files-found: warn
+          retention-days: 7

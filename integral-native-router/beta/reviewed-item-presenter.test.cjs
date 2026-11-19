@@ -1,0 +1,20 @@
+'use strict';
+const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),os=require('node:os'),path=require('node:path');
+const {Presenter}=require('./bridge/presenter.cjs');
+const dir=fs.mkdtempSync(path.join(os.tmpdir(),'crownicles-item-'));fs.writeFileSync(path.join(dir,'models.json'),JSON.stringify({weapons:{2:{name:'Espada de ferro'},3:{name_one:'Espada lunar'}}}));test.after(()=>fs.rmSync(dir,{recursive:true,force:true}));
+(function suite(make,test,ok){
+ const RC='ReactionCollector',rx=(type,data={})=>({type:RC+type+'Reaction',data}),p=(kind,data,reactions)=>({id:'current',endTime:2000000000000,data:{type:RC+kind+'Data',data},reactions});
+ const stat={baseValue:10,upgradeValue:2,maxValue:50},item={id:2,itemCategory:0,rarity:4,itemLevel:1,attack:stat,defense:stat,speed:stat},newItem={...item,id:3};
+ const accept=rx('Accept'),refuse=rx('Refuse'),choice=p('ItemChoice',{item:{id:3,category:0}},[rx('ItemChoiceItem',{slot:0,itemWithDetails:item}),rx('ItemChoiceRefuse')]);
+ const store=()=>({saved:null,saveMenu(wa,m){this.saved=m},clearMenu(wa,id){if(this.saved?.id===id)this.saved=null}});
+ const wi='5511999999999@s.whatsapp.net',uid='aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+ const packet=(name,packet)=>({name,packet});
+ test('shop to ItemFound to ItemChoice preserves native collector',()=>{const pr=make(),s=store();const ms=pr.apply([packet('SmallEventShopAcceptPacket',{}),packet('ItemFoundPacket',{itemWithDetails:newItem}),packet('ReactionCollectorCreationPacket',choice)],wi,s,uid);ok(ms.includes('COMPRA ACEITA')&&ms.includes('ITEM ENCONTRADO')&&ms.includes('ESCOLHA O ITEM')&&ms.includes('Espada lunar')&&s.saved.id==='current'&&s.saved.options[0].requiresConfirmation&&s.saved.options[1].requiresConfirmation)});
+ test('invalid replacement fails closed even in lab',()=>{const pr=make();pr.universalLab=true;const m=pr.menu({...choice,reactions:[choice.reactions[0],choice.reactions[0],choice.reactions[1]]},uid);ok(m.title.includes('NÃO VALIDADA')&&m.options.every(o=>!o.supported))});
+ test('ItemAccept displays replaced item, not newly found item',()=>{const pr=make();const m=pr.menu(p('ItemAccept',{itemWithDetails:item},[accept,refuse]),uid);ok(m.story.includes('Espada de ferro')&&m.options[0].label.includes('Substituir Espada de ferro')&&m.options[1].requiresConfirmation)});
+ test('merchant purchase and refusal preserve order and confirmation',()=>{const pr=make();const m=pr.menu(p('ShopSmallEvent',{item,price:80},[refuse,accept]),uid);ok(m.options[0].supported&&!m.options[0].requiresConfirmation&&m.options[1].requiresConfirmation&&pr.formatMenu(m).includes('2. Comprar por 80 moedas'))});
+ test('token insufficient option not renumbered',()=>{const pr=make();const m=pr.menu(p('TokenMerchant',{pricePerToken:10,playerMoney:20,playerTokens:1,amounts:[5,2]},[rx('TokenMerchantBuy',{amount:5}),rx('TokenMerchantBuy',{amount:2}),refuse]),uid),s=pr.formatMenu(m);ok(!m.options[0].supported&&m.options[1].supported&&s.includes('2. Comprar 2 token')&&s.includes('3. Recusar'))});
+ test('final acceptance and sale response are separate',()=>{const pr=make();const s=pr.apply([packet('ItemAcceptPacket',{itemWithDetails:newItem}),packet('ItemRefusePacket',{item:{id:2,category:0},autoSell:false,soldMoney:250})],wi,store(),uid);ok(s.includes('ITEM ACEITO')&&s.includes('ITEM NÃO MANTIDO')&&s.includes('250 moedas'))});
+ test('malformed merchant response cautious',()=>{const s=make().apply([packet('CommandReportTokenMerchantBoughtRes',{})],wi,store(),uid);ok(s.includes('Resultado incompleto')&&!s.includes('comprado(s)'))});
+ test('stop clears only matching collector',()=>{const pr=make(),s=store();pr.apply([packet('ReactionCollectorCreationPacket',choice),packet('ReactionCollectorStopPacket',{id:'previous'})],wi,s,uid);ok(s.saved?.id==='current');pr.apply([packet('ReactionCollectorStopPacket',{id:'current'})],wi,s,uid);ok(s.saved===null)});
+})(()=>new Presenter(dir),test,assert.ok);

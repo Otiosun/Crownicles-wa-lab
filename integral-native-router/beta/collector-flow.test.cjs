@@ -18,17 +18,19 @@ function makeHarness(native={}){
  const model=(map,key)=>( {findOrCreate:async({where,defaults})=>{const id=key(where);if(!map.has(id))map.set(id,{...defaults,id:nextPlayer++});return [map.get(id),true]}} );
  const p=new Presenter(path.join(dir,'missing-lang'));p.models={weapons:{1:'Espada de teste'},potions:{5:'Poção de vida'},objects:{7:'Amuleto'},classes:{4:'Soldado'}};
  class Core extends EventEmitter{
-  constructor(){super();this.ready=true}
+  constructor(){super();this.ready=true;this.pending=new Set()}
+  schedule(fn){const handle=setImmediate(()=>{this.pending.delete(handle);fn()});this.pending.add(handle)}
+  close(){for(const h of this.pending)clearImmediate(h);this.pending.clear()}
   send(name,data,playerId,requestId){
    calls.push({name,data,playerId,requestId});
    if(name!=='ReactionCollectorReactPacket'){
     const menuId='menu-'+nextMenu++;
-    setImmediate(()=>this.emit('response',{context:{frontEndSubOrigin:requestId,keycloakId:playerId},packets:[{name:'ReactionCollectorCreationPacket',packet:{id:menuId,endTime:Date.now()+100000,data:{type:native.kind||'ReactionCollectorSellData',data:native.data||{}},reactions:native.reactions||[
+    this.schedule(()=>this.emit('response',{context:{frontEndSubOrigin:requestId,keycloakId:playerId},packets:[{name:'ReactionCollectorCreationPacket',packet:{id:menuId,endTime:Date.now()+100000,data:{type:native.kind||'ReactionCollectorSellData',data:native.data||{}},reactions:native.reactions||[
      {type:'ReactionCollectorSellItemReaction',data:{item:{category:0,id:1},slot:1,price:25}},
      {type:'ReactionCollectorRefuseReaction',data:{}}
     ]}}]}));
    }else if(name==='ReactionCollectorReactPacket'){
-    setImmediate(()=>this.emit('response',{context:{frontEndSubOrigin:requestId,keycloakId:playerId},packets:[{name:'CommandSellCancelErrorPacket',packet:{}}]}));
+    this.schedule(()=>this.emit('response',{context:{frontEndSubOrigin:requestId,keycloakId:playerId},packets:[{name:'CommandSellCancelErrorPacket',packet:{}}]}));
    }
   }
  }
@@ -41,7 +43,7 @@ function makeHarness(native={}){
  const send=(player,text)=>rt.handle({id:'msg-'+(++message),chatJid:player,senderJid:player,text});
  const register=async player=>{await send(player,'/cadastro');assert.equal(rt.beta.player(player).state,'active')};
  const open=async(player,command='/vender')=>{await send(player,command);await until(()=>!!rt.store.getMenu(player));return rt.store.getMenu(player)};
- const close=()=>{rt.close();fs.rmSync(dir,{recursive:true,force:true})};
+ const close=()=>{core.close();rt.close();fs.rmSync(dir,{recursive:true,force:true})};
  return {dir,core,rt,sent,calls,send,register,open,close};
 }
 
@@ -106,7 +108,7 @@ test('cancel option retains original Core index and does not use a purchase nonc
 });
 
 const FAMILIES=[
- {cmd:'/combate', packet:'CommandFightPacketReq', kind:'ReactionCollectorFightData',data:{},reactions:[{type:'ReactionCollectorAcceptReaction',data:{}},{type:'ReactionCollectorRefuseReaction',data:{}}]},
+ {cmd:'/combate', packet:'CommandFightPacketReq', kind:'ReactionCollectorFightData',data:{playerStats:{classId:2,fightRanking:{glory:10},energy:{value:10,max:20},attack:5,defense:4,speed:3,breath:{base:2,max:4,regen:1}}},reactions:[{type:'ReactionCollectorAcceptReaction',data:{}},{type:'ReactionCollectorRefuseReaction',data:{}}]},
  {cmd:'/vender',packet:'CommandSellPacketReq',kind:'ReactionCollectorSellData',data:{},reactions:[{type:'ReactionCollectorSellItemReaction',data:{item:{category:0,id:1},slot:1,price:25}},{type:'ReactionCollectorRefuseReaction',data:{}}]},
  {cmd:'/alimentar',packet:'CommandPetFeedPacketReq',kind:'ReactionCollectorPetFeedWithoutGuildData',data:{price:40,food:'commonFood',pet:{nickname:'Lua'}},reactions:[{type:'ReactionCollectorAcceptReaction',data:{}},{type:'ReactionCollectorRefuseReaction',data:{}}]},
  {cmd:'/pocao',packet:'CommandDrinkPacketReq',kind:'ReactionCollectorDrinkData',data:{},reactions:[{type:'ReactionCollectorDrinkReaction',data:{potion:{id:5,itemCategory:2}}},{type:'ReactionCollectorRefuseReaction',data:{}}]},

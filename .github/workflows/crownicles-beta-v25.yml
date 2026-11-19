@@ -8,6 +8,7 @@ on:
       - feat/crownicles-beta-menus-v28
       - feat/crownicles-beta-collector-safety-v29
       - feat/crownicles-beta-original-auth-v30
+      - feat/crownicles-beta-final-consolidation
     paths:
       - 'integral-native-router/beta/entrada.cjs'
       - 'integral-native-router/beta/entrada.test.cjs'
@@ -26,6 +27,41 @@ on:
       - 'integral-native-router/beta/feature-integration.test.cjs'
       - 'integral-native-router/beta/collector-flow.test.cjs'
       - 'integral-native-router/beta/native-auth-v30.test.cjs'
+      - 'integral-native-router/beta/startup-lock.cjs'
+      - 'integral-native-router/beta/startup-lock.test.cjs'
+      - 'integral-native-router/beta/native-expansion.test.cjs'
+      - 'integral-native-router/beta/reviewed-live.test.cjs'
+      - 'integral-native-router/beta/coverage-inventory.cjs'
+      - 'integral-native-router/beta/coverage-inventory.test.cjs'
+      - 'integral-native-router/beta/pet-transfer-collector.test.cjs'
+      - 'integral-native-router/beta/pet-transfer-gateway.test.cjs'
+      - 'integral-native-router/beta/native-live-safety.test.cjs'
+      - 'integral-native-router/beta/multiuser-routing.test.cjs'
+      - 'integral-native-router/beta/bridge/two-party-collector.cjs'
+      - 'integral-native-router/beta/two-party-collector.test.cjs'
+      - 'integral-native-router/beta/two-party-gateway.test.cjs'
+      - 'integral-native-router/beta/bridge/social-intents.cjs'
+      - 'integral-native-router/beta/social-intents.test.cjs'
+      - 'integral-native-router/beta/social-gateway.test.cjs'
+      - 'integral-native-router/beta/bridge/pet-transfer-collector.cjs'
+      - 'integral-native-router/beta/bridge/pet-expedition-collector.cjs'
+      - 'integral-native-router/beta/pet-expedition-collector.test.cjs'
+      - 'integral-native-router/beta/collector-coverage.cjs'
+      - 'integral-native-router/beta/collector-coverage.test.cjs'
+      - 'integral-native-router/beta/pet-expedition-presenter.test.cjs'
+      - 'integral-native-router/beta/reviewed-world-collectors.test.cjs'
+      - 'integral-native-router/beta/reviewed-world-presenter.test.cjs'
+      - 'integral-native-router/beta/reviewed-item-collectors.test.cjs'
+      - 'integral-native-router/beta/reviewed-item-presenter.test.cjs'
+      - 'integral-native-router/beta/reviewed-small-events.test.cjs'
+      - 'integral-native-router/beta/reviewed-small-events-presenter.test.cjs'
+      - 'integral-native-router/beta/pet-free-selection.test.cjs'
+      - 'integral-native-router/beta/reviewed-target-and-skip.test.cjs'
+      - 'integral-native-router/beta/reviewed-target-gateway.test.cjs'
+      - 'integral-native-router/beta/core-v31-safety-candidate.test.cjs'
+      - 'integral-native-router/beta/core-v31-safety-execution.test.cjs'
+      - 'integral-native-router/beta/patches/stage-core-v31.cjs'
+      - 'integral-native-router/beta/patches/core-v31-safety-candidate.cjs'
       - 'integral-native-router/beta/bridge/**'
       - 'integral-native-router/beta/admin-link.cjs'
       - 'integral-native-router/beta/runtime.cjs'
@@ -37,6 +73,7 @@ on:
       - feat/crownicles-beta-consolidation-v27
       - feat/crownicles-beta-menus-v28
       - feat/crownicles-beta-collector-safety-v29
+      - feat/crownicles-beta-original-auth-v30
     paths:
       - 'integral-native-router/beta/**'
       - '.github/workflows/crownicles-beta-v25.yml'
@@ -80,8 +117,57 @@ jobs:
           node --check feature-integration.test.cjs
           node --check collector-flow.test.cjs
           node --check native-auth-v30.test.cjs
+          node --check startup-lock.cjs
+          node --check startup-lock.test.cjs
+          node --check native-expansion.test.cjs
+          node --check reviewed-live.test.cjs
+          node --check coverage-inventory.cjs
+          node --check coverage-inventory.test.cjs
+          node --check bridge/pet-transfer-collector.cjs
+          node --check pet-transfer-collector.test.cjs
+          node --check pet-transfer-gateway.test.cjs
+          node --check bridge/pet-expedition-collector.cjs
+          node --check pet-expedition-collector.test.cjs
+          node --check collector-coverage.cjs
+          node --check collector-coverage.test.cjs
+          node --check pet-expedition-presenter.test.cjs
+          node --check bridge/reviewed-world-collectors.cjs
+          node --check reviewed-world-collectors.test.cjs
+          node --check reviewed-world-presenter.test.cjs
+          node --check bridge/reviewed-item-collectors.cjs
+          node --check reviewed-item-collectors.test.cjs
+          node --check reviewed-item-presenter.test.cjs
+          node --check bridge/reviewed-small-events.cjs
+          node --check reviewed-small-events.test.cjs
+          node --check reviewed-small-events-presenter.test.cjs
+          node --check pet-free-selection.test.cjs
+          node --check native-live-safety.test.cjs
+          node --check multiuser-routing.test.cjs
+          node --check bridge/two-party-collector.cjs
+          node --check two-party-collector.test.cjs
+          node --check two-party-gateway.test.cjs
+          node --check bridge/social-intents.cjs
+          node --check social-intents.test.cjs
+          node --check social-gateway.test.cjs
           node --check bridge/lote08.cjs
           node --check patches/patch-v30.cjs
+          node --check reviewed-target-and-skip.test.cjs
+          node --check reviewed-target-gateway.test.cjs
+          node --check core-v31-safety-candidate.test.cjs
+          node --check core-v31-safety-execution.test.cjs
+          node --check patches/stage-core-v31.cjs
+          node --check patches/core-v31-safety-candidate.cjs
           for file in bridge/*.cjs; do node --check "$file"; done
       - name: Testar comandos, persistencia e seguranca em SQLite descartavel
-        run: node --test --test-reporter=tap *.test.cjs
+        shell: bash
+        run: |
+          set -o pipefail
+          node --test --test-reporter=tap *.test.cjs 2>&1 | tee "$RUNNER_TEMP/crownicles-beta-tests.tap"
+      - name: Guardar relatorio completo dos testes
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: crownicles-beta-test-report
+          path: ${{ runner.temp }}/crownicles-beta-tests.tap
+          if-no-files-found: warn
+          retention-days: 7

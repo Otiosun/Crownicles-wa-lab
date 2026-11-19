@@ -38,6 +38,21 @@ const NATIVE = Object.freeze({
 });
 const safeDescription = s=>typeof s==='string'&&s===s.trim()&&s.length>=2&&s.length<=140&&/^[\p{L}\p{N} .,!?:;()'\-]+$/u.test(s)&&!/[\r\n<>`*_@]/.test(s);
 const safeRank = s=>typeof s==='string'&&/^[1-9][0-9]{0,5}$/.test(s)&&Number(s)<=100000;
+// Live is never inferred from a declared alias: it requires a registered Core
+// listener for the exact request at both opening and confirmation.
+const REVIEWED_LIVE_KEYS=Object.freeze(['petCaress','expeditionResolve','guildCreate','guildDescription','guildLeave','petFree','petTransfer']);
+const REVIEWED_LIVE_SET=new Set(REVIEWED_LIVE_KEYS);
+function allowed(key,env,canSendPacket){
+ // A real Gateway always passes a Core-listener authorization callback.
+ // Even if LAB environment variables leak into that process, experimental
+ // mutations must NEVER bypass the reviewed whitelist or listener checks.
+ if(typeof canSendPacket==='function'){
+  if(!REVIEWED_LIVE_SET.has(key))return false;
+  try{return canSendPacket(NATIVE[key].request)===true}catch{return false}
+ }
+ // Only stand-alone, disconnected W3 laboratory runners may use lab flags.
+ return labAllowed(env);
+}
 function payloadFrom(key,raw,playerId,now=Date.now()){
   const d=NATIVE[key];if(!d||!UUID.test(playerId))return null;
   if(d.args==='none')return raw===''?(key==='ping'?{time:now}:{}):null;
@@ -62,14 +77,14 @@ for (const [key,d] of Object.entries(NATIVE))for(const a of d.aliases){
  if(byAlias.has(a))throw Error('NATIVE_ALIAS_DUPLICADO');byAlias.set(a,key);
 }
 const frozenData = d=>JSON.parse(JSON.stringify(d));
-function resolve(text,playerId,{env=process.env,now=Date.now()}={}){
+function resolve(text,playerId,{env=process.env,now=Date.now(),canSendPacket=null}={}){
   if(typeof text!=='string'||!UUID.test(playerId))return null;
   const cleaned=text.trim();const sp=cleaned.indexOf(' ');const verb=(sp<0?cleaned:cleaned.slice(0,sp)).toLocaleLowerCase('pt-BR');
   const key=byAlias.get(verb);if(!key)return null;
   const def=NATIVE[key],tail=(sp<0?'':cleaned.slice(sp+1)).trim();
   const data=payloadFrom(key,tail,playerId,now);
   if(data===null){const hint=def.args==='rank'?' RANK':def.args==='guildName'?' NOME':def.args==='description'?' TEXTO':'';return {local:`Uso: ${def.aliases[0]}${hint}. Dados inválidos; nada foi enviado ao motor.`};}
-  if(def.kind==='mutation'&&!labAllowed(env))return {local:'Esse comando nativo ainda não foi homologado para jogadores. Nenhuma alteração foi enviada ao motor.'};
+  if(def.kind==='mutation'&&!allowed(key,env,canSendPacket))return {local:'Esse comando nativo ainda não foi homologado para jogadores. Nenhuma alteração foi enviada ao motor.'};
   if(def.kind==='query')return {name:def.request,data};
   return {universalIntent:{key,data}};
 }
@@ -88,14 +103,14 @@ function makeMenu(intent,playerId,{now=Date.now()}={}){
    options:[{kind:'universalNative',key:intent.key,label:action,supported:true,requiresConfirmation:true},
             {kind:'nativeCancel',label:'Cancelar sem enviar ao jogo',supported:true,requiresConfirmation:false}]};
 }
-function authorized(menu,choice,playerId,{env=process.env,now=Date.now()}={}){
- if(!labAllowed(env)||!menu||menu.type!=='LocalUniversalNativeAuthorization'||
+function authorized(menu,choice,playerId,{env=process.env,now=Date.now(),canSendPacket=null}={}){
+ if(!menu||menu.type!=='LocalUniversalNativeAuthorization'||
    !/^wa-universal-[a-f0-9-]{36}$/i.test(menu.id)||!Number.isSafeInteger(menu.endTime)||now>=menu.endTime||
    !UUID.test(playerId)||!Array.isArray(menu.options)||menu.options.length!==2||menu.options[0]!==choice||
    choice?.kind!=='universalNative'||choice.supported!==true||choice.requiresConfirmation!==true||
    menu.options[1]?.kind!=='nativeCancel'||menu.options[1].supported!==true||
    !menu.nativeIntent||menu.nativeIntent.playerId!==playerId)return null;
- const {key,data,signature:old}=menu.nativeIntent,def=NATIVE[key];if(!def||def.kind!=='mutation'||choice.key!==key)return null;
+ const {key,data,signature:old}=menu.nativeIntent,def=NATIVE[key];if(!def||def.kind!=='mutation'||choice.key!==key||!allowed(key,env,canSendPacket))return null;
  if(typeof old!=='string'||!/^[a-f0-9]{64}$/.test(old))return null;
  let expected;try{expected=signature(menu.id,key,playerId,data)}catch{return null}
  if(!crypto.timingSafeEqual(Buffer.from(old,'hex'),Buffer.from(expected,'hex')))return null;
@@ -180,12 +195,8 @@ function renderResponse(name,p,{now=Date.now()}={}){
  // those packets; unknown outcomes remain visibly unconfirmed.
  return null;
 }
-function help(){return ['*✦ ACESSO NATIVO*',
+function help(canSendPacket=null){const listed=REVIEWED_LIVE_KEYS.filter(k=>allowed(k,process.env,canSendPacket)).map(k=>NATIVE[k].aliases[0]+(NATIVE[k].args==='guildName'?' NOME':NATIVE[k].args==='description'?' TEXTO':''));return ['*✦ ACESSO NATIVO*',
 '/ping — conferir o motor (consulta)',
-'/acariciar · /resgatarexpedicao · /liberarpet · /transferirpet',
-'/criarguilda NOME · /descricaoguilda TEXTO · /sairdaguilda',
-'/removeranciao · /expulsarguilda RANK',
-'/amistoso RANK · /libertarjogador RANK',
-'', 'As alterações permanecem bloqueadas na instalação real. Essas ações de mudança somente funcionam no laboratório isolado, com prévia e confirmação; o Core original continua responsável pelas regras e pelas confirmações internas.'].join('\n')}
+'', listed.length?'*Disponíveis no motor*\n'+listed.join(' · '):'Nenhuma ação nativa adicional liberada pelo motor.','Comandos não listados permanecem bloqueados. Toda alteração exige prévia, código único e as condições do Core original.'].join('\n')}
 
-module.exports={NATIVE,resolve,makeMenu,authorized,renderResponse,help,labAllowed,safeName,safeDescription,safeRank,payloadFrom,matchesIntent};
+module.exports={NATIVE,resolve,makeMenu,authorized,renderResponse,help,labAllowed,REVIEWED_LIVE_KEYS,allowed,safeName,safeDescription,safeRank,payloadFrom,matchesIntent};
