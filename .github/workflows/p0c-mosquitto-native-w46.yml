@@ -1,0 +1,75 @@
+# Native P0-C broker-only test. Manual, private, ephemeral. Never a production gate.
+name: Crownicles W46 - native Mosquitto ACL (private manual lab)
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  mosquitto-native:
+    if: ${{ github.event.repository.private == true }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    env:
+      CROWNICLES_P0C_NO_PRODUCTION: "true"
+    steps:
+      - name: Check out isolated private lab branch
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Verify exact unchanged W44 source inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$CROWNICLES_P0C_NO_PRODUCTION" = true
+          test "$(id -u)" != 0
+          printf '%s\n' \
+            '83b1729055cbb4027b68208811450937deb1d90090d404eff4a2b48526177beb  candidate/bridge/mqtt-auth-lab.cjs' \
+            '8b6106bc10d63b8b2ee0391f41c2bcd101cdfc11b50ade0a96eab563825ca674  consolidated/evidence/e1-mqtt-w44-native-broker-probe.cjs' \
+            'da95861cac900ee3cfde21104dfa4106e3e292870eea21fdbefb7320fdaafdae  tools/w46_raw_mqtt_probe.cjs' \
+            | sha256sum -c -
+      - name: Set up Node 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install native Mosquitto in disposable runner only
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends mosquitto
+          sudo systemctl stop mosquitto || true
+          command -v mosquitto
+          command -v mosquitto_passwd
+          mosquitto -h 2>&1 | sed -n '1p'
+      - name: Test wire-codec and W44 provenance without broker mocks claiming native
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --test tools/w46_raw_mqtt_probe.test.cjs
+      - name: Execute authenticated real TCP MQTT broker/ACL probe
+        id: probe
+        shell: bash
+        run: |
+          set -euo pipefail
+          # No usernames, passwords or broker config are logged or uploaded.
+          node tools/w46_raw_mqtt_probe.cjs "$GITHUB_WORKSPACE/candidate/bridge/mqtt-auth-lab.cjs" > mqtt-native-result.json
+          python3 - <<'PY'
+          import json
+          r=json.load(open('mqtt-native-result.json',encoding='utf-8'))
+          assert r.get('schema')=='crownicles-w46-mqtt-native-v1'
+          assert r.get('status')=='PASS' and r.get('executedBroker') is True
+          assert r.get('homologated') is False and r.get('productionTouched') is False
+          assert r.get('reason')=='NATIVE_MOSQUITTO_AUTH_ACL_AND_BOTH_DIRECTIONS'
+          assert r.get('w44SourceSha256')=='83b1729055cbb4027b68208811450937deb1d90090d404eff4a2b48526177beb'
+          assert r.get('coreOriginalExecuted') is False
+          assert not any('pass' in k.lower() or 'secret' in k.lower() for k in r)
+          print('W46_NATIVE_MQTT_BROKER_ACL_PASS_ONLY; CORE_WIRE_NOT_TESTED; GATES_OFF')
+          PY
+      - name: Preserve sanitized result even if broker probe fails
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: crownicles-w46-native-mqtt-result
+          path: mqtt-native-result.json
+          if-no-files-found: warn
+          retention-days: 14
