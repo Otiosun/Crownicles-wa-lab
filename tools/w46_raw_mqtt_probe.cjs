@@ -33,20 +33,37 @@ class MqttWire extends EventEmitter {
 async function pickPort(){const server=net.createServer();await new Promise((yes,no)=>{server.once('error',no);server.listen(0,'127.0.0.1',yes)});const port=server.address().port;await new Promise(r=>server.close(r));if(port<20000||port>60999)return pickPort();return port}
 async function waitReady(port,proc){for(let i=0;i<50;i++){if(proc.exitCode!==null)fail('BROKER_EARLY_EXIT');const good=await new Promise(resolve=>{const s=net.connect({port,host:'127.0.0.1'});s.setTimeout(220);s.once('connect',()=>{s.destroy();resolve(true)});s.once('error',()=>resolve(false));s.once('timeout',()=>{s.destroy();resolve(false)})});if(good)return;await sleep(100)}fail('BROKER_NOT_READY')}
 function binary(name){const r=spawnSync(name,['--help'],{stdio:'ignore',timeout:3000});return r.error?.code!=='ENOENT'&&!r.error}
-function report(status,reason,extra={}){console.log(JSON.stringify({schema:'crownicles-w46-mqtt-native-v1',status,reason,executedBroker:status==='PASS',homologated:false,productionTouched:false,...extra}))}
+function report(status,reason,extra={}){console.log(JSON.stringify({schema:'crownicles-w46-mqtt-native-v2',status,reason,executedBroker:status==='PASS',homologated:false,productionTouched:false,...extra}))}
+// Mosquitto's file ACL may grant an unauthorized SUBSCRIBE yet suppress all forbidden deliveries.
+// Security invariant is message isolation, not a specific SUBACK return code.
+async function proveTopicIsolation(core,gateway,prefix,{shortDelayMs=180,deniedDelayMs=450}={}){
+ const tCore=prefix+'/crownicles_core',tGate=prefix+'/crownicles_websocket';
+ if(await core.subscribe(tCore)!==0||await gateway.subscribe(tGate)!==0)fail('VALID_SUBSCRIPTION_DENIED');
+ const rCore=await core.subscribe(tGate),rGate=await gateway.subscribe(tCore);
+ const wCore=await core.subscribe(prefix+'/#'),wGate=await gateway.subscribe(prefix+'/#');
+ for(const result of [rCore,rGate,wCore,wGate])if(result!==0&&result!==128)fail('MQTT_SUBACK_UNEXPECTED');
+ const x=crypto.randomBytes(8).toString('hex'),y=crypto.randomBytes(8).toString('hex');
+ const crossCore=core.observe(tGate,y),crossGate=gateway.observe(tCore,x);
+ const expectedCore=core.waitMessage(tCore,x),expectedGate=gateway.waitMessage(tGate,y);
+ gateway.publish(tCore,x);core.publish(tGate,y);
+ await Promise.all([expectedCore,expectedGate]);await sleep(shortDelayMs);
+ if(crossCore()>0||crossGate()>0)fail('CROSS_TOPIC_READ_DELIVERED');
+ const aBad='deny-'+x,bBad='deny-'+y;
+ const badCore=core.observe(tCore,aBad),badGate=gateway.observe(tGate,bBad);
+ core.publish(tCore,aBad);gateway.publish(tGate,bBad);await sleep(deniedDelayMs);
+ if(badCore()>0||badGate()>0)fail('CROSS_TOPIC_PUBLISH_DELIVERED');
+ return {subscriptionSemantics:[rCore,rGate,wCore,wGate].every(v=>v===128)?'ALL_DENIED_SUBACK':'GRANTS_POSSIBLE_DELIVERY_ACL_VERIFIED'};
+}
 async function run(modulePath){if(!modulePath||!path.isAbsolute(modulePath)||!fs.existsSync(modulePath)){report('BLOCKED','W44_SOURCE_ABSOLUTE_PATH_REQUIRED');return 2}const bytes=fs.readFileSync(modulePath);if(sha(bytes)!==W44_SHA){report('BLOCKED','W44_SOURCE_SHA_MISMATCH');return 2}if(process.getuid?.()===0){report('BLOCKED','RUN_AS_NONROOT_REQUIRED');return 2}if(!binary('mosquitto')||!binary('mosquitto_passwd')){report('BLOCKED','MOSQUITTO_BINARIES_MISSING');return 2}
  const {createBrokerConfig}=require(modulePath);const dir=fs.mkdtempSync(path.join(os.tmpdir(),'w46-broker-'));fs.chmodSync(dir,0o700);let broker,processBroker;const clients=[];
  try{const port=await pickPort(),prefix=PREFIX+crypto.randomBytes(12).toString('hex');broker=createBrokerConfig({stateDir:dir,port,prefix});processBroker=spawn('mosquitto',['-c',broker.confFile],{stdio:'ignore'});await waitReady(port,processBroker);
  const a=await MqttWire.connect(port);a.client.close();if(a.rc===0)fail('ANONYMOUS_ACCEPTED');
  const b=await MqttWire.connect(port,{username:broker.core.username,password:'invalid'});b.client.close();if(b.rc===0)fail('BAD_PASSWORD_ACCEPTED');
  const c=await MqttWire.connect(port,broker.core),g=await MqttWire.connect(port,broker.gateway);clients.push(c.client,g.client);if(c.rc!==0||g.rc!==0)fail('VALID_AUTH_DENIED');
- const tCore=prefix+'/crownicles_core',tGate=prefix+'/crownicles_websocket';if(await c.client.subscribe(tCore)!==0||await g.client.subscribe(tGate)!==0)fail('VALID_SUBSCRIPTION_DENIED');
- if(await c.client.subscribe(tGate)!==128||await g.client.subscribe(tCore)!==128)fail('CROSS_SUBSCRIPTION_ACCEPTED');
- const x=crypto.randomBytes(8).toString('hex'),y=crypto.randomBytes(8).toString('hex');const inboxCore=c.client.waitMessage(tCore,x),inboxGate=g.client.waitMessage(tGate,y);g.client.publish(tCore,x);c.client.publish(tGate,y);await Promise.all([inboxCore,inboxGate]);
- const aBad='deny-'+x,bBad='deny-'+y;const endCore=c.client.observe(tCore,aBad),endGate=g.client.observe(tGate,bBad);c.client.publish(tCore,aBad);g.client.publish(tGate,bBad);await sleep(450);if(endCore()||endGate())fail('CROSS_TOPIC_PUBLISH_DELIVERED');
- report('PASS','NATIVE_MOSQUITTO_AUTH_ACL_AND_BOTH_DIRECTIONS', {w44SourceSha256:W44_SHA,coreOriginalExecuted:false});return 0
+ const topicProof=await proveTopicIsolation(c.client,g.client,prefix);
+ report('PASS','NATIVE_MOSQUITTO_AUTH_DELIVERY_ACL_AND_BOTH_DIRECTIONS', {w44SourceSha256:W44_SHA,coreOriginalExecuted:false,subscriptionSemantics:topicProof.subscriptionSemantics});return 0
  }catch(e){report('FAIL',/^[A-Z0-9_]+$/.test(e.message)?e.message:'NATIVE_PROBE_EXCEPTION');return 1}
  finally{for(const c of clients)c.close();try{processBroker?.kill('SIGTERM')}catch{};try{broker?.cleanup()}catch{};fs.rmSync(dir,{recursive:true,force:true})}
 }
 if(require.main===module){run(process.argv[2]).then(code=>{process.exitCode=code}).catch(()=>{report('FAIL','NATIVE_PROBE_UNHANDLED');process.exitCode=1})}
-module.exports={str,remainingLength,packet,parseOne,MqttWire,run,W44_SHA};
+module.exports={str,remainingLength,packet,parseOne,MqttWire,run,proveTopicIsolation,W44_SHA};
