@@ -10,7 +10,7 @@ import xml.etree.ElementTree as ET
 from unittest.mock import patch
 
 HERE = Path(__file__).resolve().parent
-SCRIPT = HERE.parent / 'verify_core_junit.py'
+SCRIPT = HERE.parent / 'tools' / 'verify_core_junit.py'
 SPEC = importlib.util.spec_from_file_location('verify_core_junit', SCRIPT)
 gate = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(gate)
@@ -140,7 +140,7 @@ class FullSuiteGateTests(unittest.TestCase):
 
 def make_report_ignoring_patched_baseline():
     # Avoid patching fixture generator state when checking tampered file.
-    with patch.object(gate, 'BASELINE_PATH', HERE.parent/'core_pinned_junit_baseline.json'):
+    with patch.object(gate, 'BASELINE_PATH', HERE.parent/'tools'/'core_pinned_junit_baseline.json'):
         return make_report()
 
 if __name__=='__main__':
