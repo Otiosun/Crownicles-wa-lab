@@ -101,6 +101,11 @@ def inspect_xml(payload: bytes) -> dict:
         raise ReportError(f'XML malformado: {exc}') from exc
     if tag(root) not in ('testsuites', 'testsuite'):
         raise ReportError('raiz JUnit invalida')
+    # Reject status tags at ANY depth, including direct suite/root children.
+    # JUnit attributes may be forged as zero while an actual failure node remains.
+    for element in root.iter():
+        if tag(element) in ('failure', 'error', 'skipped'):
+            raise ReportError('testcase/suite falhou/pulado: status presente no XML')
 
     suites = [root] if tag(root) == 'testsuite' else [s for s in root if tag(s) == 'testsuite']
     if len(suites) != 50:
