@@ -1,0 +1,749 @@
+{
+  "schema": "crownicles-core-pin-junit-cases-v1",
+  "upstreamCommit": "64d08c05f11949029317341735f6f73024f19f9b",
+  "baselineCases": 170,
+  "baselineSuites": 49,
+  "junitArtifacts": [
+    {
+      "artifactZipSha256": "442e8e98655973bb2ba54054c0139a048cd0396fa111a9bf1fbffd1601613d26",
+      "xmlSha256": "37d4321a816d87a23279579c6bb7de2edd708301c8f57abe33f652a5ef9fed25"
+    },
+    {
+      "artifactZipSha256": "d80f7650e05d58c6e1ad355f2ff95e4b95937e0e6e43fde809e08d8b267f8764",
+      "xmlSha256": "fec892ec86bd623ac9efbd8e145085df119758d9a8c8ea3bd60f68326c5994ee"
+    }
+  ],
+  "cases": [
+    [
+      "__tests__-integration/handlers/blacksmith-enchantment-transfer.integration.test.ts",
+      "Blacksmith enchantment transfer > keeps exactly one copy of each enchantment when an equip saves after a transfer committed"
+    ],
+    [
+      "__tests__-integration/handlers/blacksmith-enchantment-transfer.integration.test.ts",
+      "Blacksmith enchantment transfer > moves the enchantment onto the target and charges the listed price"
+    ],
+    [
+      "__tests__-integration/handlers/blacksmith-enchantment-transfer.integration.test.ts",
+      "Blacksmith enchantment transfer > never loses nor duplicates an enchantment when two sources race for the same target"
+    ],
+    [
+      "__tests__-integration/handlers/blacksmith-enchantment-transfer.integration.test.ts",
+      "Blacksmith enchantment transfer > offers each enchanted weapon the unenchanted weapons only, priced by the rarity of the receiving weapon"
+    ],
+    [
+      "__tests__-integration/handlers/blacksmith-enchantment-transfer.integration.test.ts",
+      "Blacksmith enchantment transfer > refuses the transfer when an equip moved the source equipment first"
+    ],
+    [
+      "__tests__-integration/handlers/blacksmith-enchantment-transfer.integration.test.ts",
+      "Blacksmith enchantment transfer > refuses when the target received an enchantment since the menu was opened"
+    ],
+    [
+      "__tests__-integration/handlers/blacksmith-enchantment-transfer.integration.test.ts",
+      "Blacksmith enchantment transfer > refuses without moving anything when the player can no longer pay"
+    ],
+    [
+      "__tests__-integration/handlers/blacksmith-enchantment-transfer.integration.test.ts",
+      "Blacksmith enchantment transfer > transfers and charges exactly once under concurrent confirmations"
+    ],
+    [
+      "__tests__-integration/handlers/bonus-guild-pve-island.race.integration.test.ts",
+      "bonusGuildPVEIsland small event with concurrent guild activity > awards guild points when the guild row changes concurrently"
+    ],
+    [
+      "__tests__-integration/handlers/bonus-guild-pve-island.race.integration.test.ts",
+      "bonusGuildPVEIsland small event with concurrent guild activity > awards guild points when the member row changes concurrently"
+    ],
+    [
+      "__tests__-integration/handlers/bonus-guild-pve-island.race.integration.test.ts",
+      "bonusGuildPVEIsland small event with concurrent guild activity > updates every member's guild mission when a member commits during a guild score gain under the guild lock"
+    ],
+    [
+      "__tests__-integration/handlers/chest-swap-mission.integration.test.ts",
+      "Chest deposit mission (issue #4589) > leaves the deposit mission untouched when withdrawing an item"
+    ],
+    [
+      "__tests__-integration/handlers/chest-swap-mission.integration.test.ts",
+      "Chest deposit mission (issue #4589) > progresses the deposit mission when swapping an inventory item with a chest item"
+    ],
+    [
+      "__tests__-integration/handlers/city-command-mission-update.integration.test.ts",
+      "City command mission update (issue #4621) > progresses the mission of a command entered from a city"
+    ],
+    [
+      "__tests__-integration/handlers/city-inventory-snapshot.integration.test.ts",
+      "City services after a chest action (issue #4789) > refuses a blacksmith upgrade priced for the equipment that was swapped into the chest"
+    ],
+    [
+      "__tests__-integration/handlers/city-inventory-snapshot.integration.test.ts",
+      "City services after a chest action (issue #4789) > refuses a home upgrade of the equipment that was swapped into the listed slot (issue #4973)"
+    ],
+    [
+      "__tests__-integration/handlers/city-inventory-snapshot.integration.test.ts",
+      "City services after a chest action (issue #4789) > refuses a royal blacksmith upgrade priced for the equipment that was swapped into the chest"
+    ],
+    [
+      "__tests__-integration/handlers/city-inventory-snapshot.integration.test.ts",
+      "City services after a chest action (issue #4789) > refuses to enchant the equipment that was swapped into the chest"
+    ],
+    [
+      "__tests__-integration/handlers/city-inventory-snapshot.integration.test.ts",
+      "City services after a chest action (issue #4789) > upgrades at home the sword withdrawn from the chest once the city was rebuilt"
+    ],
+    [
+      "__tests__-integration/handlers/city-stay-score.race.integration.test.ts",
+      "City stay score on exit > credits a time bonus taken in the city but not the alteration taken on arrival"
+    ],
+    [
+      "__tests__-integration/handlers/city-stay-score.race.integration.test.ts",
+      "City stay score on exit > credits the stay exactly once when 10 exits race"
+    ],
+    [
+      "__tests__-integration/handlers/city-stay-score.race.integration.test.ts",
+      "City stay score on exit > credits the stay with the report algorithm and leaves the city"
+    ],
+    [
+      "__tests__-integration/handlers/class-change-defense-personality.integration.test.ts",
+      "class change and defense personality > forgets a personality the new class does not offer, and tells the player"
+    ],
+    [
+      "__tests__-integration/handlers/class-change-defense-personality.integration.test.ts",
+      "class change and defense personality > keeps a personality the new class offers too, without telling the player"
+    ],
+    [
+      "__tests__-integration/handlers/class-change-defense-personality.integration.test.ts",
+      "class change and defense personality > tells nothing to a player who let a random personality defend them"
+    ],
+    [
+      "__tests__-integration/handlers/cooking-grade-up.integration.test.ts",
+      "cooking craft reaching a new grade > answers when the crafted recipe was pinned instead of failing the mission update"
+    ],
+    [
+      "__tests__-integration/handlers/cooking-grade-up.integration.test.ts",
+      "cooking craft reaching a new grade > answers with the level up when the craft reaches a new grade"
+    ],
+    [
+      "__tests__-integration/handlers/cooking-specialties.integration.test.ts",
+      "cooking specialties and time potion weekly limit > blocks the time potions once the weekly limit is reached, without consuming the ingredients"
+    ],
+    [
+      "__tests__-integration/handlers/cooking-specialties.integration.test.ts",
+      "cooking specialties and time potion weekly limit > counts the time potion just cooked in the menu shown after the craft"
+    ],
+    [
+      "__tests__-integration/handlers/cooking-specialties.integration.test.ts",
+      "cooking specialties and time potion weekly limit > offers a specialty on the specialty station at every furnace ignition, besides every rotating station, even once cooked"
+    ],
+    [
+      "__tests__-integration/handlers/cooking-specialties.integration.test.ts",
+      "cooking specialties and time potion weekly limit > only lets a kitchen master keep the single specialty of their grade"
+    ],
+    [
+      "__tests__-integration/handlers/cooking-specialties.integration.test.ts",
+      "cooking specialties and time potion weekly limit > refuses a specialty before the first unlock level or for a recipe the station no longer offers"
+    ],
+    [
+      "__tests__-integration/handlers/cooking-specialties.integration.test.ts",
+      "cooking specialties and time potion weekly limit > refuses a specialty beyond the limit and accepts a new one once a specialty is removed"
+    ],
+    [
+      "__tests__-integration/handlers/cooking-time-potion-quota.race.test.ts",
+      "weekly time potion limit under concurrent crafts > never lets concurrent crafts cook more time potions than the weekly limit"
+    ],
+    [
+      "__tests__-integration/handlers/coreSetup.smoke.integration.test.ts",
+      "setupCoreForTests smoke > can create and re-read a Player row through the registered model"
+    ],
+    [
+      "__tests__-integration/handlers/coreSetup.smoke.integration.test.ts",
+      "setupCoreForTests smoke > loads production modules from the dist tree"
+    ],
+    [
+      "__tests__-integration/handlers/coreSetup.smoke.integration.test.ts",
+      "setupCoreForTests smoke > provisions a schema and exposes a working Sequelize instance"
+    ],
+    [
+      "__tests__-integration/handlers/daily-bonus.race.integration.test.ts",
+      "DailyBonusCommand.activateDailyItem race > applies the bonus exactly once when 25 callers race"
+    ],
+    [
+      "__tests__-integration/handlers/daily-max-tokens-mission.integration.test.ts",
+      "daily max tokens mission catch-up > completes the campaign slot, which never expires"
+    ],
+    [
+      "__tests__-integration/handlers/daily-max-tokens-mission.integration.test.ts",
+      "daily max tokens mission catch-up > completes the mission of a player sitting at the token cap"
+    ],
+    [
+      "__tests__-integration/handlers/daily-max-tokens-mission.integration.test.ts",
+      "daily max tokens mission catch-up > does not revive an expired mission"
+    ],
+    [
+      "__tests__-integration/handlers/daily-max-tokens-mission.integration.test.ts",
+      "daily max tokens mission catch-up > leaves the mission untouched below the token cap"
+    ],
+    [
+      "__tests__-integration/handlers/daily-mission-reentrant-completion.integration.test.ts",
+      "daily mission completed by a reentrant mission update > 'keeps the streak of a player who comp…'"
+    ],
+    [
+      "__tests__-integration/handlers/daily-mission-reentrant-completion.integration.test.ts",
+      "daily mission completed by a reentrant mission update > 'restarts the streak of a player who m…'"
+    ],
+    [
+      "__tests__-integration/handlers/daily-mission-reentrant-completion.integration.test.ts",
+      "daily mission completed by a reentrant mission update > pays once an earnMoney daily mission progressed again by the money of the streak"
+    ],
+    [
+      "__tests__-integration/handlers/daily-mission-reentrant-completion.integration.test.ts",
+      "daily mission completed by a reentrant mission update > pays once an earnTokens daily mission progressed again by a king's challenge tier the streak crosses"
+    ],
+    [
+      "__tests__-integration/handlers/defense-personality.integration.test.ts",
+      "defense personality > defends a player with the personality the player picked"
+    ],
+    [
+      "__tests__-integration/handlers/defense-personality.integration.test.ts",
+      "defense personality > lets a player without choice be defended by a random personality"
+    ],
+    [
+      "__tests__-integration/handlers/do-possibility-locked-outcome.race.integration.test.ts",
+      "doPossibility locked outcome race > serialises 20 concurrent outcome applications — money is exact"
+    ],
+    [
+      "__tests__-integration/handlers/enchanter-disenchant.integration.test.ts",
+      "Enchanter free disenchant (issue #4960) > disenchants exactly once under concurrent confirmations"
+    ],
+    [
+      "__tests__-integration/handlers/enchanter-disenchant.integration.test.ts",
+      "Enchanter free disenchant (issue #4960) > lists every enchanted weapon, equipped or in reserve"
+    ],
+    [
+      "__tests__-integration/handlers/enchanter-disenchant.integration.test.ts",
+      "Enchanter free disenchant (issue #4960) > refuses to disenchant a weapon whose enchantment changed since the menu was opened"
+    ],
+    [
+      "__tests__-integration/handlers/enchanter-disenchant.integration.test.ts",
+      "Enchanter free disenchant (issue #4960) > removes the enchantment of a reserve weapon without charging anything"
+    ],
+    [
+      "__tests__-integration/handlers/enchanter-enchant.race.integration.test.ts",
+      "Enchanter paid enchantment under lock (issue #4983) > enchants and charges exactly once under concurrent confirmations"
+    ],
+    [
+      "__tests__-integration/handlers/enchanter-enchant.race.integration.test.ts",
+      "Enchanter paid enchantment under lock (issue #4983) > enchants the listed weapon and charges the price"
+    ],
+    [
+      "__tests__-integration/handlers/enchanter-enchant.race.integration.test.ts",
+      "Enchanter paid enchantment under lock (issue #4983) > refuses to enchant the weapon a chest action wrote into the slot while the confirmation waited for the lock"
+    ],
+    [
+      "__tests__-integration/handlers/expedition-campaign-mission-order.integration.test.ts",
+      "Expedition campaign mission ordering (issue #4379) > does not complete a freshly assigned dangerousExpedition campaign mission with the same expedition"
+    ],
+    [
+      "__tests__-integration/handlers/food-shop-buy-missions.integration.test.ts",
+      "handleFoodShopBuy mission side effects > advances both buyGuildPetFood and buyUltimateSoups when buying ultimate food"
+    ],
+    [
+      "__tests__-integration/handlers/food-shop-buy-missions.integration.test.ts",
+      "handleFoodShopBuy mission side effects > advances buyUltimateSoups only by the amount actually bought (treasury-capped)"
+    ],
+    [
+      "__tests__-integration/handlers/food-shop-buy-missions.integration.test.ts",
+      "handleFoodShopBuy mission side effects > does not advance buyUltimateSoups when buying non-ultimate food"
+    ],
+    [
+      "__tests__-integration/handlers/food-shop-buy-missions.integration.test.ts",
+      "handleFoodShopBuy mission side effects > emits the buy response before any MissionsCompletedPacket (issue #4380)"
+    ],
+    [
+      "__tests__-integration/handlers/friendly-fights-logs.integration.test.ts",
+      "Logged friendly fights > are left out of the fight history, which only shows fights with glory changes"
+    ],
+    [
+      "__tests__-integration/handlers/friendly-fights-logs.integration.test.ts",
+      "Logged friendly fights > are not counted as ranked attacks"
+    ],
+    [
+      "__tests__-integration/handlers/guild-leave-lock.race.integration.test.ts",
+      "GuildLeaveCommand.runLeaveUnderLock race > converges with the chief + all members leaving concurrently"
+    ],
+    [
+      "__tests__-integration/handlers/home-chest-deposit.race.integration.test.ts",
+      "ReportCityChestService.handleChestAction deposit race > compacts existing reserve gaps without losing item attributes"
+    ],
+    [
+      "__tests__-integration/handlers/home-chest-deposit.race.integration.test.ts",
+      "ReportCityChestService.handleChestAction deposit race > moves the item exactly once under N=25 concurrent deposits"
+    ],
+    [
+      "__tests__-integration/handlers/home-chest-deposit.race.integration.test.ts",
+      "ReportCityChestService.handleChestAction deposit race > preserves potion usages through a chest deposit and withdrawal"
+    ],
+    [
+      "__tests__-integration/handlers/home-chest-deposit.race.integration.test.ts",
+      "ReportCityChestService.handleChestAction deposit race > reuses the first missing reserve slot when withdrawing from the chest"
+    ],
+    [
+      "__tests__-integration/handlers/king-challenge-week-end.integration.test.ts",
+      "king's challenge week end > announces the winner, resets the tiers with the weekly scores and sets the thresholds of the new week"
+    ],
+    [
+      "__tests__-integration/handlers/king-challenge-week-end.integration.test.ts",
+      "king's challenge week end > does not retry a weekly reset whose outcome is unknown"
+    ],
+    [
+      "__tests__-integration/handlers/king-challenge-week-end.integration.test.ts",
+      "king's challenge week end > pays a gain applied before the weekly reset on the thresholds of the week ending"
+    ],
+    [
+      "__tests__-integration/handlers/king-challenge-week-end.integration.test.ts",
+      "king's challenge week end > pays a gain blocked by the weekly reset on the thresholds of the new week"
+    ],
+    [
+      "__tests__-integration/handlers/king-challenge-week-end.integration.test.ts",
+      "king's challenge week end > retries a weekly reset rolled back by a deadlock and applies it exactly once"
+    ],
+    [
+      "__tests__-integration/handlers/king-challenge.race.integration.test.ts",
+      "king's challenge > announces nothing and grants nothing when crediting the rewards fails"
+    ],
+    [
+      "__tests__-integration/handlers/king-challenge.race.integration.test.ts",
+      "king's challenge > keeps the gems of a tier paid while an enclosing mission completion credits its own gems"
+    ],
+    [
+      "__tests__-integration/handlers/king-challenge.race.integration.test.ts",
+      "king's challenge > lets the tokens of a tier exceed the token cap when the player is below it"
+    ],
+    [
+      "__tests__-integration/handlers/king-challenge.race.integration.test.ts",
+      "king's challenge > never pays a tier twice when the weekly score drops and comes back"
+    ],
+    [
+      "__tests__-integration/handlers/king-challenge.race.integration.test.ts",
+      "king's challenge > pays a tier crossed by the missions completed with the rewards of the previous one"
+    ],
+    [
+      "__tests__-integration/handlers/king-challenge.race.integration.test.ts",
+      "king's challenge > pays a tier exactly once when 10 score gains race to cross it"
+    ],
+    [
+      "__tests__-integration/handlers/king-challenge.race.integration.test.ts",
+      "king's challenge > pays both the expedition tokens and the tier its score crosses when the expedition brings the player to the cap"
+    ],
+    [
+      "__tests__-integration/handlers/king-challenge.race.integration.test.ts",
+      "king's challenge > pays every tier crossed at once and announces the crossing"
+    ],
+    [
+      "__tests__-integration/handlers/king-challenge.race.integration.test.ts",
+      "king's challenge > pays no tier tokens once an earlier action brought the player to the cap"
+    ],
+    [
+      "__tests__-integration/handlers/king-challenge.race.integration.test.ts",
+      "king's challenge > pays nothing below the first tier"
+    ],
+    [
+      "__tests__-integration/handlers/king-challenge.race.integration.test.ts",
+      "king's challenge > pays the other rewards but no tokens to a player at or above the token cap, and announces it"
+    ],
+    [
+      "__tests__-integration/handlers/king-challenge.race.integration.test.ts",
+      "king's challenge > records the reference scores of the week that set the next thresholds"
+    ],
+    [
+      "__tests__-integration/handlers/king-challenge.race.integration.test.ts",
+      "king's challenge > shows the progress of the week with the coming Monday reset"
+    ],
+    [
+      "__tests__-integration/handlers/king-guard-fights.integration.test.ts",
+      "King guard fight stats > counts the results and the records broken, a weaker victory or a defeat against a stronger guard breaking none"
+    ],
+    [
+      "__tests__-integration/handlers/king-guard-fights.integration.test.ts",
+      "King guard fight stats > keeps only the strongest challengers in the leaderboard, while ranking the player among all of them"
+    ],
+    [
+      "__tests__-integration/handlers/king-guard-fights.integration.test.ts",
+      "King guard fight stats > ranks first the player whose fight was logged first when two players reach the same level in the same second"
+    ],
+    [
+      "__tests__-integration/handlers/king-guard-fights.integration.test.ts",
+      "King guard fight stats > ranks the player among the challengers, the first to reach a level ranking first"
+    ],
+    [
+      "__tests__-integration/handlers/king-guard-fights.integration.test.ts",
+      "King guard fight stats > returns null for a player who never fought a king guard"
+    ],
+    [
+      "__tests__-integration/handlers/king-guard-fights.integration.test.ts",
+      "King guard fights in the fight history > keeps only the most recent fights of both kinds"
+    ],
+    [
+      "__tests__-integration/handlers/king-guard-fights.integration.test.ts",
+      "King guard fights in the fight history > merges the king guard fights with the ranked fights, most recent first"
+    ],
+    [
+      "__tests__-integration/handlers/king-guard-fights.integration.test.ts",
+      "King guard fights logs > bases the next guard on the best guard beaten with the class lineage"
+    ],
+    [
+      "__tests__-integration/handlers/king-guard-fights.integration.test.ts",
+      "King guard fights logs > counts only today's guard fights in the daily summary"
+    ],
+    [
+      "__tests__-integration/handlers/king-guard-fights.integration.test.ts",
+      "King guard fights logs > creates the table with its indexes"
+    ],
+    [
+      "__tests__-integration/handlers/king-guard-fights.integration.test.ts",
+      "King guard fights logs > has no base without any guard fight"
+    ],
+    [
+      "__tests__-integration/handlers/king-guard-fights.integration.test.ts",
+      "King guard fights logs > lowers the base after the last lost guard when no guard was beaten"
+    ],
+    [
+      "__tests__-integration/handlers/king-guard-fights.integration.test.ts",
+      "King guard fights logs > lowers the base below zero after a loss against a guard of the minimal level"
+    ],
+    [
+      "__tests__-integration/handlers/king-guard-fights.integration.test.ts",
+      "King guard fights logs > remembers the strongest guard beaten whatever the class, and the last guard fight"
+    ],
+    [
+      "__tests__-integration/handlers/mission-money.race.integration.test.ts",
+      "MissionShopItems.getMoneyShopItem race > credits exactly N * amount when 30 callers race"
+    ],
+    [
+      "__tests__-integration/handlers/mission-thousand-points.race.integration.test.ts",
+      "MissionShopItems.getAThousandPointsShopItem race > awards score exactly once when 30 callers race"
+    ],
+    [
+      "__tests__-integration/handlers/pet-expedition.race.integration.test.ts",
+      "pet expedition races > creates one active expedition when two selections race"
+    ],
+    [
+      "__tests__-integration/handlers/pet-expedition.race.integration.test.ts",
+      "pet expedition races > logs a recall with every column required by logs_expeditions"
+    ],
+    [
+      "__tests__-integration/handlers/pet-expedition.race.integration.test.ts",
+      "pet expedition races > preserves every guild food debit when two members start concurrently"
+    ],
+    [
+      "__tests__-integration/handlers/pet-expedition.race.integration.test.ts",
+      "pet expedition races > rejects a stale recall after the expedition end date"
+    ],
+    [
+      "__tests__-integration/handlers/pet-nick-lock.race.integration.test.ts",
+      "pet nickname lock > refuses to rename a pet the player no longer owns"
+    ],
+    [
+      "__tests__-integration/handlers/pet-nick-lock.race.integration.test.ts",
+      "pet nickname lock > renames the pet when the player still owns it"
+    ],
+    [
+      "__tests__-integration/handlers/pet-nick-lock.race.integration.test.ts",
+      "pet nickname lock > reports a missing pet instead of throwing when the pet row vanished"
+    ],
+    [
+      "__tests__-integration/handlers/plant-delivery.race.integration.test.ts",
+      "Plant inventory linked to the home plant storage > gardener plant gift > gives advice instead when there is no room left"
+    ],
+    [
+      "__tests__-integration/handlers/plant-delivery.race.integration.test.ts",
+      "Plant inventory linked to the home plant storage > gardener plant gift > keeps the gifted plant in the plant slots of an unlinked player"
+    ],
+    [
+      "__tests__-integration/handlers/plant-delivery.race.integration.test.ts",
+      "Plant inventory linked to the home plant storage > gardener plant gift > runs concurrently with chest plant transfers without deadlock nor plant loss (N=25 each)"
+    ],
+    [
+      "__tests__-integration/handlers/plant-delivery.race.integration.test.ts",
+      "Plant inventory linked to the home plant storage > gardener plant gift > sends the gifted plant to the home storage of a linked player, under the small event lock"
+    ],
+    [
+      "__tests__-integration/handlers/plant-delivery.race.integration.test.ts",
+      "Plant inventory linked to the home plant storage > givePlantsToPlayer > gives nothing when the whole quantity does not fit, and tells why"
+    ],
+    [
+      "__tests__-integration/handlers/plant-delivery.race.integration.test.ts",
+      "Plant inventory linked to the home plant storage > givePlantsToPlayer > keeps the plants in the plant slots when the player has no home"
+    ],
+    [
+      "__tests__-integration/handlers/plant-delivery.race.integration.test.ts",
+      "Plant inventory linked to the home plant storage > givePlantsToPlayer > keeps the plants in the plant slots while the home has no garden, its chest not showing any plant"
+    ],
+    [
+      "__tests__-integration/handlers/plant-delivery.race.integration.test.ts",
+      "Plant inventory linked to the home plant storage > givePlantsToPlayer > keeps the plants in the plant slots without the last tanner upgrade"
+    ],
+    [
+      "__tests__-integration/handlers/plant-delivery.race.integration.test.ts",
+      "Plant inventory linked to the home plant storage > givePlantsToPlayer > never delivers more than the chest and the slots can hold under N=25 concurrent deliveries"
+    ],
+    [
+      "__tests__-integration/handlers/plant-delivery.race.integration.test.ts",
+      "Plant inventory linked to the home plant storage > givePlantsToPlayer > sends the plants to the home storage first, then to the plant slots, once linked"
+    ],
+    [
+      "__tests__-integration/handlers/plant-delivery.race.integration.test.ts",
+      "Plant inventory linked to the home plant storage > herbalist through the shop collector > debits exactly the unit price times the bought amount and reports what was delivered"
+    ],
+    [
+      "__tests__-integration/handlers/plant-delivery.race.integration.test.ts",
+      "Plant inventory linked to the home plant storage > herbalist through the shop collector > leaves the balance unchanged when the plants cannot be delivered"
+    ],
+    [
+      "__tests__-integration/handlers/plant-delivery.race.integration.test.ts",
+      "Plant inventory linked to the home plant storage > herbalist weekly plants > charges exactly the delivered plants under N=25 concurrent purchases"
+    ],
+    [
+      "__tests__-integration/handlers/plant-delivery.race.integration.test.ts",
+      "Plant inventory linked to the home plant storage > herbalist weekly plants > checks the money again under the lock and delivers nothing when it is no longer enough"
+    ],
+    [
+      "__tests__-integration/handlers/plant-delivery.race.integration.test.ts",
+      "Plant inventory linked to the home plant storage > herbalist weekly plants > lets a linked player buy every plant they can receive and afford, and charges exactly that"
+    ],
+    [
+      "__tests__-integration/handlers/plant-delivery.race.integration.test.ts",
+      "Plant inventory linked to the home plant storage > herbalist weekly plants > lets a player without the home storage link fill all their empty plant slots at once"
+    ],
+    [
+      "__tests__-integration/handlers/plant-delivery.race.integration.test.ts",
+      "Plant inventory linked to the home plant storage > herbalist weekly plants > never offers more plants than the player can afford"
+    ],
+    [
+      "__tests__-integration/handlers/plant-delivery.race.integration.test.ts",
+      "Plant inventory linked to the home plant storage > isPlantInventoryLinkedToHome > links the plant inventory only with the last tanner upgrade and a home with a garden"
+    ],
+    [
+      "__tests__-integration/handlers/player-experience.race.integration.test.ts",
+      "Player experience race > preserves concurrent XP gains and emits the reached level once"
+    ],
+    [
+      "__tests__-integration/handlers/player-mutations.race.integration.test.ts",
+      "Player mutations race > applies the same clean-caller contract with and without mission progress"
+    ],
+    [
+      "__tests__-integration/handlers/player-mutations.race.integration.test.ts",
+      "Player mutations race > preserves concurrent healing and XP while emitting one level"
+    ],
+    [
+      "__tests__-integration/handlers/player-mutations.race.integration.test.ts",
+      "Player mutations race > preserves concurrent money gain and token spending"
+    ],
+    [
+      "__tests__-integration/handlers/player-mutations.race.integration.test.ts",
+      "Player mutations race > rejects a dirty player before a re-entrant locked mutation can overwrite it (#4829)"
+    ],
+    [
+      "__tests__-integration/handlers/player-mutations.race.integration.test.ts",
+      "Player mutations race > synchronizes rewards when player mutation completes daily and normal missions"
+    ],
+    [
+      "__tests__-integration/handlers/pve-boss-post-fight.integration.test.ts",
+      "PvE boss post-fight persistence (#4829) > leaves the caller clean after a loss whose fight missions levelled the player up"
+    ],
+    [
+      "__tests__-integration/handlers/pve-boss-records.integration.test.ts",
+      "PvE boss record queries > deduplicates players and ranks only the requested maximum-tier class"
+    ],
+    [
+      "__tests__-integration/handlers/pve-boss-records.integration.test.ts",
+      "PvE boss record queries > installs every index required by the archivist queries"
+    ],
+    [
+      "__tests__-integration/handlers/pve-boss-records.integration.test.ts",
+      "PvE boss record queries > returns personal records with the winning fight actions"
+    ],
+    [
+      "__tests__-integration/handlers/pve-fight-progression.integration.test.ts",
+      "PVE boss ladder > is empty when the player never fought the boss"
+    ],
+    [
+      "__tests__-integration/handlers/pve-fight-progression.integration.test.ts",
+      "PVE boss ladder > remembers the strongest boss killed whatever the class, and the last fight against it"
+    ],
+    [
+      "__tests__-integration/handlers/pve-island-leave-dates.integration.test.ts",
+      "PvE island leave dates > ignores travels made on the continent before the player reached the island"
+    ],
+    [
+      "__tests__-integration/handlers/pve-island-leave-dates.integration.test.ts",
+      "PvE island leave dates > keeps one leave date per player"
+    ],
+    [
+      "__tests__-integration/handlers/pve-island-leave-dates.integration.test.ts",
+      "PvE island leave dates > reports no leave date for a player still on the island"
+    ],
+    [
+      "__tests__-integration/handlers/pve-island-leave-dates.integration.test.ts",
+      "PvE island leave dates > reports no leave date for a player that came back to the island"
+    ],
+    [
+      "__tests__-integration/handlers/pve-island-leave-dates.integration.test.ts",
+      "PvE island leave dates > reports no leave date for a player that never went to the island"
+    ],
+    [
+      "__tests__-integration/handlers/pve-island-leave-dates.integration.test.ts",
+      "PvE island leave dates > reports the first travel outside the island even when the last island travel is old"
+    ],
+    [
+      "__tests__-integration/handlers/recent-defenses.integration.test.ts",
+      "Recent defenses shown by the defense command > ignores the fights the player started, the friendly ones and the ones older than the window"
+    ],
+    [
+      "__tests__-integration/handlers/recent-defenses.integration.test.ts",
+      "Recent defenses shown by the defense command > sums up the ranked defenses of the player by class of the attackers, the most frequent first"
+    ],
+    [
+      "__tests__-integration/handlers/scrap-dealer.race.integration.test.ts",
+      "scrap dealer race > recycles the same equipment only once across 20 concurrent reactions"
+    ],
+    [
+      "__tests__-integration/handlers/small-event-player-state.integration.test.ts",
+      "small event player state > full-heals from the locked state when the clean caller is stale"
+    ],
+    [
+      "__tests__-integration/handlers/small-event-player-state.integration.test.ts",
+      "small event player state > heals without dirtying the caller when raw health exceeds its maximum"
+    ],
+    [
+      "__tests__-integration/handlers/small-event-player-state.integration.test.ts",
+      "small event player state > persists class event health before the doReports mission update"
+    ],
+    [
+      "__tests__-integration/handlers/small-event-player-state.integration.test.ts",
+      "small event player state > persists health atomically with mission state"
+    ],
+    [
+      "__tests__-integration/handlers/tanner-buy-slot.race.integration.test.ts",
+      "TannerShopItems.getBuySlotExtensionShopItemCallback race > preserves N=25 debits and slot increments under race"
+    ],
+    [
+      "__tests__-integration/handlers/tanner-plant-slot.race.integration.test.ts",
+      "TannerShopItems.getPlantSlotExtensionShopItem race > grants exactly one slot when 25 callers race at MAX-1"
+    ],
+    [
+      "__tests__-integration/handlers/with-locked-player-safe.race.integration.test.ts",
+      "withLockedPlayerSafe race > serialises 30 concurrent body executions — no lost writes"
+    ],
+    [
+      "__tests__-integration/handlers/with-locked-player-safe.race.integration.test.ts",
+      "withLockedPlayerSafe race > swallows LockedRowNotFoundError when the player vanished concurrently"
+    ],
+    [
+      "__tests__-integration/locks/clsContextLeak.integration.test.ts",
+      "player CLS contexts > does not leak the transaction of a token cap reference action to unrelated callbacks"
+    ],
+    [
+      "__tests__-integration/locks/clsContextLeak.integration.test.ts",
+      "player CLS contexts > does not leave the level up context active once the level up returned its promise"
+    ],
+    [
+      "__tests__-integration/locks/logsDatabaseForeignTransactionGuard.integration.test.ts",
+      "logs database foreign transaction guard > keeps findOrCreate on the logs database during a game lock"
+    ],
+    [
+      "__tests__-integration/locks/withLockedEntities.primitive.integration.test.ts",
+      "withLockedEntities (integration) > commits the callback's mutations to the locked row"
+    ],
+    [
+      "__tests__-integration/locks/withLockedEntities.primitive.integration.test.ts",
+      "withLockedEntities (integration) > dedupes identical keys at the DB level (single FOR UPDATE round-trip)"
+    ],
+    [
+      "__tests__-integration/locks/withLockedEntities.primitive.integration.test.ts",
+      "withLockedEntities (integration) > locks several rows, in canonical order, and surfaces them to the callback in caller order"
+    ],
+    [
+      "__tests__-integration/locks/withLockedEntities.primitive.integration.test.ts",
+      "withLockedEntities (integration) > propagates the transaction via CLS to nested save() calls"
+    ],
+    [
+      "__tests__-integration/locks/withLockedEntities.primitive.integration.test.ts",
+      "withLockedEntities (integration) > rolls back every mutation when the callback throws"
+    ],
+    [
+      "__tests__-integration/locks/withLockedEntities.primitive.integration.test.ts",
+      "withLockedEntities (integration) > serialises two callers racing for the same row (FOR UPDATE blocks)"
+    ],
+    [
+      "__tests__-integration/locks/withLockedEntities.primitive.integration.test.ts",
+      "withLockedEntities (integration) > throws and rolls back when a locked row does not exist"
+    ],
+    [
+      "__tests__-integration/locks/withLockedPlayerAndMissions.race.integration.test.ts",
+      "withLockedPlayerAndMissions race > prewarms a missing PlayerMissionsInfo row before locking"
+    ],
+    [
+      "__tests__-integration/locks/withLockedPlayerAndMissions.race.integration.test.ts",
+      "withLockedPlayerAndMissions race > serialises 20 mixed nested and standalone mission updates without deadlock"
+    ],
+    [
+      "__tests__-integration/migrations/logsDatabaseFreshMigrations.integration.test.ts",
+      "Logs database migrations on a fresh schema (issue #4869) > applies every migration and renames the v4 possibility emojis"
+    ],
+    [
+      "__tests__-integration/migrations/revokeEarlyCookingLevelRecipes.integration.test.ts",
+      "migration 077: revoke cooking level recipes unlocked before the right grade > keeps only the recipes unlocked by the player's grade and unpins the revoked ones"
+    ]
+  ],
+  "suites": [
+    "__tests__-integration/handlers/blacksmith-enchantment-transfer.integration.test.ts",
+    "__tests__-integration/handlers/bonus-guild-pve-island.race.integration.test.ts",
+    "__tests__-integration/handlers/chest-swap-mission.integration.test.ts",
+    "__tests__-integration/handlers/city-command-mission-update.integration.test.ts",
+    "__tests__-integration/handlers/city-inventory-snapshot.integration.test.ts",
+    "__tests__-integration/handlers/city-stay-score.race.integration.test.ts",
+    "__tests__-integration/handlers/class-change-defense-personality.integration.test.ts",
+    "__tests__-integration/handlers/cooking-grade-up.integration.test.ts",
+    "__tests__-integration/handlers/cooking-specialties.integration.test.ts",
+    "__tests__-integration/handlers/cooking-time-potion-quota.race.test.ts",
+    "__tests__-integration/handlers/coreSetup.smoke.integration.test.ts",
+    "__tests__-integration/handlers/daily-bonus.race.integration.test.ts",
+    "__tests__-integration/handlers/daily-max-tokens-mission.integration.test.ts",
+    "__tests__-integration/handlers/daily-mission-reentrant-completion.integration.test.ts",
+    "__tests__-integration/handlers/defense-personality.integration.test.ts",
+    "__tests__-integration/handlers/do-possibility-locked-outcome.race.integration.test.ts",
+    "__tests__-integration/handlers/enchanter-disenchant.integration.test.ts",
+    "__tests__-integration/handlers/enchanter-enchant.race.integration.test.ts",
+    "__tests__-integration/handlers/expedition-campaign-mission-order.integration.test.ts",
+    "__tests__-integration/handlers/food-shop-buy-missions.integration.test.ts",
+    "__tests__-integration/handlers/friendly-fights-logs.integration.test.ts",
+    "__tests__-integration/handlers/guild-leave-lock.race.integration.test.ts",
+    "__tests__-integration/handlers/home-chest-deposit.race.integration.test.ts",
+    "__tests__-integration/handlers/king-challenge-week-end.integration.test.ts",
+    "__tests__-integration/handlers/king-challenge.race.integration.test.ts",
+    "__tests__-integration/handlers/king-guard-fights.integration.test.ts",
+    "__tests__-integration/handlers/mission-money.race.integration.test.ts",
+    "__tests__-integration/handlers/mission-thousand-points.race.integration.test.ts",
+    "__tests__-integration/handlers/pet-expedition.race.integration.test.ts",
+    "__tests__-integration/handlers/pet-nick-lock.race.integration.test.ts",
+    "__tests__-integration/handlers/plant-delivery.race.integration.test.ts",
+    "__tests__-integration/handlers/player-experience.race.integration.test.ts",
+    "__tests__-integration/handlers/player-mutations.race.integration.test.ts",
+    "__tests__-integration/handlers/pve-boss-post-fight.integration.test.ts",
+    "__tests__-integration/handlers/pve-boss-records.integration.test.ts",
+    "__tests__-integration/handlers/pve-fight-progression.integration.test.ts",
+    "__tests__-integration/handlers/pve-island-leave-dates.integration.test.ts",
+    "__tests__-integration/handlers/recent-defenses.integration.test.ts",
+    "__tests__-integration/handlers/scrap-dealer.race.integration.test.ts",
+    "__tests__-integration/handlers/small-event-player-state.integration.test.ts",
+    "__tests__-integration/handlers/tanner-buy-slot.race.integration.test.ts",
+    "__tests__-integration/handlers/tanner-plant-slot.race.integration.test.ts",
+    "__tests__-integration/handlers/with-locked-player-safe.race.integration.test.ts",
+    "__tests__-integration/locks/clsContextLeak.integration.test.ts",
+    "__tests__-integration/locks/logsDatabaseForeignTransactionGuard.integration.test.ts",
+    "__tests__-integration/locks/withLockedEntities.primitive.integration.test.ts",
+    "__tests__-integration/locks/withLockedPlayerAndMissions.race.integration.test.ts",
+    "__tests__-integration/migrations/logsDatabaseFreshMigrations.integration.test.ts",
+    "__tests__-integration/migrations/revokeEarlyCookingLevelRecipes.integration.test.ts"
+  ]
+}

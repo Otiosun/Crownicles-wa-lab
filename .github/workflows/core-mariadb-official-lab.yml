@@ -35,6 +35,11 @@ jobs:
     steps:
       - name: Check out minimal private laboratory harness
         uses: actions/checkout@v4
+      - name: Verify complete pinned JUnit gate before native build
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m unittest discover -s tests -p 'test_verify_core_junit_full_suite.py' -v
       - name: Refuse other repos and non-isolated database targets
         shell: bash
         env:
