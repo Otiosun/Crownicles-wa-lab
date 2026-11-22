@@ -127,6 +127,42 @@ class FullSuiteGateTests(unittest.TestCase):
     def test_20_nested_rogue_case_denied(self):
         root=make_report(); extra=ET.SubElement(root,'testcase',classname='ignored',name='hidden');self.assert_denied(root,'fora de suite')
 
+    def test_22_root_failure_marker_fails_closed(self):
+        root = make_report()
+        parent = root if 'root' == 'root' else root.find('testsuite')
+        ET.SubElement(parent, 'failure', message='synthetic failure outside testcase')
+        self.assert_denied(root, 'falhou/pulado')
+
+    def test_23_root_error_marker_fails_closed(self):
+        root = make_report()
+        parent = root if 'root' == 'root' else root.find('testsuite')
+        ET.SubElement(parent, 'error', message='synthetic failure outside testcase')
+        self.assert_denied(root, 'falhou/pulado')
+
+    def test_24_root_skipped_marker_fails_closed(self):
+        root = make_report()
+        parent = root if 'root' == 'root' else root.find('testsuite')
+        ET.SubElement(parent, 'skipped', message='synthetic failure outside testcase')
+        self.assert_denied(root, 'falhou/pulado')
+
+    def test_25_suite_failure_marker_fails_closed(self):
+        root = make_report()
+        parent = root if 'suite' == 'root' else root.find('testsuite')
+        ET.SubElement(parent, 'failure', message='synthetic failure outside testcase')
+        self.assert_denied(root, 'falhou/pulado')
+
+    def test_26_suite_error_marker_fails_closed(self):
+        root = make_report()
+        parent = root if 'suite' == 'root' else root.find('testsuite')
+        ET.SubElement(parent, 'error', message='synthetic failure outside testcase')
+        self.assert_denied(root, 'falhou/pulado')
+
+    def test_27_suite_skipped_marker_fails_closed(self):
+        root = make_report()
+        parent = root if 'suite' == 'root' else root.find('testsuite')
+        ET.SubElement(parent, 'skipped', message='synthetic failure outside testcase')
+        self.assert_denied(root, 'falhou/pulado')
+
     def test_21_cli_success_and_missing_input_fail_closed(self):
         # CLI smoke without runner, JUnit is explicitly synthetic.
         import subprocess,sys
