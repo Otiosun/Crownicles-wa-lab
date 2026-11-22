@@ -17,3 +17,41 @@ test('real wire client CONNECT, SUBSCRIBE, PUBLISH and fragmentation against iso
  const server=net.createServer(s=>{let buf=Buffer.alloc(0);s.on('data',d=>{buf=Buffer.concat([buf,d]);for(;;){let f;try{f=parseOne(buf)}catch{return};if(!f)break;buf=buf.subarray(f.size);const type=f.header>>4;if(type===1){s.write(Buffer.from([0x20,0x02,0x00,0x00]))}else if(type===8){const id=f.payload.subarray(0,2);s.write(Buffer.concat([Buffer.from([0x90,0x03]),id,Buffer.from([0x00])]))}else if(type===3){const echo=packet(0x30,f.payload);s.write(echo.subarray(0,2));setTimeout(()=>s.write(echo.subarray(2)),5)}}})});await new Promise(r=>server.listen(0,'127.0.0.1',r));
  let client;try{let c=await MqttWire.connect(server.address().port,{username:'user',password:'pass'});client=c.client;assert.equal(c.rc,0);assert.equal(await client.subscribe('abc'),0);const promise=client.waitMessage('abc','payload');client.publish('abc','payload');assert.equal(await promise,true)}finally{client?.close();await new Promise(r=>server.close(r))}
 });
+const {EventEmitter}=require('node:events');
+const {proveTopicIsolation}=require('./w46_raw_mqtt_probe.cjs');
+function topicPair({suback=0,leakRead=false,leakWrite=false}={}){
+ const prefix='cw_wa_mqtt_lab_'+'a'.repeat(24),cTopic=prefix+'/crownicles_core',gTopic=prefix+'/crownicles_websocket';
+ const bus=new EventEmitter();
+ const mk=(role,read,write)=>{
+  const self=new EventEmitter();self.subscriptions=[];
+  self.subscribe=async t=>{self.subscriptions.push(t);return t===read?0:suback};
+  self.waitMessage=(t,b)=>new Promise(resolve=>{const cb=m=>{if(m.topic===t&&m.body===b){self.off('message',cb);resolve(true)}};self.on('message',cb)});
+  self.observe=(t,b)=>{let seen=0;const cb=m=>{if(m.topic===t&&m.body===b)seen++};self.on('message',cb);return ()=>{self.off('message',cb);return seen}};
+  self.publish=(t,b)=>{queueMicrotask(()=>bus.emit('publish',{role,topic:t,body:b,write,read}))};
+  return self;
+ };
+ const core=mk('core',cTopic,gTopic),gateway=mk('gateway',gTopic,cTopic);
+ bus.on('publish',m=>{
+  if(m.topic!==m.write&&!leakWrite)return;
+  for(const [target,read] of [[core,cTopic],[gateway,gTopic]]){
+   const allowed=m.topic===read;
+   if(allowed||(leakRead&&m.topic!==read)){target.emit('message',{topic:m.topic,body:m.body})}
+  }
+ });
+ return {core,gateway,prefix};
+}
+test('RED old SUBACK=128 expectation; GREEN v2 accepts SUBACK=0 only when cross-delivery filtered',async()=>{
+ const x=topicPair({suback:0});const proof=await proveTopicIsolation(x.core,x.gateway,x.prefix,{shortDelayMs:2,deniedDelayMs:2});
+ assert.equal(proof.subscriptionSemantics,'GRANTS_POSSIBLE_DELIVERY_ACL_VERIFIED');
+ assert.ok(x.core.subscriptions.includes(x.prefix+'/crownicles_websocket'));
+});
+test('v2 accepts broker that rejects unauthorized subscription with SUBACK=128',async()=>{
+ const x=topicPair({suback:128});const proof=await proveTopicIsolation(x.core,x.gateway,x.prefix,{shortDelayMs:2,deniedDelayMs:2});
+ assert.equal(proof.subscriptionSemantics,'ALL_DENIED_SUBACK');
+});
+test('v2 fails closed when unauthorized read topic delivers message despite legitimate directions',async()=>{
+ const x=topicPair({suback:0,leakRead:true});await assert.rejects(proveTopicIsolation(x.core,x.gateway,x.prefix,{shortDelayMs:2,deniedDelayMs:2}),/CROSS_TOPIC_READ_DELIVERED/)
+});
+test('v2 fails closed when unauthorized publish is actually delivered',async()=>{
+ const x=topicPair({suback:0,leakWrite:true});await assert.rejects(proveTopicIsolation(x.core,x.gateway,x.prefix,{shortDelayMs:2,deniedDelayMs:2}),/CROSS_TOPIC_PUBLISH_DELIVERED/)
+});
