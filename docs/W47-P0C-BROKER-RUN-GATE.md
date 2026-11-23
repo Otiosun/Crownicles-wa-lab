@@ -4,14 +4,14 @@
 
 ## Falsifiable P0-C bug and scoped fix
 
-The W46 R3 real-broker probe declared that an unauthorized QoS0 PUBLISH had not leaked after merely `sleep(450ms)`. Under a slow FIFO broker this is an **unsound negative assertion**: a forbidden publication may not have been processed at the point of assertion. We reproduced RED with a mock queue introducing 60–80 ms of unauthorized-message processing delay and a 1 ms test window, not with Mosquitto itself.
+The W46 R3 real-broker probe used a bounded `sleep()` to assert silence after forbidden READ or QoS0 PUBLISH. Under a slow FIFO broker this is an **unsound negative assertion**: a forbidden delivery may not have been processed at the point of assertion. We reproduced RED with delayed unauthorized message delivery and 1 ms test windows, not with Mosquitto itself.
 
-W47 changes only `tools/w46_raw_mqtt_probe.cjs` and its test: after an unauthorized publish on each MQTT client connection, that **same TCP stream** sends an authorized publication with a random fence body; the test waits for both authorized fence deliveries. Under FIFO broker processing, observing these deliveries proves that each preceding unauthorized publish was processed before evaluating message isolation. It still waits a bounded additional interval for illegal deliveries. Missing fences are **FAIL** (not silently accepted). W44 authentication files and credentials are untouched.
+W47 changes only `tools/w46_raw_mqtt_probe.cjs` and its test. For denied **READ**, the authorized recipient first acknowledges the original publication, then the possible unauthorized recipient must receive a later allowed fence; each direction is exercised sequentially. For denied **WRITE**, each forbidden QoS0 PUBLISH is immediately followed by an allowed fence on the same publisher TCP stream, and both fence deliveries must be observed. This makes the negative assertion causally anchored under FIFO broker processing, with an additional quiet window. Missing fences are **FAIL**. This does not eliminate arbitrary malicious broker reordering. W44 authentication and credentials are untouched.
 
-- Source Git blob pre `bf0caa20bf9c81097e4cc160219a29c4e6fba850`, post `b3d4e117f65c202e6534652b8b0ea553612c60c9`.
-- Test Git blob pre `9352a21b16f151d9afb0cfb5ef65cd7adad40137`, post `4d9be84dab443e70f783b9b2c7e577a8ff5d2f99`.
-- RED W46 original with 28 total tests: **23 PASS / 5 FAIL** (the five W47 negative/fence tests).
-- GREEN W47 with the same 28 tests: **28 PASS / 0 FAIL / 0 SKIP**. Two new cases use a real local TCP socket with a **fake** MQTT broker enforcing deterministic FIFO delay; **they are not native Mosquitto tests**.
+- Source Git blob pre `bf0caa20bf9c81097e4cc160219a29c4e6fba850`, post `b7f31cf007e4c1ebcc78e93558808eb3341ff094`.
+- Test Git blob pre `9352a21b16f151d9afb0cfb5ef65cd7adad40137`, post `fd93b44bd54f1d4a1d00f1e20603fe73ed522f29`.
+- RED W46 original with 30 total tests: **24 PASS / 6 FAIL** (six new W47 negative/fence tests).
+- GREEN W47 with the same 30 tests: **30 PASS / 0 FAIL / 0 SKIP**. Two new cases use a real local TCP socket with a **fake** MQTT broker enforcing deterministic FIFO delay; **they are not native Mosquitto tests**.
 
 ## Native runner still blocked: two independent preconditions
 
