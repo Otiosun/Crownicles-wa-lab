@@ -50,7 +50,16 @@ async function proveTopicIsolation(core,gateway,prefix,{shortDelayMs=180,deniedD
  if(crossCore()>0||crossGate()>0)fail('CROSS_TOPIC_READ_DELIVERED');
  const aBad='deny-'+x,bBad='deny-'+y;
  const badCore=core.observe(tCore,aBad),badGate=gateway.observe(tGate,bBad);
- core.publish(tCore,aBad);gateway.publish(tGate,bBad);await sleep(deniedDelayMs);
+ // Same-client FIFO fence: an allowed response delivered to the opposite peer
+ // proves the broker processed each preceding forbidden PUBLISH. Silence alone
+ // for deniedDelayMs can produce a false PASS on a slow but leaking broker.
+ const coreFence='fence-core-'+x,gateFence='fence-gateway-'+y;
+ const fenceAtCore=core.waitMessage(tCore,coreFence),fenceAtGate=gateway.waitMessage(tGate,gateFence);
+ core.publish(tCore,aBad);gateway.publish(tGate,bBad);
+ // The fence must follow the denied publish on the SAME client TCP stream.
+ core.publish(tGate,gateFence);gateway.publish(tCore,coreFence);
+ await Promise.all([fenceAtCore,fenceAtGate]);
+ await sleep(deniedDelayMs);
  if(badCore()>0||badGate()>0)fail('CROSS_TOPIC_PUBLISH_DELIVERED');
  return {subscriptionSemantics:[rCore,rGate,wCore,wGate].every(v=>v===128)?'ALL_DENIED_SUBACK':'GRANTS_POSSIBLE_DELIVERY_ACL_VERIFIED'};
 }
