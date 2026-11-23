@@ -54,16 +54,45 @@ async function proveTopicIsolation(core,gateway,prefix,{shortDelayMs=180,deniedD
  if(badCore()>0||badGate()>0)fail('CROSS_TOPIC_PUBLISH_DELIVERED');
  return {subscriptionSemantics:[rCore,rGate,wCore,wGate].every(v=>v===128)?'ALL_DENIED_SUBACK':'GRANTS_POSSIBLE_DELIVERY_ACL_VERIFIED'};
 }
-async function run(modulePath){if(!modulePath||!path.isAbsolute(modulePath)||!fs.existsSync(modulePath)){report('BLOCKED','W44_SOURCE_ABSOLUTE_PATH_REQUIRED');return 2}const bytes=fs.readFileSync(modulePath);if(sha(bytes)!==W44_SHA){report('BLOCKED','W44_SOURCE_SHA_MISMATCH');return 2}if(process.getuid?.()===0){report('BLOCKED','RUN_AS_NONROOT_REQUIRED');return 2}if(!binary('mosquitto')||!binary('mosquitto_passwd')){report('BLOCKED','MOSQUITTO_BINARIES_MISSING');return 2}
- const {createBrokerConfig}=require(modulePath);const dir=fs.mkdtempSync(path.join(os.tmpdir(),'w46-broker-'));fs.chmodSync(dir,0o700);let broker,processBroker;const clients=[];
- try{const port=await pickPort(),prefix=PREFIX+crypto.randomBytes(12).toString('hex');broker=createBrokerConfig({stateDir:dir,port,prefix});processBroker=spawn('mosquitto',['-c',broker.confFile],{stdio:'ignore'});await waitReady(port,processBroker);
- const a=await MqttWire.connect(port);a.client.close();if(a.rc===0)fail('ANONYMOUS_ACCEPTED');
- const b=await MqttWire.connect(port,{username:broker.core.username,password:'invalid'});b.client.close();if(b.rc===0)fail('BAD_PASSWORD_ACCEPTED');
- const c=await MqttWire.connect(port,broker.core),g=await MqttWire.connect(port,broker.gateway);clients.push(c.client,g.client);if(c.rc!==0||g.rc!==0)fail('VALID_AUTH_DENIED');
- const topicProof=await proveTopicIsolation(c.client,g.client,prefix);
- report('PASS','NATIVE_MOSQUITTO_AUTH_DELIVERY_ACL_AND_BOTH_DIRECTIONS', {w44SourceSha256:W44_SHA,coreOriginalExecuted:false,subscriptionSemantics:topicProof.subscriptionSemantics});return 0
- }catch(e){report('FAIL',/^[A-Z0-9_]+$/.test(e.message)?e.message:'NATIVE_PROBE_EXCEPTION');return 1}
- finally{for(const c of clients)c.close();try{processBroker?.kill('SIGTERM')}catch{};try{broker?.cleanup()}catch{};fs.rmSync(dir,{recursive:true,force:true})}
+async function stopBroker(proc, timeout=1600){
+ if(!proc||proc.exitCode!==null||proc.signalCode!==null)return;
+ await new Promise((resolve,reject)=>{
+  let done=false,timer;
+  const finish=err=>{if(done)return;done=true;clearTimeout(timer);proc.off('exit',onExit);proc.off('error',onError);err?reject(err):resolve()};
+  const onExit=()=>finish();const onError=()=>finish(Error('BROKER_SHUTDOWN_FAILED'));
+  proc.once('exit',onExit);proc.once('error',onError);
+  timer=setTimeout(()=>{try{proc.kill('SIGKILL')}catch{}finish(Error('BROKER_SHUTDOWN_TIMEOUT'))},timeout);
+  try{if(!proc.kill('SIGTERM'))finish(Error('BROKER_SHUTDOWN_SIGNAL_REJECTED'))}catch{finish(Error('BROKER_SHUTDOWN_SIGNAL_REJECTED'))}
+ });
+}
+async function run(modulePath){
+ if(!modulePath||!path.isAbsolute(modulePath)||!fs.existsSync(modulePath)){report('BLOCKED','W44_SOURCE_ABSOLUTE_PATH_REQUIRED');return 2}
+ const bytes=fs.readFileSync(modulePath);
+ if(sha(bytes)!==W44_SHA){report('BLOCKED','W44_SOURCE_SHA_MISMATCH');return 2}
+ if(process.getuid?.()===0){report('BLOCKED','RUN_AS_NONROOT_REQUIRED');return 2}
+ if(!binary('mosquitto')||!binary('mosquitto_passwd')){report('BLOCKED','MOSQUITTO_BINARIES_MISSING');return 2}
+ const {createBrokerConfig}=require(modulePath),dir=fs.mkdtempSync(path.join(os.tmpdir(),'w46-broker-'));
+ fs.chmodSync(dir,0o700);let broker,processBroker;const clients=[];
+ let outcome={status:'FAIL',reason:'NATIVE_PROBE_EXCEPTION',extra:{}};
+ try{
+  const port=await pickPort(),prefix=PREFIX+crypto.randomBytes(12).toString('hex');
+  broker=createBrokerConfig({stateDir:dir,port,prefix});
+  processBroker=spawn('mosquitto',['-c',broker.confFile],{stdio:'ignore'});
+  await waitReady(port,processBroker);
+  const a=await MqttWire.connect(port);a.client.close();if(a.rc===0)fail('ANONYMOUS_ACCEPTED');
+  const b=await MqttWire.connect(port,{username:broker.core.username,password:'invalid'});b.client.close();if(b.rc===0)fail('BAD_PASSWORD_ACCEPTED');
+  const c=await MqttWire.connect(port,broker.core),g=await MqttWire.connect(port,broker.gateway);
+  clients.push(c.client,g.client);if(c.rc!==0||g.rc!==0)fail('VALID_AUTH_DENIED');
+  const proof=await proveTopicIsolation(c.client,g.client,prefix);
+  outcome={status:'PASS',reason:'NATIVE_MOSQUITTO_AUTH_DELIVERY_ACL_AND_BOTH_DIRECTIONS',extra:{w44SourceSha256:W44_SHA,coreOriginalExecuted:false,subscriptionSemantics:proof.subscriptionSemantics}};
+ }catch(e){outcome={status:'FAIL',reason:/^[A-Z0-9_]+$/.test(e.message)?e.message:'NATIVE_PROBE_EXCEPTION',extra:{}}}
+ finally{
+  for(const c of clients)c.close();
+  try{await stopBroker(processBroker)}catch{outcome={status:'FAIL',reason:'BROKER_SHUTDOWN_FAILED',extra:{}}}
+  try{broker?.cleanup();fs.rmSync(dir,{recursive:true,force:true})}catch{outcome={status:'FAIL',reason:'BROKER_CLEANUP_FAILED',extra:{}}}
+ }
+ report(outcome.status,outcome.reason,outcome.extra);
+ return outcome.status==='PASS'?0:1;
 }
 if(require.main===module){run(process.argv[2]).then(code=>{process.exitCode=code}).catch(()=>{report('FAIL','NATIVE_PROBE_UNHANDLED');process.exitCode=1})}
-module.exports={str,remainingLength,packet,parseOne,MqttWire,run,proveTopicIsolation,W44_SHA};
+module.exports={str,remainingLength,packet,parseOne,MqttWire,run,proveTopicIsolation,stopBroker,W44_SHA};
