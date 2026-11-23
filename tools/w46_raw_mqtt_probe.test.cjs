@@ -19,11 +19,20 @@ test('real wire client CONNECT, SUBSCRIBE, PUBLISH and fragmentation against iso
 });
 const {EventEmitter}=require('node:events');
 const {proveTopicIsolation}=require('./w46_raw_mqtt_probe.cjs');
-function topicPair({suback=0,leakRead=false,leakWrite=false,slowDeniedMs=0,dropFence=false}={}){
+function topicPair({suback=0,leakRead=false,leakWrite=false,leakReadTo=null,slowDeniedMs=0,slowReadMs=0,dropFence=false}={}){
  const prefix='cw_wa_mqtt_lab_'+'a'.repeat(24),cTopic=prefix+'/crownicles_core',gTopic=prefix+'/crownicles_websocket';
  const bus=new EventEmitter();
+ const deliveryQueues=new Map();
+ const enqueue=(target,msg,unauthorized)=>{
+  const prior=deliveryQueues.get(target)||Promise.resolve();
+  const next=prior.then(async()=>{
+   if(unauthorized&&slowReadMs)await new Promise(r=>setTimeout(r,slowReadMs));
+   target.emit('message',msg);
+  });
+  deliveryQueues.set(target,next);
+ };
  const mk=(role,read,write)=>{
-  const self=new EventEmitter();self.subscriptions=[];
+  const self=new EventEmitter();self.subscriptions=[];self.role=role;
   self.subscribe=async t=>{self.subscriptions.push(t);return t===read?0:suback};
   self.waitMessage=(t,b)=>new Promise((resolve,reject)=>{const timer=setTimeout(()=>{self.off('message',cb);reject(Error('MQTT_MESSAGE_TIMEOUT'))},450);const cb=m=>{if(m.topic===t&&m.body===b){clearTimeout(timer);self.off('message',cb);resolve(true)}};self.on('message',cb)});
   self.observe=(t,b)=>{let seen=0;const cb=m=>{if(m.topic===t&&m.body===b)seen++};self.on('message',cb);return ()=>{self.off('message',cb);return seen}};
@@ -36,7 +45,7 @@ function topicPair({suback=0,leakRead=false,leakWrite=false,slowDeniedMs=0,dropF
   if(m.topic!==m.write&&!leakWrite)return;
   for(const [target,read] of [[core,cTopic],[gateway,gTopic]]){
    const allowed=m.topic===read;
-   if(allowed||(leakRead&&m.topic!==read)){target.emit('message',{topic:m.topic,body:m.body})}
+   if(allowed||(leakRead&&m.topic!==read&&(!leakReadTo||target.role===leakReadTo)))enqueue(target,{topic:m.topic,body:m.body},!allowed);
   }
  });
  return {core,gateway,prefix};
@@ -148,4 +157,15 @@ test('W47 actual TCP fake broker: slow protected PUBLISH is accepted only after 
   assert.equal(result.subscriptionSemantics,'GRANTS_POSSIBLE_DELIVERY_ACL_VERIFIED');
   assert.ok(Date.now()-started>=55);
  }finally{core?.close();gateway?.close();await broker.close()}
+});
+
+test('W47 slow FIFO forbidden READ delivered after original silence window is caught by receiver-side causal fence',async()=>{
+ const x=topicPair({suback:0,leakRead:true,leakReadTo:'core',slowReadMs:70});const start=Date.now();
+ await assert.rejects(proveTopicIsolation(x.core,x.gateway,x.prefix,{shortDelayMs:1,deniedDelayMs:1}),/CROSS_TOPIC_READ_DELIVERED/);
+ assert.ok(Date.now()-start>=50);
+});
+test('W47 slow FIFO READ delivery with valid ACL remains accepted after receiver-side fences',async()=>{
+ const x=topicPair({suback:0,slowReadMs:70});
+ const proof=await proveTopicIsolation(x.core,x.gateway,x.prefix,{shortDelayMs:1,deniedDelayMs:1});
+ assert.equal(proof.subscriptionSemantics,'GRANTS_POSSIBLE_DELIVERY_ACL_VERIFIED');
 });
