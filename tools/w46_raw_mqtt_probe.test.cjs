@@ -19,15 +19,16 @@ test('real wire client CONNECT, SUBSCRIBE, PUBLISH and fragmentation against iso
 });
 const {EventEmitter}=require('node:events');
 const {proveTopicIsolation}=require('./w46_raw_mqtt_probe.cjs');
-function topicPair({suback=0,leakRead=false,leakWrite=false}={}){
+function topicPair({suback=0,leakRead=false,leakWrite=false,slowDeniedMs=0,dropFence=false}={}){
  const prefix='cw_wa_mqtt_lab_'+'a'.repeat(24),cTopic=prefix+'/crownicles_core',gTopic=prefix+'/crownicles_websocket';
  const bus=new EventEmitter();
  const mk=(role,read,write)=>{
   const self=new EventEmitter();self.subscriptions=[];
   self.subscribe=async t=>{self.subscriptions.push(t);return t===read?0:suback};
-  self.waitMessage=(t,b)=>new Promise(resolve=>{const cb=m=>{if(m.topic===t&&m.body===b){self.off('message',cb);resolve(true)}};self.on('message',cb)});
+  self.waitMessage=(t,b)=>new Promise((resolve,reject)=>{const timer=setTimeout(()=>{self.off('message',cb);reject(Error('MQTT_MESSAGE_TIMEOUT'))},450);const cb=m=>{if(m.topic===t&&m.body===b){clearTimeout(timer);self.off('message',cb);resolve(true)}};self.on('message',cb)});
   self.observe=(t,b)=>{let seen=0;const cb=m=>{if(m.topic===t&&m.body===b)seen++};self.on('message',cb);return ()=>{self.off('message',cb);return seen}};
-  self.publish=(t,b)=>{queueMicrotask(()=>bus.emit('publish',{role,topic:t,body:b,write,read}))};
+  let queue=Promise.resolve();
+  self.publish=(t,b)=>{queue=queue.then(async()=>{if(slowDeniedMs&&t!==write)await new Promise(r=>setTimeout(r,slowDeniedMs));if(!(dropFence&&b.startsWith('fence-')))bus.emit('publish',{role,topic:t,body:b,write,read})})};
   return self;
  };
  const core=mk('core',cTopic,gTopic),gateway=mk('gateway',gTopic,cTopic);
@@ -70,4 +71,21 @@ test('broker unresponsive shutdown is a hard failure, never PASS',async()=>{
 test('broker shutdown signal rejection fails closed',async()=>{
  const p=new EventEmitter();p.exitCode=null;p.signalCode=null;p.kill=()=>false;
  await assert.rejects(stopBroker(p,100),/BROKER_SHUTDOWN_SIGNAL_REJECTED/);
+});
+
+test('W47 RED old silence-only window: slow FIFO unauthorized publish must FAIL after same-client fence',async()=>{
+ const x=topicPair({suback:0,leakWrite:true,slowDeniedMs:60});
+ const start=Date.now();
+ await assert.rejects(proveTopicIsolation(x.core,x.gateway,x.prefix,{shortDelayMs:1,deniedDelayMs:1}),/CROSS_TOPIC_PUBLISH_DELIVERED/);
+ assert.ok(Date.now()-start>=40,'the probe must await actual broker processing, not a one-ms silence window');
+});
+test('W47 slow but secure FIFO broker is accepted only after actual delivery fences',async()=>{
+ const x=topicPair({suback:0,slowDeniedMs:60});const start=Date.now();
+ const proof=await proveTopicIsolation(x.core,x.gateway,x.prefix,{shortDelayMs:1,deniedDelayMs:1});
+ assert.equal(proof.subscriptionSemantics,'GRANTS_POSSIBLE_DELIVERY_ACL_VERIFIED');
+ assert.ok(Date.now()-start>=40);
+});
+test('W47 missing causal fence fails closed instead of declaring silent ACL PASS',async()=>{
+ const x=topicPair({suback:0,dropFence:true});
+ await assert.rejects(proveTopicIsolation(x.core,x.gateway,x.prefix,{shortDelayMs:1,deniedDelayMs:1}),/MQTT_MESSAGE_TIMEOUT/);
 });
