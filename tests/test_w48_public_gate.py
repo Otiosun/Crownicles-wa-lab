@@ -51,14 +51,14 @@ class W48PublicGate(unittest.TestCase):
     def test_mosquitto_is_temporary(self):
         for phrase in ("ubuntu-latest","timeout-minutes: 18","apt-get install -y --no-install-recommends mosquitto","sudo systemctl stop mosquitto"):
             self.assertIn(phrase,self.y)
-        self.assertNotIn("production",self.y.lower().replace("no_production","").replace("production gate",""))
+        self.assertIn("r.get('productionTouched') is False",self.y)
     def test_explicit_real_broker_required_and_never_homologated(self):
         for phrase in ("executedBroker","homologated","coreOriginalExecuted","subscriptionSemantics"):
             self.assertIn(phrase,self.y)
         self.assertIn("r.get('status')=='PASS'",self.y)
         self.assertIn("r.get('homologated') is False",self.y)
     def test_no_persistent_credentials_or_untrusted_events(self):
-        self.assertNotRegex(self.y,r"(?i)(?:api[_-]?key|github_token|client_secret|wa_secret)\\s*[:=]")
+        self.assertNotRegex(self.y,r"(?i)(?:api[_-]?key|github_token|client_secret|wa_secret)\s*[:=]")
         self.assertNotIn("pull_request_target:",self.y)
         self.assertNotIn("secrets.",self.y)
         self.assertNotIn("persist-credentials: true",self.y)
