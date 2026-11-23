@@ -55,3 +55,19 @@ test('v2 fails closed when unauthorized read topic delivers message despite legi
 test('v2 fails closed when unauthorized publish is actually delivered',async()=>{
  const x=topicPair({suback:0,leakWrite:true});await assert.rejects(proveTopicIsolation(x.core,x.gateway,x.prefix,{shortDelayMs:2,deniedDelayMs:2}),/CROSS_TOPIC_PUBLISH_DELIVERED/)
 });
+const {stopBroker}=require('./w46_raw_mqtt_probe.cjs');
+test('broker graceful shutdown acknowledged before SUCCESS',async()=>{
+ const p=new EventEmitter();p.exitCode=null;p.signalCode=null;let signals=[];
+ p.kill=s=>{signals.push(s);queueMicrotask(()=>{p.exitCode=0;p.emit('exit',0,s)});return true};
+ await stopBroker(p,100);assert.deepEqual(signals,['SIGTERM']);
+});
+test('broker unresponsive shutdown is a hard failure, never PASS',async()=>{
+ const p=new EventEmitter();p.exitCode=null;p.signalCode=null;let signals=[];
+ p.kill=s=>{signals.push(s);return true};
+ await assert.rejects(stopBroker(p,12),/BROKER_SHUTDOWN_TIMEOUT/);
+ assert.deepEqual(signals,['SIGTERM','SIGKILL']);
+});
+test('broker shutdown signal rejection fails closed',async()=>{
+ const p=new EventEmitter();p.exitCode=null;p.signalCode=null;p.kill=()=>false;
+ await assert.rejects(stopBroker(p,100),/BROKER_SHUTDOWN_SIGNAL_REJECTED/);
+});
