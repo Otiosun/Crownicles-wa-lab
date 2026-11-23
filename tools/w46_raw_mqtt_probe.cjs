@@ -44,13 +44,32 @@ async function proveTopicIsolation(core,gateway,prefix,{shortDelayMs=180,deniedD
  for(const result of [rCore,rGate,wCore,wGate])if(result!==0&&result!==128)fail('MQTT_SUBACK_UNEXPECTED');
  const x=crypto.randomBytes(8).toString('hex'),y=crypto.randomBytes(8).toString('hex');
  const crossCore=core.observe(tGate,y),crossGate=gateway.observe(tCore,x);
- const expectedCore=core.waitMessage(tCore,x),expectedGate=gateway.waitMessage(tGate,y);
- gateway.publish(tCore,x);core.publish(tGate,y);
- await Promise.all([expectedCore,expectedGate]);await sleep(shortDelayMs);
- if(crossCore()>0||crossGate()>0)fail('CROSS_TOPIC_READ_DELIVERED');
+ // Read-isolation fences are also causal: only declare the absence of a
+ // forbidden delivery after the same RECEIVER has obtained a later allowed
+ // delivery, emitted after the forbidden publication was observed by its
+ // authorized recipient. Two sequential turns avoid cross-socket races.
+ const expectedGate=gateway.waitMessage(tGate,y);core.publish(tGate,y);await expectedGate;
+ const readFenceCore='fence-read-core-'+x,readFenceGate='fence-read-gateway-'+y;
+ const confirmCore=core.waitMessage(tCore,readFenceCore);
+ gateway.publish(tCore,readFenceCore);await confirmCore;
+ if(crossCore()>0)fail('CROSS_TOPIC_READ_DELIVERED');
+ const expectedCore=core.waitMessage(tCore,x);gateway.publish(tCore,x);await expectedCore;
+ const confirmGate=gateway.waitMessage(tGate,readFenceGate);
+ core.publish(tGate,readFenceGate);await confirmGate;
+ await sleep(shortDelayMs);
+ if(crossGate()>0)fail('CROSS_TOPIC_READ_DELIVERED');
  const aBad='deny-'+x,bBad='deny-'+y;
  const badCore=core.observe(tCore,aBad),badGate=gateway.observe(tGate,bBad);
- core.publish(tCore,aBad);gateway.publish(tGate,bBad);await sleep(deniedDelayMs);
+ // Same-client FIFO fence: an allowed response delivered to the opposite peer
+ // proves the broker processed each preceding forbidden PUBLISH. Silence alone
+ // for deniedDelayMs can produce a false PASS on a slow but leaking broker.
+ const coreFence='fence-core-'+x,gateFence='fence-gateway-'+y;
+ const fenceAtCore=core.waitMessage(tCore,coreFence),fenceAtGate=gateway.waitMessage(tGate,gateFence);
+ core.publish(tCore,aBad);gateway.publish(tGate,bBad);
+ // The fence must follow the denied publish on the SAME client TCP stream.
+ core.publish(tGate,gateFence);gateway.publish(tCore,coreFence);
+ await Promise.all([fenceAtCore,fenceAtGate]);
+ await sleep(deniedDelayMs);
  if(badCore()>0||badGate()>0)fail('CROSS_TOPIC_PUBLISH_DELIVERED');
  return {subscriptionSemantics:[rCore,rGate,wCore,wGate].every(v=>v===128)?'ALL_DENIED_SUBACK':'GRANTS_POSSIBLE_DELIVERY_ACL_VERIFIED'};
 }
