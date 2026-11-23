@@ -25,7 +25,7 @@ jobs:
           printf '%s\n' \
             '83b1729055cbb4027b68208811450937deb1d90090d404eff4a2b48526177beb  candidate/bridge/mqtt-auth-lab.cjs' \
             '8b6106bc10d63b8b2ee0391f41c2bcd101cdfc11b50ade0a96eab563825ca674  consolidated/evidence/e1-mqtt-w44-native-broker-probe.cjs' \
-            'aea3bd77e0fd70398d2f60ac70031853b622e7ae352f5dd269be661213ab5f27  tools/w46_raw_mqtt_probe.cjs' \
+            'fbb11bd6f4cf25f8cef90216b20c81c39edd3503a69bc5100f0d70e6a6cc6635  tools/w46_raw_mqtt_probe.cjs' \
             | sha256sum -c -
       - name: Set up Node 24
         uses: actions/setup-node@v4
