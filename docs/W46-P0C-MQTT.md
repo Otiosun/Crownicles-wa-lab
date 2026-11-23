@@ -29,8 +29,11 @@ W46 v2 accepts SUBACK 0 or 128 for nonpermitted exact topics and wildcard prefix
 
 ## Explicit limits / gate
 
-Local 20/20 Node codec, ACL policy unit tests and a simulated loopback TCP server do **not** prove Mosquitto native ACL. Real broker PASS does **not** prove Core compiled on Node 24/TS6, request attestation and replay binding (W20/W22), MariaDB GAME+LOGS, two real players, async notifications outside the two W44 topics, WhatsApp E2E, restart and all-writers ACK. Those are independent gates; **8/8 remain OFF** until tested and approved.
+Local 23/23 Node codec, ACL policy unit tests and a simulated loopback TCP server do **not** prove Mosquitto native ACL. Real broker PASS does **not** prove Core compiled on Node 24/TS6, request attestation and replay binding (W20/W22), MariaDB GAME+LOGS, two real players, async notifications outside the two W44 topics, WhatsApp E2E, restart and all-writers ACK. Those are independent gates; **8/8 remain OFF** until tested and approved.
 
 Original upstream pinned commit: `64d08c05f11949029317341735f6f73024f19f9b`; Core/package.json `mqtt=5.15.2` (W46 raw test does not use it). Original W44 checkpoint in Drive `17Tequ29QbF0A6CleFXhMI5bwqwGPDnci`; Canonical Base40 `1Dk3Qu-Y24aJZu0jYJRXG4RlFQEN7_uCv`. This branch is for the **lab only**, not the Crownicles canonical archive.
 
 Main blocker: GitHub private Actions runs in the target repo have failed before executing steps (issue #7); root cause is not established. This manual-only workflow may remain BLOCKED until the owner resolves runner availability. No retries or workflow_dispatch should be performed just to increase a test count.
+
+## P0-C cleanup hardening (W46 R3)
+The broker native verdict is emitted only after process shutdown was acknowledged and the private temporary directory was cleaned. Failed SIGTERM, timeout requiring SIGKILL, or cleanup failure forces FAIL rather than a premature PASS. Three new Node synthetic subprocess tests confirm the shutdown edge; these do not substitute for a real Mosquitto runner.
