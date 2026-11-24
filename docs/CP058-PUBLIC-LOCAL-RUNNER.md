@@ -35,7 +35,7 @@ Os códigos de saída, SHA pinada, quantidade de blobs e limites são salvos em 
 python3 -m unittest -v tools/test_public_checkout_cp058.py
 ```
 
-**14/14 testes locais de mecanismo**, usando apenas um repositório sintético em memória: bytes binários, SHA adulterada, arquivo ausente/extra, zip-slip, symlink/submódulo, ZIP duplicado, tree truncada, origem externa de PR, destino imutável, opt-in de sintaxe/testes Node, falha proposital do subprocesso e isolamento das variáveis de ambiente. As três fontes do PR usam conteúdo byte-idêntico ao que foi testado (Git blob conferido no handoff).
+**15/15 testes locais de mecanismo**, usando apenas um repositório sintético em memória: bytes binários, SHA adulterada, arquivo ausente/extra, zip-slip, symlink/submódulo, ZIP duplicado, tree truncada, origem externa de PR, destino imutável e ancestor symlink, preservação do modo executável Git, opt-in de sintaxe/testes Node, falha proposital do subprocesso e isolamento das variáveis de ambiente. As três fontes do PR usam conteúdo byte-idêntico ao que foi testado (Git blob conferido no handoff).
 
 ### Limitações e próximos gates
 
