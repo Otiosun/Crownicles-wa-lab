@@ -60,10 +60,45 @@ jobs:
         run: |
           set -euo pipefail
           # No usernames, passwords or broker config are logged or uploaded.
+          # Keep broker stderr local, report only a fixed classification. No policy changes.
+          W07_DIR="$(mktemp -d)"
+          chmod 700 "$W07_DIR"
+          trap 'rm -rf -- "$W07_DIR"' EXIT
+          export W07_REAL_MOSQUITTO="$(command -v mosquitto)"
+          export W07_BROKER_LOG="$W07_DIR/broker.log"
+          case "$W07_REAL_MOSQUITTO" in /usr/sbin/mosquitto|/usr/bin/mosquitto) ;; *) exit 1;; esac
+          cat > "$W07_DIR/mosquitto" <<'SH'
+          #!/bin/sh
+          if [ "${1:-}" = "-c" ]; then
+            exec "$W07_REAL_MOSQUITTO" "$@" > "$W07_BROKER_LOG" 2>&1
+          fi
+          exec "$W07_REAL_MOSQUITTO" "$@"
+          SH
+          chmod 700 "$W07_DIR/mosquitto"
+          export PATH="$W07_DIR:$PATH"
           set +e
           node tools/w46_raw_mqtt_probe.cjs "$GITHUB_WORKSPACE/candidate/bridge/mqtt-auth-lab.cjs" > mqtt-native-result.json
           rc=$?
           set -e
+          python3 - "$W07_BROKER_LOG" <<'PY'
+          import pathlib, sys
+          p = pathlib.Path(sys.argv[1])
+          s = p.read_text(encoding="utf-8", errors="replace").lower()[:65536] if p.exists() else ""
+          tags = []
+          for label, needles in (
+              ("PERMISSION_DENIED", ("permission denied", "operation not permitted")),
+              ("CONFIG_OPEN", ("unable to open config", "error opening config")),
+              ("PASSWORD_FILE_OPEN", ("unable to open pwfile", "opening password file", "open password file")),
+              ("ACL_FILE_OPEN", ("unable to open acl", "opening acl file", "open acl file")),
+              ("PORT_IN_USE", ("address already in use",)),
+              ("CONFIG_SYNTAX", ("unknown configuration", "invalid configuration", "error found at")),
+              ("USER_ERROR", ("invalid user", "unable to change user", "unable to drop privileges")),
+              ("ERROR_LOADING", ("error loading",)),
+          ):
+              if any(n in s for n in needles):
+                  tags.append(label)
+          print("W07_BROKER_STARTUP_TAGS=" + (",".join(tags) or ("UNCLASSIFIED" if s else "EMPTY")))
+          PY
           python3 - "$rc" <<'PY'
           import json, sys
           rc = int(sys.argv[1])
