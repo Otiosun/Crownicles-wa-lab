@@ -124,6 +124,23 @@ class SourceIntegrityTests(unittest.TestCase):
                 with self.assertRaisesRegex(c.CheckoutError,"DESTINATION_EXISTS"):
                     c.materialize(self.files,link)
 
+    def test_executable_git_mode_and_nested_symlink_parent_guard(self):
+        with tempfile.TemporaryDirectory() as root:
+            parent=Path(root)/"safe";parent.mkdir()
+            dest=parent/"checkout"
+            exe={"bin/start.sh":b"#!/bin/sh\nexit 0\n"}
+            meta={"bin/start.sh":{"mode":"100755"}}
+            c.materialize(exe,dest,meta)
+            if os.name=="posix":
+                self.assertTrue((dest/"bin/start.sh").stat().st_mode & stat.S_IXUSR)
+            elsewhere=Path(root)/"elsewhere";elsewhere.mkdir()
+            link=Path(root)/"link"
+            try: link.symlink_to(elsewhere)
+            except OSError: return
+            (elsewhere/"child").mkdir()
+            with self.assertRaisesRegex(c.CheckoutError,"OUTPUT_PARENT_INVALID"):
+                c.materialize(exe,link/"child"/"newdir")
+
     def test_verify_only_no_commands_default_and_evidence_status(self):
         with tempfile.TemporaryDirectory() as root:
             dst=Path(root)/"commit"
