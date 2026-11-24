@@ -192,6 +192,41 @@ class SourceIntegrityTests(unittest.TestCase):
             self.assertEqual(env["HOME"],str(Path(root)/".cp058-empty-home"))
             self.assertTrue(Path(env["HOME"]).is_dir())
 
+    def test_public_rest_commit_tree_and_zip_pipeline_end_to_end_with_mock_transport(self):
+        # The same public REST shapes observed in GitHub metadata, but no DNS needed.
+        api = c.API
+        routes = {
+            api + "/pulls/13": json.dumps({"head":{"sha":SHA,"repo":{"full_name":f"{c.OWNER}/{c.REPO}"}}}).encode(),
+            api + "/git/commits/" + SHA: json.dumps({"sha":SHA,"tree":{"sha":TREE}}).encode(),
+            api + "/git/trees/" + TREE + "?recursive=1": json.dumps({
+                "sha":TREE,"truncated":False,"tree":[{"type":"blob","mode":v["mode"],
+                 "path":path,"size":v["size"],"sha":v["sha"]} for path,v in self.tree.items()]
+            }).encode(),
+            c.ARCHIVE + "/" + SHA: self.zip,
+        }
+        seen = []
+        class Response:
+            def __init__(self, data):
+                self.data=data
+                self.headers={"Content-Length":str(len(data))}
+            def __enter__(self):return self
+            def __exit__(self,*_):return False
+            def read(self, limit):return self.data[:limit]
+        def wire(request,timeout=None):
+            seen.append(request.full_url)
+            self.assertNotIn("Authorization", dict(request.header_items()))
+            return Response(routes[request.full_url])
+        with tempfile.TemporaryDirectory() as root:
+            dst=Path(root)/"public-clone"
+            with patch.object(c,"urlopen",side_effect=wire):
+                self.assertEqual(c.execute(["--pr","13","--output",str(dst)]),0)
+            proof=json.loads((dst/"CP058-LOCAL-EVIDENCE.json").read_text())
+            self.assertEqual(proof["git_files"],3)
+            self.assertEqual(proof["commit"],SHA)
+            self.assertEqual(proof["state"],"SOURCE_VERIFIED_ONLY")
+            self.assertEqual((dst/"sub/script.mjs").read_bytes(),self.files["sub/script.mjs"])
+            self.assertEqual(seen,list(routes))
+
     def test_runner_process_local_command_success_and_error(self):
         with tempfile.TemporaryDirectory() as root:
             ok=c.run_checked(["python3","-c","print('ok')"],Path(root),10,Path(root)/"pass.log")
