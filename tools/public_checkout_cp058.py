@@ -202,12 +202,12 @@ def verify_archive(archive: bytes, expected: dict[str, dict]) -> dict[str, bytes
     return files
 
 
-def materialize(files: dict[str, bytes], destination: Path) -> None:
+def materialize(files: dict[str, bytes], destination: Path, modes: dict | None = None) -> None:
     dest = destination.absolute()
     if dest.exists() or dest.is_symlink():
         raise CheckoutError("CP058_DESTINATION_EXISTS")
     parent = dest.parent
-    if not parent.is_dir() or parent.is_symlink():
+    if not parent.is_dir() or any(part.is_symlink() for part in (parent, *parent.parents)):
         raise CheckoutError("CP058_OUTPUT_PARENT_INVALID")
     # No extraction side effects until every byte has been verified.
     tmp = Path(tempfile.mkdtemp(prefix=".cp058-", dir=parent))
@@ -217,6 +217,7 @@ def materialize(files: dict[str, bytes], destination: Path) -> None:
             target.parent.mkdir(parents=True, exist_ok=True)
             with target.open("xb") as stream:
                 stream.write(content)
+            target.chmod(0o755 if modes and modes[name]["mode"] == "100755" else 0o644)
         os.rename(tmp, dest)
     except Exception:
         shutil.rmtree(tmp, ignore_errors=True)
@@ -313,7 +314,7 @@ def execute(argv: list[str] | None = None) -> int:
     expected = source_tree(sha)
     archive = fetch(f"{ARCHIVE}/{sha}", MAX_ARCHIVE)
     verified = verify_archive(archive, expected)
-    materialize(verified, dest)
+    materialize(verified, dest, expected)
     report = {"repo": f"{OWNER}/{REPO}", "commit": sha, "git_files": len(verified),
               "tree_all_verified": True, "source_execution_opt_in": bool(args.run_check or args.run_tests),
               "environment": {"python": sys.version.split()[0], "platform": sys.platform},
