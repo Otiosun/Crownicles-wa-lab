@@ -63,7 +63,22 @@ jobs:
           # Keep broker stderr local, report only a fixed classification. No policy changes.
           W07_DIR="$(mktemp -d)"
           chmod 700 "$W07_DIR"
-          trap 'rm -rf -- "$W07_DIR"' EXIT
+          # A dedicated native broker config subtree on this disposable runner.
+          # Do not change system service config, ACLs, AppArmor or permission policy.
+          W07_LAB_ROOT="$(sudo mktemp -d /etc/mosquitto/w07-lab.XXXXXXXX)"
+          case "$W07_LAB_ROOT" in /etc/mosquitto/w07-lab.*) ;; *) exit 1;; esac
+          cleanup_w07() {
+            local rc=$?
+            trap - EXIT
+            rm -rf -- "$W07_DIR"
+            sudo rmdir -- "$W07_LAB_ROOT" || rc=1
+            exit "$rc"
+          }
+          trap cleanup_w07 EXIT
+          sudo chown "$(id -u):$(id -g)" "$W07_LAB_ROOT"
+          test "$(stat -c '%a' "$W07_LAB_ROOT")" = 700
+          test "$(stat -c '%u' "$W07_LAB_ROOT")" = "$(id -u)"
+          export TMPDIR="$W07_LAB_ROOT"
           export W07_REAL_MOSQUITTO="$(command -v mosquitto)"
           export W07_BROKER_LOG="$W07_DIR/broker.log"
           case "$W07_REAL_MOSQUITTO" in /usr/sbin/mosquitto|/usr/bin/mosquitto) ;; *) exit 1;; esac
