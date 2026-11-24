@@ -35,85 +35,39 @@ jobs:
             '8b6106bc10d63b8b2ee0391f41c2bcd101cdfc11b50ade0a96eab563825ca674  consolidated/evidence/e1-mqtt-w44-native-broker-probe.cjs' \
             '830f1638501477c943d4cc8303ce8b68dedaec0594a4283a01aa94204f5602c4  tools/w46_raw_mqtt_probe.cjs' \
             | sha256sum -c -
-      - name: Set up Node 24
-        uses: actions/setup-node@v4
-        with:
-          node-version: '24'
-      - name: Install native Mosquitto in disposable runner only
+      - name: Prepare isolated container with real Debian Mosquitto and Node 24
         shell: bash
         run: |
           set -euo pipefail
-          sudo apt-get update -qq
-          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends mosquitto
-          sudo systemctl stop mosquitto || true
-          command -v mosquitto
-          command -v mosquitto_passwd
-          mosquitto -h 2>&1 | sed -n '1p'
-      - name: Test wire-codec and W44 provenance without broker mocks claiming native
-        shell: bash
-        run: |
-          set -euo pipefail
-          node --test tools/w46_raw_mqtt_probe.test.cjs
-      - name: Execute authenticated real TCP MQTT broker/ACL probe
+          test "$(id -u)" != 0
+          build="$(mktemp -d)"
+          trap 'rm -rf -- "$build"' EXIT
+          cat > "$build/Dockerfile" <<'DOCKER'
+          FROM node:24-bookworm-slim
+          RUN apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends mosquitto && rm -rf /var/lib/apt/lists/*
+          USER node
+          WORKDIR /lab
+          DOCKER
+          docker build --pull --tag crownicles-w07-mqtt-lab:ci "$build"
+          docker image inspect --format 'W07_IMAGE_ID={{.Id}}' crownicles-w07-mqtt-lab:ci
+      - name: Native TCP broker proof in network-disabled non-root container
         id: probe
         shell: bash
         run: |
           set -euo pipefail
-          # No usernames, passwords or broker config are logged or uploaded.
-          # Keep broker stderr local, report only a fixed classification. No policy changes.
-          W07_DIR="$(mktemp -d)"
-          chmod 700 "$W07_DIR"
-          # A dedicated native broker config subtree on this disposable runner.
-          # Do not change system service config, ACLs, AppArmor or permission policy.
-          W07_LAB_ROOT="$(sudo mktemp -d /etc/mosquitto/w07-lab.XXXXXXXX)"
-          case "$W07_LAB_ROOT" in /etc/mosquitto/w07-lab.*) ;; *) exit 1;; esac
-          cleanup_w07() {
-            local rc=$?
-            trap - EXIT
-            rm -rf -- "$W07_DIR"
-            sudo rmdir -- "$W07_LAB_ROOT" || rc=1
-            exit "$rc"
-          }
-          trap cleanup_w07 EXIT
-          sudo chown "$(id -u):$(id -g)" "$W07_LAB_ROOT"
-          test "$(stat -c '%a' "$W07_LAB_ROOT")" = 700
-          test "$(stat -c '%u' "$W07_LAB_ROOT")" = "$(id -u)"
-          export TMPDIR="$W07_LAB_ROOT"
-          export W07_REAL_MOSQUITTO="$(command -v mosquitto)"
-          export W07_BROKER_LOG="$W07_DIR/broker.log"
-          case "$W07_REAL_MOSQUITTO" in /usr/sbin/mosquitto|/usr/bin/mosquitto) ;; *) exit 1;; esac
-          cat > "$W07_DIR/mosquitto" <<'SH'
-          #!/bin/sh
-          if [ "${1:-}" = "-c" ]; then
-            exec "$W07_REAL_MOSQUITTO" "$@" > "$W07_BROKER_LOG" 2>&1
-          fi
-          exec "$W07_REAL_MOSQUITTO" "$@"
-          SH
-          chmod 700 "$W07_DIR/mosquitto"
-          export PATH="$W07_DIR:$PATH"
+          stage="$(mktemp -d)"
+          trap 'rm -rf -- "$stage"' EXIT
+          chmod 755 "$stage"
+          mkdir -p "$stage/tools" "$stage/candidate/bridge"
+          install -m 444 tools/w46_raw_mqtt_probe.cjs "$stage/tools/w46_raw_mqtt_probe.cjs"
+          install -m 444 tools/w46_raw_mqtt_probe.test.cjs "$stage/tools/w46_raw_mqtt_probe.test.cjs"
+          install -m 444 candidate/bridge/mqtt-auth-lab.cjs "$stage/candidate/bridge/mqtt-auth-lab.cjs"
+          common=(--rm --network none --cap-drop ALL --security-opt no-new-privileges --read-only --tmpfs /tmp:rw,noexec,nosuid,nodev,mode=1777 --user node --mount "type=bind,src=$stage,dst=/lab,readonly" crownicles-w07-mqtt-lab:ci)
+          docker run "${common[@]}" sh -ec 'test "$(id -u)" != 0; node --version; mosquitto -h 2>&1 | sed -n "1p"; node --test /lab/tools/w46_raw_mqtt_probe.test.cjs'
           set +e
-          node tools/w46_raw_mqtt_probe.cjs "$GITHUB_WORKSPACE/candidate/bridge/mqtt-auth-lab.cjs" > mqtt-native-result.json
+          docker run "${common[@]}" node /lab/tools/w46_raw_mqtt_probe.cjs /lab/candidate/bridge/mqtt-auth-lab.cjs > mqtt-native-result.json
           rc=$?
           set -e
-          python3 - "$W07_BROKER_LOG" <<'PY'
-          import pathlib, sys
-          p = pathlib.Path(sys.argv[1])
-          s = p.read_text(encoding="utf-8", errors="replace").lower()[:65536] if p.exists() else ""
-          tags = []
-          for label, needles in (
-              ("PERMISSION_DENIED", ("permission denied", "operation not permitted")),
-              ("CONFIG_OPEN", ("unable to open config", "error opening config")),
-              ("PASSWORD_FILE_OPEN", ("unable to open pwfile", "opening password file", "open password file")),
-              ("ACL_FILE_OPEN", ("unable to open acl", "opening acl file", "open acl file")),
-              ("PORT_IN_USE", ("address already in use",)),
-              ("CONFIG_SYNTAX", ("unknown configuration", "invalid configuration", "error found at")),
-              ("USER_ERROR", ("invalid user", "unable to change user", "unable to drop privileges")),
-              ("ERROR_LOADING", ("error loading",)),
-          ):
-              if any(n in s for n in needles):
-                  tags.append(label)
-          print("W07_BROKER_STARTUP_TAGS=" + (",".join(tags) or ("UNCLASSIFIED" if s else "EMPTY")))
-          PY
           python3 - "$rc" <<'PY'
           import json, sys
           rc = int(sys.argv[1])
