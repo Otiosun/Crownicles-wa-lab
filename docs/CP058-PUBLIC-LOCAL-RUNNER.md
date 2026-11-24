@@ -1,6 +1,6 @@
 # Crownicles CP058 — checkout local do repositório público sem GitHub Actions
 
-**Escopo real confirmado via API em 24/11/2026:** `Otiosun/Crownicles-wa-lab` está **PUBLIC**. `Otiosun/crownicles-portal` está **PRIVATE** e não é origem deste executor. A automação é somente leitura remota, com testes locais explicitamente opt-in. Não modifica `main`, Core nativo, contas WhatsApp, MariaDB, MQTT, credenciais, CI ou deploy.
+**Escopo confirmado via API em 24/11/2026:** `Otiosun/Crownicles-wa-lab` está **PUBLIC**. A automação é somente leitura remota, com testes locais explicitamente opt-in. Não modifica `main`, Core nativo, contas WhatsApp, MariaDB, MQTT, credenciais, CI ou deploy.
 
 ## Por que usar
 
