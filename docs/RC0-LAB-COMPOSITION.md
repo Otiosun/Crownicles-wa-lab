@@ -13,6 +13,18 @@ Este trabalho fecha a lacuna de *reprodutibilidade* encontrada no Termux em 24/1
 - Dependências privadas/locais: são copiadas **somente se faltarem**, exclusivamente de `crownicles-beta/app/bridge/*.cjs`; cada byte recebe SHA256 no relatório, sem presumir que é idêntico ao código canônico de Core ou de Base40.
 - A árvore pública é comparada, arquivo a arquivo, com os blobs da API GitHub, e qualquer modificação, arquivo inesperado, falta ou symlink encerra a composição antes da escrita.
 
+## Correção RC0.1 — require aparente em script de patch
+
+Em 24/11, o primeiro compositor parou com:
+
+`MISSING_NON_BRIDGE_DEPENDENCY:integral-native-router/beta/patches/patch-gateway-v29.cjs=>integral-native-router/beta/patches/lote11.cjs`
+
+**Causa exata:** a expressão `require('./lote11.cjs')` está DENTRO da string `importAnchor` no arquivo original do patch, não é um import executado a partir da pasta `beta/patches`. O scanner anterior procurava `require(...)` com regex em texto cru, inclusive dentro de comentários, strings e templates, gerando dependências fictícias. Este erro impediu a criação da candidata e não implicou falha do bot.
+
+**RC0.1** passou a mascarar trechos não executáveis (strings simples/duplas, comentários, texto de template, regex literal) e preservar posições de código em interpolações ${...}`. Rejeita strings/comentários/regex não terminados em vez de ignorá-los silenciosamente. A análise continua limitada a `require('./...')` literais; não equivale a um parser JavaScript/AST completo. Nenhum módulo de jogo foi modificado, removido ou ignorado indiscriminadamente.
+
+QA de regressão: **antes 4 falhas adversariais** (incluindo o erro exato de `patch-gateway-v29.cjs`), **depois 22/22 Python PASS**, incluindo subprocesso real Node e verificação de importação real em template. A nova ferramenta ainda precisa ser executada na árvore completa do Termux para comprovar que não existem outros bloqueios reais.
+
 ## Reprodução no Termux (Android)
 
 Requisitos: `python3`, `node` e acesso HTTPS de leitura à API pública GitHub. O usuário já mantém a cópia CP058 intacta em `~/core-verificado` e a beta em `~/crownicles-whatsapp-lab/crownicles-beta/app/bridge`.
@@ -26,7 +38,7 @@ curl -fL \
 python3 ~/tools/rc0-compose-crownicles-lab.py \
   --base ~/core-verificado \
   --donor ~/crownicles-whatsapp-lab/crownicles-beta/app/bridge \
-  --output ~/crownicles-rc0-lab \
+  --output ~/crownicles-rc0-lab-v2 \
   --run-tests
 ```
 
@@ -48,6 +60,6 @@ Por padrão, sem `--run-tests`, **nenhum código Node é executado**: é só ins
 
 ## QA do próprio compositor
 
-- 17/17 testes Python sintéticos, incluindo arquivo remoto alterado/incompleto/extra, symlinks de fonte/doador, dependências faltantes, travessia de diretórios, destino já existente e teste real Node com 47 arquivos artificiais.
+- 22/22 testes Python adversariais/sintéticos (RC0.1), incluindo arquivo remoto alterado/incompleto/extra, symlinks de fonte/doador, dependências faltantes, travessia de diretórios, destino já existente e teste real Node com 47 arquivos artificiais.
 - Execução real do Crownicles **não realizada pelo compositor nesta sessão**; depende dos módulos que estão apenas no Termux do proprietário.
 - O código da PR de compositor altera **somente** `tools/` e `docs/`; não altera código de bot, gateway, Core, testes já publicados ou CI.
