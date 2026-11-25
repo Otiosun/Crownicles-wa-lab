@@ -307,8 +307,6 @@ def js_code_mask(source: str) -> str:
     return ''.join(masked)
 
 
-
-
 def static_require_targets(name: str, content: bytes):
     if not name.endswith(('.js', '.cjs', '.mjs')):
         return
