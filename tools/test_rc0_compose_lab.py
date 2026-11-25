@@ -73,6 +73,45 @@ class Fixture(unittest.TestCase):
                          hashlib.sha256((self.donor / 'dep.cjs').read_bytes()).hexdigest())
         self.assertNotIn('DONOR_SECRET', (self.out / 'RC0-EVIDENCE.json').read_text())
 
+    def test_patch_script_string_literal_require_is_not_a_dependency(self):
+        # Exact causal shape of the public PR6 patch-gateway-v29.cjs source:
+        # its patch anchor is TEXT, not executable require('./lote11.cjs').
+        path = 'integral-native-router/beta/patches/patch-gateway-v29.cjs'
+        self.write(path, "const fs=require('node:fs');\n"
+                     "const importAnchor=\"const {x}=require('./lote11.cjs');\\n\";\n")
+        f = self.base / path
+        self.idx[path] = {'sha': RC.git_blob(f.read_bytes()), 'size': f.stat().st_size}
+        rep = self.prepare()
+        self.assertEqual(rep['donor_files_count'], 2)
+        self.assertFalse((self.out / 'integral-native-router/beta/patches/lote11.cjs').exists())
+
+    def test_quoted_comments_template_and_regex_not_imports(self):
+        fake = ("const s='require(\"./phantom.cjs\")';\n"
+                "// require('./line-fake.cjs')\n"
+                "/* require('./block-fake.cjs') */\n"
+                "const template=`require('./template-fake.cjs')`;\n"
+                r"const matcher=/require\('\.\/regex-fake\.cjs'\)/;" + '\n')
+        self.assertEqual(list(RC.static_require_targets('integral-native-router/src/entry.cjs',
+                                                         fake.encode())), [])
+
+    def test_real_import_nested_in_template_interpolation_is_preserved(self):
+        script = "const x=`${require('./real.cjs').answer}`;\n"
+        got = list(RC.static_require_targets('integral-native-router/src/entry.cjs',
+                                             script.encode()))
+        self.assertEqual(got, ['integral-native-router/src/real.cjs'])
+
+    def test_unterminated_string_fails_closed(self):
+        with self.assertRaisesRegex(RC.RC0Error, 'JS_UNTERMINATED_STRING'):
+            list(RC.static_require_targets('integral-native-router/src/entry.cjs',
+                                           b"const s='require('./shadow.cjs');"))
+
+    def test_block_comment_import_is_not_dependency_but_real_is(self):
+        script = ("/* require('../../outside.cjs') */\n"
+                  "const dep = require('./dep.cjs');\n")
+        got = list(RC.static_require_targets('integral-native-router/src/entry.cjs',
+                                             script.encode()))
+        self.assertEqual(got, ['integral-native-router/src/dep.cjs'])
+
     def test_mutated_public_file_fails_before_output(self):
         (self.base / 'integral-native-router/src/entry.cjs').write_text('mutated\n')
         with self.assertRaisesRegex(RC.RC0Error, 'SOURCE_BLOB_MISMATCH'):
