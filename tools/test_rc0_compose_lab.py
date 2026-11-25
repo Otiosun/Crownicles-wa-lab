@@ -94,6 +94,73 @@ class Fixture(unittest.TestCase):
         self.assertEqual(list(RC.static_require_targets('integral-native-router/src/entry.cjs',
                                                          fake.encode())), [])
 
+    def test_manifest_json_from_real_beta_patch(self):
+        # Exact causal shape found in the pinned PR6 prepare-beta-v31.cjs:
+        # function stageRelease({manifest=require('./beta-v31-release-manifest.json')})
+        patch_path = 'integral-native-router/beta/patches/prepare-beta-v31.cjs'
+        json_path = 'integral-native-router/beta/patches/beta-v31-release-manifest.json'
+        self.write(patch_path, "function stageRelease({manifest=require('./beta-v31-release-manifest.json')}) {return manifest;}\n")
+        self.write(json_path, '{"format":1,"status":"laboratory-only"}\n')
+        for pth in (patch_path, json_path):
+            f = self.base / pth
+            self.idx[pth] = {'sha': RC.git_blob(f.read_bytes()), 'size': f.stat().st_size}
+        self.assertEqual(list(RC.static_require_targets(patch_path,
+                                                        (self.base / patch_path).read_bytes())),
+                         [json_path])
+        rep = self.prepare()
+        self.assertEqual(rep['donor_files_count'], 2)
+        self.assertEqual((self.out / json_path).read_bytes(), (self.base / json_path).read_bytes())
+        self.assertFalse((self.out / (json_path + '.cjs')).exists())
+
+    def test_missing_json_manifest_fails_closed_without_fabricating_cjs(self):
+        patch_path = 'integral-native-router/beta/patches/prepare-beta-v31.cjs'
+        self.write(patch_path, "const m=require('./beta-v31-release-manifest.json');\n")
+        f = self.base / patch_path
+        self.idx[patch_path] = {'sha': RC.git_blob(f.read_bytes()), 'size': f.stat().st_size}
+        with self.assertRaisesRegex(RC.RC0Error, 'MISSING_NON_BRIDGE_DEPENDENCY:.*\\.json'):
+            self.prepare()
+        self.assertFalse(self.out.exists())
+
+    def test_extensionless_require_picks_existing_js_not_fictional_cjs(self):
+        self.write('integral-native-router/beta/patches/helper.js', 'module.exports=42;\n')
+        self.write('integral-native-router/beta/patches/entry.cjs',
+                   "const helper=require('./helper');\n")
+        for path in ('integral-native-router/beta/patches/helper.js',
+                     'integral-native-router/beta/patches/entry.cjs'):
+            f = self.base / path
+            self.idx[path] = {'sha': RC.git_blob(f.read_bytes()), 'size': f.stat().st_size}
+        rep = self.prepare()
+        self.assertEqual(rep['donor_files_count'], 2)
+        self.assertFalse((self.out / 'integral-native-router/beta/patches/helper.cjs').exists())
+
+    def test_extensionless_require_does_not_invent_bridge_cjs(self):
+        self.write('integral-native-router/beta/patches/entry.cjs',
+                   "const helper=require('../../src/virtual');\n")
+        path = 'integral-native-router/beta/patches/entry.cjs'
+        f = self.base / path
+        self.idx[path] = {'sha': RC.git_blob(f.read_bytes()), 'size': f.stat().st_size}
+        self.add_donor('virtual.cjs', 'module.exports=1;\n')
+        with self.assertRaisesRegex(RC.RC0Error, 'MISSING_NON_BRIDGE_DEPENDENCY'):
+            self.prepare()
+        self.assertFalse(self.out.exists())
+
+    def test_extensionless_json_index_exists(self):
+        path = 'integral-native-router/beta/patches/entry.cjs'
+        dep = 'integral-native-router/beta/patches/manifest/index.json'
+        self.write(path, "const m=require('./manifest');\n")
+        self.write(dep, '{"yes":true}\n')
+        for pth in (path, dep):
+            f=self.base/pth
+            self.idx[pth]={'sha': RC.git_blob(f.read_bytes()), 'size': f.stat().st_size}
+        rep=self.prepare()
+        self.assertEqual(rep['donor_files_count'], 2)
+
+    def test_unknown_explicit_suffix_is_not_rewritten(self):
+        source = "const m=require('./fixture.data');\n"
+        expected = 'integral-native-router/beta/patches/fixture.data'
+        path = 'integral-native-router/beta/patches/entry.cjs'
+        self.assertEqual(list(RC.static_require_targets(path, source.encode())), [expected])
+
     def test_real_import_nested_in_template_interpolation_is_preserved(self):
         script = "const x=`${require('./real.cjs').answer}`;\n"
         got = list(RC.static_require_targets('integral-native-router/src/entry.cjs',
