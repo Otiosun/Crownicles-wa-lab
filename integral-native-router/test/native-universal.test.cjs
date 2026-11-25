@@ -28,7 +28,7 @@ function lab({enabled=true,live=false}={}){
 }
 test('registry is fixed, no arbitrary input packet name/payload accepted',async()=>{
  assert.equal(U.NATIVE.ping.request,'CommandPingPacketReq');
- assert.deepEqual(Object.keys(U.NATIVE).sort(),['expeditionResolve','guildCreate','petCaress','ping']);
+ assert.deepEqual(Object.keys(U.NATIVE).sort(),['expeditionResolve','friendlyFight','guildCreate','guildDescription','guildElderRemove','guildKick','guildLeave','petCaress','petFree','petTransfer','ping','unlock']);
  assert.equal(U.resolve('/admin',A,{env:gate}),null);
  assert.equal(U.resolve('/nativo CommandTestPacketReq',A,{env:gate}),null);
  assert.equal(U.resolve('/acariciar',A,{env:{}}).name,undefined);
