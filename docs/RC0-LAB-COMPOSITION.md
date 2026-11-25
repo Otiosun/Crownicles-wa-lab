@@ -25,6 +25,18 @@ Em 24/11, o primeiro compositor parou com:
 
 QA de regressão: **antes 4 falhas adversariais** (incluindo o erro exato de `patch-gateway-v29.cjs`), **depois 22/22 Python PASS**, incluindo subprocesso real Node e verificação de importação real em template. A nova ferramenta ainda precisa ser executada na árvore completa do Termux para comprovar que não existem outros bloqueios reais.
 
+## Correção RC0.2 — extensão `.json` preservada e resolução explícita
+
+Em 25/11, a RC0.1 também parou com:
+
+`MISSING_NON_BRIDGE_DEPENDENCY:integral-native-router/beta/patches/prepare-beta-v31.cjs=>integral-native-router/beta/patches/beta-v31-release-manifest.json.cjs`
+
+**Causa exata verificada no commit público:** o arquivo original `prepare-beta-v31.cjs` contém `manifest=require('./beta-v31-release-manifest.json')` dentro do parâmetro padrão da função `stageRelease`. Este é um `require` REAL e deve apontar para o manifesto `.json` que **já existe** na árvore pública (blob `938e6005f6abe452bfc9c8e3e86cb684b25c4d44`). O compositor anterior inventava a extensão `.cjs` sempre que um specifier não terminava com `.js/.cjs/.mjs`. Não é uma dependência ausente, nem um erro no bot.
+
+A RC0.2 mantém caminhos explícitos (`.json`, `.cjs`, `.node` etc.) exatamente como escritos e, para imports sem extensão, consulta os arquivos realmente presentes usando a ordem básica de lookup de Node: arquivo exato, `.js`, `.json`, `.node`, `index.js`, `index.json`, `index.node`. **Nunca** presume `.cjs` por omissão. Dependências realmente não encontradas continuam falhando com `MISSING_NON_BRIDGE_DEPENDENCY` ou `MISSING_LOCAL_BRIDGE_DEPENDENCY`; não desativa verificações.
+
+O scanner não é um AST completo e não cobre resolução de `package.json#main` ou imports computados. Os testes efetivos são o verificador final. **28/28 testes Python** sintéticos/adversariais RC0.2 passaram; incluem a regressão exata do manifesto da PR #6, falha quando ele está ausente, extensões explícitas, casos de import sem extensão, caminho `index.json`, módulos falsos em strings e subprocesso real de 47 arquivos de testes sintéticos. **Ainda NÃO é uma execução do compositor RC0.2 no Termux com a árvore real.**
+
 ## Reprodução no Termux (Android)
 
 Requisitos: `python3`, `node` e acesso HTTPS de leitura à API pública GitHub. O usuário já mantém a cópia CP058 intacta em `~/core-verificado` e a beta em `~/crownicles-whatsapp-lab/crownicles-beta/app/bridge`.
@@ -38,7 +50,7 @@ curl -fL \
 python3 ~/tools/rc0-compose-crownicles-lab.py \
   --base ~/core-verificado \
   --donor ~/crownicles-whatsapp-lab/crownicles-beta/app/bridge \
-  --output ~/crownicles-rc0-lab-v2 \
+  --output ~/crownicles-rc0-lab-v3 \
   --run-tests
 ```
 
@@ -60,6 +72,6 @@ Por padrão, sem `--run-tests`, **nenhum código Node é executado**: é só ins
 
 ## QA do próprio compositor
 
-- 22/22 testes Python adversariais/sintéticos (RC0.1), incluindo arquivo remoto alterado/incompleto/extra, symlinks de fonte/doador, dependências faltantes, travessia de diretórios, destino já existente e teste real Node com 47 arquivos artificiais.
+- 28/28 testes Python adversariais/sintéticos (RC0.2), incluindo arquivo remoto alterado/incompleto/extra, symlinks de fonte/doador, dependências faltantes, travessia de diretórios, destino já existente e teste real Node com 47 arquivos artificiais.
 - Execução real do Crownicles **não realizada pelo compositor nesta sessão**; depende dos módulos que estão apenas no Termux do proprietário.
 - O código da PR de compositor altera **somente** `tools/` e `docs/`; não altera código de bot, gateway, Core, testes já publicados ou CI.
