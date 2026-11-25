@@ -163,6 +163,152 @@ def patch_registry_only(public_files: dict[str, bytes]) -> None:
     public_files[TEST_FILE] = updated
 
 
+def js_code_mask(source: str) -> str:
+    """Mask JavaScript comments, regex and quoted text without losing offsets.
+
+    A require() in a quoted patch instruction must not become a dependency.
+    Template interpolations remain executable code and are scanned recursively.
+    This is a conservative *literal-require scanner*, not a full JS parser.
+    """
+    masked = list(source)
+    n = len(source)
+    regex_after_words = {'return', 'throw', 'case', 'delete', 'void', 'typeof',
+                         'instanceof', 'in', 'of', 'yield', 'await', 'else', 'do'}
+
+    def hide(a: int, b: int) -> None:
+        for k in range(a, b):
+            if source[k] not in '\r\n':
+                masked[k] = ' '
+
+    def quoted(i: int, quote: str) -> int:
+        start = i
+        i += 1
+        while i < n:
+            if source[i] == '\\':
+                i += 2
+            elif source[i] == quote:
+                i += 1
+                hide(start, i)
+                return i
+            else:
+                i += 1
+        raise RC0Error('JS_UNTERMINATED_STRING')
+
+    def pattern(i: int) -> int:
+        start = i
+        i += 1
+        inside_class = False
+        while i < n:
+            c = source[i]
+            if c == '\\':
+                i += 2
+                continue
+            if c in '\r\n':
+                raise RC0Error('JS_UNTERMINATED_REGEX')
+            if c == '[':
+                inside_class = True
+            elif c == ']':
+                inside_class = False
+            elif c == '/' and not inside_class:
+                i += 1
+                while i < n and (source[i].isalpha() or source[i] in '$'):
+                    i += 1
+                hide(start, i)
+                return i
+            i += 1
+        raise RC0Error('JS_UNTERMINATED_REGEX')
+
+    def template(i: int) -> int:
+        hide(i, i + 1)
+        i += 1
+        start = i
+        while i < n:
+            c = source[i]
+            if c == '\\':
+                i += 2
+                continue
+            if c == '`':
+                hide(start, i + 1)
+                return i + 1
+            if c == '$' and i + 1 < n and source[i + 1] == '{':
+                hide(start, i + 2)
+                i = code(i + 2, template_expression=True)
+                start = i
+                continue
+            i += 1
+        raise RC0Error('JS_UNTERMINATED_TEMPLATE')
+
+    def code(i: int, *, template_expression: bool = False) -> int:
+        depth = 1 if template_expression else 0
+        regex_allowed = True
+        while i < n:
+            c = source[i]
+            if c.isspace():
+                i += 1
+                continue
+            if c in ('\'', '"'):
+                i = quoted(i, c)
+                regex_allowed = False
+                continue
+            if c == '`':
+                i = template(i)
+                regex_allowed = False
+                continue
+            if c == '/' and i + 1 < n and source[i + 1] == '/':
+                start = i
+                i = source.find('\n', i + 2)
+                if i < 0:
+                    i = n
+                hide(start, i)
+                continue
+            if c == '/' and i + 1 < n and source[i + 1] == '*':
+                end = source.find('*/', i + 2)
+                if end < 0:
+                    raise RC0Error('JS_UNTERMINATED_COMMENT')
+                hide(i, end + 2)
+                i = end + 2
+                continue
+            if c == '/' and regex_allowed:
+                i = pattern(i)
+                regex_allowed = False
+                continue
+            if c.isalpha() or c in '_$':
+                start = i
+                i += 1
+                while i < n and (source[i].isalnum() or source[i] in '_$'):
+                    i += 1
+                regex_allowed = source[start:i] in regex_after_words
+                continue
+            if c.isdigit():
+                i += 1
+                while i < n and (source[i].isalnum() or source[i] in '._'):
+                    i += 1
+                regex_allowed = False
+                continue
+            if c == '{':
+                if template_expression:
+                    depth += 1
+                regex_allowed = True
+            elif c == '}':
+                if template_expression:
+                    depth -= 1
+                    if depth == 0:
+                        hide(i, i + 1)
+                        return i + 1
+                regex_allowed = False
+            else:
+                regex_allowed = c not in ')]' and c != '.'
+            i += 1
+        if template_expression:
+            raise RC0Error('JS_UNTERMINATED_TEMPLATE_EXPR')
+        return i
+
+    code(0)
+    return ''.join(masked)
+
+
+
+
 def static_require_targets(name: str, content: bytes):
     if not name.endswith(('.js', '.cjs', '.mjs')):
         return
@@ -170,7 +316,10 @@ def static_require_targets(name: str, content: bytes):
         text = content.decode('utf-8')
     except UnicodeDecodeError as exc:
         raise RC0Error('SOURCE_JS_ENCODING_INVALID:' + name) from exc
+    mask = js_code_mask(text)
     for match in REQUIRE_RE.finditer(text):
+        if mask[match.start():match.start() + len("require")] != "require":
+            continue
         imp = match.group(2)
         target = posixpath.normpath(posixpath.join(posixpath.dirname(name), imp))
         if not target.endswith(('.js', '.cjs', '.mjs')):
