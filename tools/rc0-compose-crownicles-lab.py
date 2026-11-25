@@ -319,11 +319,32 @@ def static_require_targets(name: str, content: bytes):
         if mask[match.start():match.start() + len("require")] != "require":
             continue
         imp = match.group(2)
+        # Preserve the literal specifier. Node does NOT append .cjs to
+        # `.json` imports or extensionless paths; resolution happens against
+        # the source tree separately, never by inventing a file extension.
         target = posixpath.normpath(posixpath.join(posixpath.dirname(name), imp))
-        if not target.endswith(('.js', '.cjs', '.mjs')):
-            target += '.cjs'
         require_safe_rel(target)
         yield target
+
+
+def resolve_public_require(target: str, files: dict[str, bytes]) -> str:
+    """Resolve the *present* public paths using Node's basic file lookup order.
+
+    This is intentionally not a simulation of package exports, `main` or
+    dynamic require(): a missing/ambiguous import still fails closed.
+    """
+    if target in files:
+        return target
+    # Exact .json, .node and explicit .cjs specifiers must remain exact.
+    # Node only probes .js, .json, .node (and indexes) for an extensionless
+    # literal; it does not implicitly add '.cjs'.
+    if not PurePosixPath(target).suffix:
+        for candidate in (target + '.js', target + '.json', target + '.node',
+                          target + '/index.js', target + '/index.json',
+                          target + '/index.node'):
+            if candidate in files:
+                return candidate
+    return target
 
 
 def recover_bridge_deps(files: dict[str, bytes], donor: Path) -> dict[str, dict]:
@@ -338,7 +359,8 @@ def recover_bridge_deps(files: dict[str, bytes], donor: Path) -> dict[str, dict]
         if name in seen:
             continue
         seen.add(name)
-        for target in static_require_targets(name, files[name]):
+        for specifier in static_require_targets(name, files[name]):
+            target = resolve_public_require(specifier, files)
             if target not in files:
                 if not (target.startswith('integral-native-router/src/')
                         and target.endswith('.cjs')
