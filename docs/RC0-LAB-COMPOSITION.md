@@ -21,7 +21,7 @@ Em 24/11, o primeiro compositor parou com:
 
 **Causa exata:** a expressão `require('./lote11.cjs')` está DENTRO da string `importAnchor` no arquivo original do patch, não é um import executado a partir da pasta `beta/patches`. O scanner anterior procurava `require(...)` com regex em texto cru, inclusive dentro de comentários, strings e templates, gerando dependências fictícias. Este erro impediu a criação da candidata e não implicou falha do bot.
 
-**RC0.1** passou a mascarar trechos não executáveis (strings simples/duplas, comentários, texto de template, regex literal) e preservar posições de código em interpolações ${...}`. Rejeita strings/comentários/regex não terminados em vez de ignorá-los silenciosamente. A análise continua limitada a `require('./...')` literais; não equivale a um parser JavaScript/AST completo. Nenhum módulo de jogo foi modificado, removido ou ignorado indiscriminadamente.
+**RC0.1** passou a mascarar trechos não executáveis (strings simples/duplas, comentários, texto de template, regex literal) e preservar posições de código em interpolações `${...}`. Rejeita strings/comentários/regex não terminados em vez de ignorá-los silenciosamente. A análise continua limitada a `require('./...')` literais; não equivale a um parser JavaScript/AST completo. Nenhum módulo de jogo foi modificado, removido ou ignorado indiscriminadamente.
 
 QA de regressão: **antes 4 falhas adversariais** (incluindo o erro exato de `patch-gateway-v29.cjs`), **depois 22/22 Python PASS**, incluindo subprocesso real Node e verificação de importação real em template. A nova ferramenta ainda precisa ser executada na árvore completa do Termux para comprovar que não existem outros bloqueios reais.
 
